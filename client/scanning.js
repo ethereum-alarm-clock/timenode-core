@@ -1,14 +1,47 @@
 /* eslint no-await-in-loop: "off" */
+const { routeTxRequest } = require("./routing.js")
 
-const store = (conf, txRequest) => {
+const start = (ms, conf) => {
   const log = conf.logger
 
-  if (conf.cache.has(txRequest.address)) {
-    log.cache(`Cache already contains ${txRequest.address}`)
-    return
-  }
-  log.info(`Storing found txRequest at address ${txRequest.address}`)
-  conf.cache.set(txRequest.address, txRequest.windowStart)
+  log.info(`Scanning request tracker at ${conf.tracker.address}`)
+  log.info(`Validating results with factory at ${conf.factory.address}`)
+  log.info(`Scanning every ${ms / 1000} seconds.`)
+
+  setInterval(() => {
+    if (conf.scanning) {
+      scanBlockchain(conf).catch(err => log.error(err))
+    }
+  }, ms)
+
+  setInterval(() => {
+    if (conf.scanning) {
+      scanCache(conf).catch(err => log.error(err))
+    }
+  }, ms + 1000)
+
+  // setInterval(_ => {
+  // 	conf.cache.sweepExpired()
+  // }, 12 * 60 * 1000)
+}
+
+const scanBlockchain = async (conf) => {
+  const log = conf.logger
+  const { eac } = conf
+
+  const leftBlock = (await eac.Util.getBlockNumber()) - conf.scanSpread
+  const rightBlock = leftBlock + (conf.scanSpread * 2)
+
+  const leftTimestamp = await eac.Util.getTimestampForBlock(leftBlock)
+  const avgBlockTime = Math.floor((await eac.Util.getTimestamp()) - (leftTimestamp / conf.scanSpread))
+  const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * conf.scanSpread * 2))
+
+  log.debug(`Scanning bounds from 
+[debug] blocks: ${leftBlock} to ${rightBlock}
+[debug] timestamps: ${leftTimestamp} tp ${rightTimestamp}`)
+
+  scan(conf, leftBlock, rightBlock)
+  scan(conf, leftTimestamp, rightTimestamp)
 }
 
 const scan = async (conf, left, right) => {
@@ -67,27 +100,16 @@ const scan = async (conf, left, right) => {
   }
 }
 
-const scanBlockchain = async (conf) => {
+const store = (conf, txRequest) => {
   const log = conf.logger
-  const { eac } = conf
 
-  const leftBlock = (await eac.Util.getBlockNumber()) - conf.scanSpread
-  const rightBlock = leftBlock + (conf.scanSpread * 2)
-
-  const leftTimestamp = await eac.Util.getTimestampForBlock(leftBlock)
-  const avgBlockTime = Math.floor((await eac.Util.getTimestamp()) - (leftTimestamp / conf.scanSpread))
-  const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * conf.scanSpread * 2))
-
-  log.debug(`Scanning bounds from 
-[debug] blocks: ${leftBlock} to ${rightBlock}
-[debug] timestamps: ${leftTimestamp} tp ${rightTimestamp}`)
-
-  scan(conf, leftBlock, rightBlock)
-  scan(conf, leftTimestamp, rightTimestamp)
+  if (conf.cache.has(txRequest.address)) {
+    log.cache(`Cache already contains ${txRequest.address}`)
+    return
+  }
+  log.info(`Storing found txRequest at address ${txRequest.address}`)
+  conf.cache.set(txRequest.address, txRequest.windowStart)
 }
-
-
-const { routeTxRequest } = require("./routing.js")
 
 const scanCache = async (conf) => {
   const { eac } = conf
@@ -106,6 +128,5 @@ const scanCache = async (conf) => {
 }
 
 module.exports = {
-  scanBlockchain,
-  scanCache,
+  start
 }

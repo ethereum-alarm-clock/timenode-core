@@ -69,7 +69,7 @@ const main = async (
   }
 
   // Loads conf
-  let conf = await Config.create(
+  let conf = await Config.create({
     scanSpread, // conf.scanSpread
     logfile, // conf.logger.logfile
     logLevel, // conf.logger.logLevel
@@ -81,7 +81,7 @@ const main = async (
     walletFile, // conf.wallet
     pw, // wallet password
     autostart
-  )
+  })
 
   conf.client = "parity"
   conf.chain = chain
@@ -113,7 +113,7 @@ const main = async (
   }
 
   // Begin
-  startScanning(ms, conf)
+  Scanner.startScanning(ms, conf)
 
   // Waits a bit before starting the repl so that the accounts have time to print.
   setTimeout(() => Repl.start(conf, ms), 1200)
