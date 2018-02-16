@@ -3,30 +3,6 @@ const Repl = require("./repl")
 const Scanner = require("./scanning")
 const StatsDB = require("./statsdb")
 
-const startScanning = (ms, conf) => {
-  const log = conf.logger
-
-  log.info(`Scanning request tracker at ${conf.tracker.address}`)
-  log.info(`Validating results with factory at ${conf.factory.address}`)
-  log.info(`Scanning every ${ms / 1000} seconds.`)
-
-  setInterval((_) => {
-    if (conf.scanning) {
-      Scanner.scanBlockchain(conf).catch(err => log.error(err))
-    }
-  }, ms)
-
-  setInterval((_) => {
-    if (conf.scanning) {
-      Scanner.scanCache(conf).catch(err => log.error(err))
-    }
-  }, ms + 1000)
-
-  // setInterval(_ => {
-  // 	conf.cache.sweepExpired()
-  // }, 12 * 60 * 1000)
-}
-
 /**
  * The main driver function that begins the client operation.
  * @param {Web3} web3 An instantiated web3 object.
@@ -89,7 +65,6 @@ const main = async (
   // Creates StatsDB
   conf.statsdb = new StatsDB(conf.web3)
 
-  // Determines wallet support
   // Determines wallet support
   if (conf.wallet) {
     console.log('Wallet support: Enabled')
