@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 const program = require("commander")
-const alarmClient = require("../client/main")
+const Config = require("../client/config")
+const Repl = require("../client/repl")
+const Scanner = require("../client/scanning")
+const StatsDB = require("../client/statsdb")
 const createWallet = require('../wallet/createWallet.js')
 const fundAccounts = require('../wallet/fundWallet')
 const drainWallet = require('../wallet/drainWallet.js')
@@ -120,20 +123,68 @@ const main = async (_) => {
       process.exit(1)
     }
 
-    alarmClient(
-      web3,
-      eac,
-      program.provider,
-      program.scan,
-      program.milliseconds,
-      program.logfile,
-      program.logLevel, // 1 = debug, 2 = info, 3 = error
-      program.wallet,
-      program.password,
-      program.autostart
-    ).catch((err) => {
-      throw err
+    if (program.logfile === "default") {
+      program.logfile = `${require("os").homedir()}/.eac.log`
+    }  
+
+    // Assigns chain to the name of the network ID
+    const chain = await eac.Util.getChainName()
+
+    // Loads the contracts
+    const requestFactory = await eac.requestFactory()
+    const requestTracker = await eac.requestTracker()
+
+    // Parses the logfile
+    if (program.logfile === "console") {
+      console.log("Logging to console")
+    }
+
+    console.log(program.logfile)
+
+    // Loads conf
+    let conf = await Config.create({
+      scanSpread: program.scan, // conf.scanSpread
+      logfile: program.logfile, // conf.logger.logfile
+      logLevel: program.logLevel, // conf.logger.logLevel
+      factory: requestFactory, // conf.factory
+      tracker: requestTracker, // conf.tracker
+      web3, // conf.web3
+      eac, // conf.eac
+      provider: program.provider, // conf.provider
+      wallet: program.wallet, // conf.wallet
+      password: program.password, // wallet password
+      autostart: program.autostart
     })
+
+    conf.client = "parity"
+    conf.chain = chain
+    conf.statsdb = new StatsDB(conf.web3)
+
+    // Determines wallet support
+    if (conf.wallet) {
+      console.log('Wallet support: Enabled')
+      console.log('\nExecuting from accounts:')
+      conf.wallet.getAccounts().forEach(async account => {
+        console.log(`${account} | Balance: ${web3.fromWei(await eac.Util.getBalance(account))}`)
+      })
+      conf.statsdb.initialize(conf.wallet.getAccounts())
+    } else { 
+      console.log('Wallet support: Disabled')
+      // Loads the default account.
+      const account = web3.eth.accounts[0]
+      /* eslint-disable */
+      web3.eth.defaultAccount = account
+      /* eslin-enable */
+      if (!eac.Util.checkValidAddress(web3.eth.defaultAccount)) {
+        throw new Error("Wallet is disabled but you do not have a local account unlocked.")
+      }
+      console.log(`\nExecuting from account: ${account} | Balance: ${web3.fromWei(await eac.Util.getBalance(account))}`)
+      conf.statsdb.initialize([account])
+    }
+
+    Scanner.start(program.milliseconds, conf)
+    setTimeout(() => Repl.start(conf, program.milliseconds), 1200)
+
   } else if (program.schedule) {
     if (!await eac.Util.checkNetworkID()) {
       console.log("  error: must be running a localnode on the Ropsten or Kovan networks")
