@@ -49,7 +49,7 @@ const Web3 = require("web3")
 const provider = new Web3.providers.HttpProvider(`${program.provider}`)
 const web3 = new Web3(provider)
 
-const eac = require('../index')(web3)
+const eac = require('eac.js-lib')(web3)
 
 const main = async (_) => {
   if (program.createWallet) {

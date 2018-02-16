@@ -23,7 +23,7 @@
   "homepage": "https://github.com/ethereum-alarm-clock/eac.js-client#readme",
   "dependencies": {
     "@parity/api": "^2.1.20",
-    "bignumber.js": "^6.0.0",
+    "bignumber.js": "^5.0.0",
     "bluebird": "^3.5.1",
     "clear": "0.0.1",
     "commander": "^2.14.1",
