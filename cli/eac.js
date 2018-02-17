@@ -1,18 +1,25 @@
 #!/usr/bin/env node
 
+const BigNumber = require("bignumber.js")
+const clear = require("clear")
+const ethUtil = require("ethereumjs-util")
+const ora = require("ora")
 const program = require("commander")
+const readlineSync = require("readline-sync")
+
+// CLI Imports
+const Logger = require("./logger")
+const Repl = require("./repl")
+
+// Client Imports
 const Config = require("../client/config")
-const Repl = require("../client/repl")
 const Scanner = require("../client/scanning")
 const StatsDB = require("../client/statsdb")
+
+// Wallet Imports
 const createWallet = require('../wallet/createWallet.js')
 const fundAccounts = require('../wallet/fundWallet')
 const drainWallet = require('../wallet/drainWallet.js')
-const BigNumber = require("bignumber.js")
-const clear = require("clear")
-const ora = require("ora")
-const readlineSync = require("readline-sync")
-const ethUtil = require("ethereumjs-util")
 
 // Parse the command line options using commander.
 program
@@ -137,15 +144,16 @@ const main = async (_) => {
     // Parses the logfile
     if (program.logfile === "console") {
       console.log("Logging to console")
+    } else {
+
     }
 
-    console.log(program.logfile)
+    const logger = new Logger(program.logfile, program.logLevel)
 
     // Loads conf
     let conf = await Config.create({
       scanSpread: program.scan, // conf.scanSpread
-      logfile: program.logfile, // conf.logger.logfile
-      logLevel: program.logLevel, // conf.logger.logLevel
+      logger,
       factory: requestFactory, // conf.factory
       tracker: requestTracker, // conf.tracker
       web3, // conf.web3

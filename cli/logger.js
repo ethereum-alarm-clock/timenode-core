@@ -58,4 +58,4 @@ class Logger {
   }
 }
 
-module.exports.Logger = Logger
+module.exports = Logger

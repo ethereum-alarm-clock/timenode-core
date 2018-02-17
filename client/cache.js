@@ -62,7 +62,7 @@ class Cache {
   }
 }
 
-module.exports.Cache = Cache
+module.exports = Cache
 
 // The cache assigns each key (txRequestAddress) the original value of its WindowStart
 // During certain conditions it will change the value
