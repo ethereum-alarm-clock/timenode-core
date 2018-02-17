@@ -12,9 +12,11 @@ const Logger = require("./logger")
 const Repl = require("./repl")
 
 // Client Imports
-const Config = require("../client/config")
-const Scanner = require("../client/scanning")
-const StatsDB = require("../client/statsdb")
+const {
+  Config,
+  Scanner,
+  StatsDB,
+} = require('../index')
 
 // Wallet Imports
 const createWallet = require('../wallet/createWallet.js')
