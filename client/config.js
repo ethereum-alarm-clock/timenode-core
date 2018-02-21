@@ -1,5 +1,4 @@
 const Cache = require("./cache.js")
-const LightWallet = require("./lightWallet.js")
 const Wallet = require('./wallet.js')
 
 /** 
@@ -75,22 +74,11 @@ class Config {
       if (typeof opts.walletFile === "string" || typeof opts.walletFile === Object) {
         conf.wallet = new Wallet(opts.web3)
         conf.wallet.decryptA(opts.walletFile, opts.password)
-      } else {
-        await conf.instantiateWallet(opts.walletFile, opts.password)
       }
     } else {
       conf.wallet = false
     }
     return conf
-  }
-
-  async instantiateWallet(file, password) {
-    if (file === "none") {
-      return false
-    }
-    const wallet = new LightWallet(this.web3)
-    await wallet.decryptAndLoad(file, password)
-    this.wallet = wallet 
   }
 }
 
