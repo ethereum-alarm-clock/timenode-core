@@ -6,7 +6,6 @@ class Wallet {
         this.web3 = web3
         this.length = 0
         this.nonce = 0
-        this.password = null
     }
 
     _findSafeIndex(pointer) {
@@ -20,7 +19,7 @@ class Wallet {
 
     _currentIndexes() {
         const keys = Object.keys(this)
-        const indexes = keys.map(parseInt).filter(n => n < 9e20)
+        const indexes = keys.map(key => parseInt(key, 10)).filter(n => n < 9e20).slice(0, this.length)
         return indexes
     }
 
@@ -38,8 +37,8 @@ class Wallet {
             wallet.index = idx
 
             this[idx] = wallet
-            this[walletv3.getAddressString()] = wallet
-            this[walletv3.getAddressString().toLowerCase()] = wallet
+            this[wallet.getAddressString()] = wallet
+            this[wallet.getAddressString().toLowerCase()] = wallet
             this.length++
             return wallet
         } else {
@@ -120,7 +119,7 @@ class Wallet {
             throw new Error('Index is outside range of addresses.')
         }
 
-        const from = this.getAccounts()[idx]
+        const from = this.getAccounts()[idx].getAddressString()
         const getNonce = (account) => new Promise(resolve => {
             this.web3.eth.getTransactionCount(account, (err,res) => {
                 resolve(res)
@@ -155,4 +154,10 @@ class Wallet {
     getAccounts() {
         return this._currentIndexes().map(idx => this[idx])
     }
+
+    getAddresses() {
+        return this.getAccounts().map(account => account.getAddressString())
+    }
 }
+
+module.exports = Wallet

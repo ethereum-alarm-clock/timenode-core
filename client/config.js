@@ -1,6 +1,6 @@
 const Cache = require("./cache.js")
 const LightWallet = require("./lightWallet.js")
-const MyCryptoWallet = require('./myCryptoWallet.js')
+const Wallet = require('./wallet.js')
 
 /** 
  * @param Opts {Object}
@@ -73,7 +73,8 @@ class Config {
     let conf = new Config(opts)
     if (opts.walletFile) {
       if (typeof opts.walletFile === "string" || typeof opts.walletFile === Object) {
-        conf.wallet = new MyCryptoWallet(opts.web3, opts.walltFiles, opts.password)
+        conf.wallet = new Wallet(opts.web3)
+        conf.wallet.decryptA(opts.walletFile, opts.password)
       } else {
         await conf.instantiateWallet(opts.walletFile, opts.password)
       }
