@@ -91,7 +91,8 @@ class LightWallet {
 
     const sendRawTransaction = Promise.promisify(this.web3.eth.sendRawTransaction)
     const from = this.getAccounts()[index]
-    const txCount = this.web3.eth.getTransactionCount(from)
+    const getTransactionCount = Promise.promisify(this.web3.eth.getTransactionCount)
+    const txCount = await getTransactionCount(from)
 
     const txParameters = {
       nonce: txCount,
