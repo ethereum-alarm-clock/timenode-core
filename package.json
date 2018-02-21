@@ -33,5 +33,9 @@
     "lokijs": "^1.5.2",
     "memory-cache": "^0.2.0",
     "web3": "^0.20.4"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.0.1"
   }
 }
