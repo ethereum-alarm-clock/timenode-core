@@ -8,9 +8,9 @@ const start = (ms, conf) => {
   log.info(`Validating results with factory at ${conf.factory.address}`)
   log.info(`Scanning every ${ms / 1000} seconds.`)
 
-  setInterval(() => {
+  setInterval(async () => {
     if (conf.scanning) {
-      scanBlockchain(conf).catch(err => log.error(err))
+      await scanBlockchain(conf).catch(err => log.error(err))
     }
   }, ms)
 
@@ -23,6 +23,17 @@ const start = (ms, conf) => {
   // setInterval(_ => {
   // 	conf.cache.sweepExpired()
   // }, 12 * 60 * 1000)
+}
+
+const inCache = (conf, address) => {
+  const log = conf.logger
+
+  if (conf.cache.has(address)) {
+    log.debug(`Cache HIT ${address}`)
+    return true
+  }
+  log.debug(`Cache MISS ${address}`)
+  return false
 }
 
 const scanBlockchain = async (conf) => {
@@ -64,34 +75,30 @@ const scan = async (conf, left, right) => {
 
   while (nextRequestAddress !== eac.Constants.NULL_ADDRESS) {
     log.debug(`Found request - ${nextRequestAddress}`)
+    if (!inCache(conf, nextRequestAddress)) {
+      const trackerWindowStart = await requestTracker.windowStartFor(nextRequestAddress)
+      const txRequest = await eac.transactionRequest(nextRequestAddress)
+      await txRequest.fillData()
 
-    // Verify that the request is known to the factory we are validating with.
-    if (!await requestFactory.isKnownRequest(nextRequestAddress)) {
-      log.error(`Encountered unknown transaction request: ${
-        requestFactory.address
-      } | query: ">=" | value ${left} | address: ${nextRequestAddress}`)
-      throw new Error(`Encountered unknown address! Please check that you are using the correct contracts JSON file.`)
-    }
-
-    const trackerWindowStart = await requestTracker.windowStartFor(nextRequestAddress)
-
-    const txRequest = await eac.transactionRequest(nextRequestAddress)
-    await txRequest.fillData()
-
-    if (!txRequest.windowStart.equals(trackerWindowStart)) {
-      // The data between the txRequest we have and from the requestTracker do not match.
-      log.error(`Data mismatch between txRequest and requestTracker. Double check contract addresses.`)
-    } else if (txRequest.windowStart.lessThanOrEqualTo(right)) {
-      // This request is within bounds, store it.
-      store(conf, txRequest)
+      if (!txRequest.windowStart.equals(trackerWindowStart)) {
+        // The data between the txRequest we have and from the requestTracker do not match.
+        log.error(`Data mismatch between txRequest and requestTracker. Double check contract addresses.`)
+      } else if (txRequest.windowStart.lessThanOrEqualTo(right)) {
+        // This request is within bounds, store it.
+        store(conf, txRequest)
+      }
     } else {
-      console.log
-      log.debug(`Scan exit condition hit! Next window start exceeds right bound. WindowStart: ${
-        txRequest.windowStart
-      } | right: ${right}`)
-      break
+      const windowStart = conf.cache.get(nextRequestAddress) //window start won't change after schedule
+
+      if (windowStart.greaterThan(right)) {
+        log.debug(`Scan exit condition hit! Next window start exceeds right bound. WindowStart: ${
+          windowStart
+        } | right: ${right}`)
+        break
+      }
     }
-    nextRequestAddress = await requestTracker.nextRequest(txRequest.address)
+
+    nextRequestAddress = await requestTracker.nextRequest(nextRequestAddress)
 
     // Hearbeat
     if (nextRequestAddress === eac.Constants.NULL_ADDRESS) {
@@ -103,10 +110,6 @@ const scan = async (conf, left, right) => {
 const store = (conf, txRequest) => {
   const log = conf.logger
 
-  if (conf.cache.has(txRequest.address)) {
-    log.cache(`Cache already contains ${txRequest.address}`)
-    return
-  }
   log.info(`Storing found txRequest at address ${txRequest.address}`)
   conf.cache.set(txRequest.address, txRequest.windowStart)
 }
@@ -128,5 +131,6 @@ const scanCache = async (conf) => {
 }
 
 module.exports = {
-  start
+  start,
+  scan
 }

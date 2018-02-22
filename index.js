@@ -1,11 +1,11 @@
 const Config = require('./client/config')
-const LightWallet = require('./client/lightWallet')
 const Scanner = require('./client/scanning')
 const StatsDB = require('./client/statsdb')
+const Wallet = require('./client/wallet')
 
 module.exports = {
     Config,
-    LightWallet,
     Scanner,
     StatsDB,
+    Wallet,
 }
