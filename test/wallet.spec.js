@@ -9,7 +9,9 @@ const provider = Ganache.provider({
 const web3 = new Web3(provider)
 const Promise = require('bluebird')
 
-describe('Wallet', () => {
+describe('Wallet', function () {
+    this.timeout(5000)
+
     it('creates a wallet with the correct number of accounts', () => {
         const w = new Wallet(web3)
         w.create(5)
@@ -126,5 +128,15 @@ describe('Wallet', () => {
         const bal2 = await getBalance(walletIndexFour.getAddressString())
         expect(bal2.toNumber()).to.be.above(0)
         expect(bal2.toNumber()).to.be.below(parseInt(web3.toWei('2', 'ether'), 10))
+    })
+
+    // You need to create a wallet and set the PASSWORD env variable to make this test run
+    it('loads a wallet from a saved keystore', () => {        
+        const w = new Wallet(web3)
+        const fs = require('fs')
+        const keystores = fs.readFileSync(__dirname + '/keyz', 'utf-8')
+        const ks = JSON.parse(keystores)
+        w.decrypt(ks, process.env.PASSWORD)
+        expect(w.length).to.equal(3)
     })
 })
