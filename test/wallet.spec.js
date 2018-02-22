@@ -7,7 +7,6 @@ const provider = Ganache.provider({
     "locked": false,
 })
 const web3 = new Web3(provider)
-const Promise = require('bluebird')
 
 describe('Wallet', function () {
     this.timeout(5000)
@@ -47,52 +46,49 @@ describe('Wallet', function () {
         w.create(5)
 
         // First fund the account we want to send a transaction from
-        const getAccounts = Promise.promisify(web3.eth.getAccounts)
-        const [main] =  await getAccounts()
+        const [main] =  await web3.eth.getAccounts()
         const [walletIndexZero, walletIndexOne] = w.getAccounts()
 
-        const sendTx = Promise.promisify(web3.eth.sendTransaction)
-        await sendTx({
+        await web3.eth.sendTransaction({
             to: walletIndexZero.getAddressString(),
             from: main,
-            value: web3.toWei('2', 'ether')
+            value: web3.utils.toWei('2', 'ether')
         })
 
         const to = "0x14609A0e29b474BE534B5bcb06eAFcdC85864C8f"
         const txHash = await w.sendFromNext({
             to,
-            value: web3.toWei('50', 'gwei'),
+            value: web3.utils.toWei('50', 'gwei'),
             gas: '3000000',
-            gasPrice: web3.toWei('2', 'gwei'),
+            gasPrice: web3.utils.toWei('2', 'gwei'),
             data: new Buffer('0x006006006', 'hex')
         })
         expect(txHash).to.exist
 
-        const getBalance = Promise.promisify(web3.eth.getBalance)
-        const bal = await getBalance(to)
-        expect(bal.toString()).that.equal(web3.toWei('50', 'gwei'))
+        const bal = await web3.eth.getBalance(to)
+        expect(bal.toString()).that.equal(web3.utils.toWei('50', 'gwei'))
 
         // For good measure, let's see if it can do that from account two
-        await sendTx({
+        await web3.eth.sendTransaction({
             to: walletIndexOne.getAddressString(),
             from: main,
-            value: web3.toWei('2', 'ether')
+            value: web3.utils.toWei('2', 'ether')
         })
 
         const txHash2 = await w.sendFromNext({
             to,
-            value: web3.toWei('50', 'gwei'),
+            value: web3.utils.toWei('50', 'gwei'),
             gas: '3000000',
-            gasPrice: web3.toWei('2', 'gwei'),
+            gasPrice: web3.utils.toWei('2', 'gwei'),
             data: new Buffer('0x006006006', 'hex')
         })
         expect(txHash2).to.exist
 
-        const bal2 = await getBalance(walletIndexOne.getAddressString())
-        expect(bal2.toNumber()).to.be.below(parseInt(web3.toWei('2', 'ether'), 10))
+        const bal2 = await web3.eth.getBalance(walletIndexOne.getAddressString())
+        expect(parseInt(bal2)).to.be.below(parseInt(web3.utils.toWei('2', 'ether'), 10))
 
-        const bal3 = await getBalance(to)
-        expect(bal3.toString()).to.equal(web3.toWei('100', 'gwei'))
+        const bal3 = await web3.eth.getBalance(to)
+        expect(bal3.toString()).to.equal(web3.utils.toWei('100', 'gwei'))
     })
 
     it('can send a transaction using sendFromIndex', async () => {
@@ -100,34 +96,31 @@ describe('Wallet', function () {
         w.create(5)
 
         // First fund the account we want to send a transaction from
-        const getAccounts = Promise.promisify(web3.eth.getAccounts)
-        const [main] =  await getAccounts()
+        const [main] =  await web3.eth.getAccounts()
         const walletIndexFour = w.getAccounts()[4]
 
-        const sendTx = Promise.promisify(web3.eth.sendTransaction)
-        await sendTx({
+        await web3.eth.sendTransaction({
             to: walletIndexFour.getAddressString(),
             from: main,
-            value: web3.toWei('2', 'ether')
+            value: web3.utils.toWei('2', 'ether')
         })
 
-        const to = "0x25609A0e29b474BE534B5bcb06eAFcdC85864C8f"
+        const to = "0x5A0b54D5dc17e0AadC383d2db43B0a0D3E029c4c"
         const txHash = await w.sendFromIndex(4, {
             to,
-            value: web3.toWei('50', 'gwei'),
+            value: web3.utils.toWei('50', 'gwei'),
             gas: '3000000',
-            gasPrice: web3.toWei('2', 'gwei'),
+            gasPrice: web3.utils.toWei('2', 'gwei'),
             data: new Buffer('0x006006006', 'hex')
         })
         expect(txHash).to.exist
 
-        const getBalance = Promise.promisify(web3.eth.getBalance)
-        const bal = await getBalance(to)
-        expect(bal.toString()).that.equal(web3.toWei('50', 'gwei'))
+        const bal = await web3.eth.getBalance(to)
+        expect(bal).that.equal(web3.utils.toWei('50', 'gwei'))
 
-        const bal2 = await getBalance(walletIndexFour.getAddressString())
-        expect(bal2.toNumber()).to.be.above(0)
-        expect(bal2.toNumber()).to.be.below(parseInt(web3.toWei('2', 'ether'), 10))
+        const bal2 = await web3.eth.getBalance(walletIndexFour.getAddressString())
+        expect(parseInt(bal2)).to.be.above(0)
+        expect(parseInt(bal2)).to.be.below(parseInt(web3.utils.toWei('2', 'ether'), 10))
     })
 
     // You need to create a wallet and set the PASSWORD env variable to make this test run

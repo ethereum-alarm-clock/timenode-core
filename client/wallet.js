@@ -120,34 +120,23 @@ class Wallet {
         }
 
         const from = this.getAccounts()[idx].getAddressString()
-        const getNonce = (account) => new Promise(resolve => {
-            this.web3.eth.getTransactionCount(account, (err,res) => {
-                resolve(res)
-            })
-        })
-        return new Promise((resolve, reject) => {
-            getNonce(from).then((txCount) => {
-                const txParams = {
-                    nonce: txCount,
-                    from,
-                    to: opts.to,
-                    gas: this.web3.toHex(opts.gas),
-                    gasPrice: this.web3.toHex(opts.gasPrice),
-                    value: this.web3.toHex(opts.value),
-                    data: opts.data
-                }
 
-                const tx = new ethTx(txParams)
-                const privKey = _this[from].privKey
-                tx.sign(new Buffer(privKey, 'hex'))
-                this.web3.eth.sendRawTransaction('0x'.concat(tx.serialize().toString('hex')), (err,res) => {
-                    if (err) {
-                        reject(err)
-                    } else {
-                        resolve(res)
-                    }
-                })
-            })
+        return this.web3.eth.getTransactionCount(from).then((txCount) => {
+            const txParams = {
+                nonce: txCount,
+                from,
+                to: opts.to,
+                gas: this.web3.utils.toHex(opts.gas),
+                gasPrice: this.web3.utils.toHex(opts.gasPrice),
+                value: this.web3.utils.toHex(opts.value),
+                data: opts.data
+            }
+
+            const tx = new ethTx(txParams)
+            const privKey = _this[from].privKey
+            tx.sign(new Buffer(privKey, 'hex'))
+
+            return this.web3.eth.sendSignedTransaction('0x'.concat(tx.serialize().toString('hex')))
         })
     }
 
