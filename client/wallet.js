@@ -67,12 +67,12 @@ class Wallet {
         indexes.forEach((idx) => {
             _this.rm(idx)
         })
-        
+
         return this
     }
 
     encrypt(password, opts) {
-        const _this = this 
+        const _this = this
         const indexes = this._currentIndexes()
 
         const wallets = indexes.map((idx) => {

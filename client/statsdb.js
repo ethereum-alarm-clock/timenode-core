@@ -3,8 +3,14 @@ const loki = require("lokijs")
 
 // / Wrapper over a lokijs persistent storage to keep track of the stats of executing accounts.
 class StatsDB {
-  constructor(web3) {
-    this.db = new loki("stats.json")
+  constructor(web3, browserDB) {
+    debugger
+    if (browserDB) {
+      this.db = browserDB
+    } else {
+      this.db = new loki("stats.json")
+    }
+
     this.stats = this.db.addCollection("stats")
     this.web3 = web3
     this.eac = require("eac.js-lib")(web3)
