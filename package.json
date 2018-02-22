@@ -32,7 +32,6 @@
     "ganache-core": "^2.0.2",
     "jquery": "^3.3.1",
     "lodash": "^4.17.5",
-    "lokijs": "^1.5.2",
     "memory-cache": "^0.2.0"
   },
   "devDependencies": {
