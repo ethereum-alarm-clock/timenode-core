@@ -5,15 +5,24 @@
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
 const hasPendingParity = async (conf, txRequest) => {
-  // / Only available if using parity locally.
-  const pApi = require("@parity/api")
-  const provider = new pApi.Provider.Http(`${conf.provider}`)
-  const api = new pApi(provider)
+  const provider = conf.web3.currentProvider
 
-  const transactions = await api.parity.pendingTransactions()
-  const recips = transactions.map(tx => tx.to)
-  if (recips.indexOf(txRequest.address) !== -1) return true
-  return false
+  return new Promise((resolve, reject) => {
+    provider.send(
+      {
+        jsonrpc: "2.0",
+        method: "parity_pendingTransactions",
+        params: [],
+        id: 0o7,
+      },
+      (err, res) => {
+        if (err) reject(err)
+
+        const hasTx = !!res.result.filter(tx => tx.to === txRequest.address).length
+        resolve(hasTx)
+      }
+    )
+  })
 }
 
 /**
@@ -23,9 +32,7 @@ const hasPendingParity = async (conf, txRequest) => {
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
 const hasPendingGeth = (conf, txRequest) => {
-  // / Only available if using Geth locally.
-  const Web3 = require("web3")
-  const provider = new Web3.providers.HttpProvider(`${conf.provider}`)
+  const provider = conf.web3.currentProvider
 
   return new Promise((resolve, reject) => {
     provider.send(

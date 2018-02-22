@@ -22,7 +22,6 @@
   },
   "homepage": "https://github.com/ethereum-alarm-clock/eac.js-client#readme",
   "dependencies": {
-    "@parity/api": "^2.1.20",
     "bignumber.js": "^5.0.0",
     "bluebird": "^3.5.1",
     "eac.js-lib": "^1.0.0",
@@ -31,7 +30,6 @@
     "ethereumjs-util": "^5.1.4",
     "lodash": "^4.17.5",
     "lokijs": "^1.5.2",
-    "memory-cache": "^0.2.0",
-    "web3": "^0.20.4"
+    "memory-cache": "^0.2.0"
   }
 }
