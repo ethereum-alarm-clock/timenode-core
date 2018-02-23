@@ -31,7 +31,6 @@
     "ethereumjs-wallet": "^0.6.0",
     "ganache-core": "^2.0.2",
     "lodash": "^4.17.5",
-    "lokijs": "^1.5.2",
     "memory-cache": "^0.2.0"
   },
   "devDependencies": {

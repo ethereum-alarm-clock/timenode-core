@@ -1,7 +1,7 @@
 const Cache = require("./cache.js")
 const Wallet = require('./wallet.js')
 
-/** 
+/**
  * @param Opts {Object}
  */
 class Config {
@@ -71,9 +71,9 @@ class Config {
   ) {
     let conf = new Config(opts)
     if (opts.walletFile) {
-      if (typeof opts.walletFile === "string" || typeof opts.walletFile === Object) {
+      if (typeof opts.walletFile === "string" || typeof opts.walletFile === 'object') {
         conf.wallet = new Wallet(opts.web3)
-        conf.wallet.decryptA(opts.walletFile, opts.password)
+        conf.wallet.decrypt([opts.walletFile], opts.password)
       }
     } else {
       conf.wallet = false
