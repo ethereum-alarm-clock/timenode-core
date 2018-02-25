@@ -26,6 +26,7 @@ class StatsDB {
         executed: 0,
         startingEther: bal,
         currentEther: bal,
+        executedTransactions: []
       })
     })
   }
@@ -45,6 +46,7 @@ class StatsDB {
   async updateExecuted(account) {
     const found = this.stats.find({ account })[0]
     found.executed += 1
+    found.executedTransactions.push({ timestamp: Date.now() })
     let bal = await this.eac.Util.getBalance(account)
     bal = new BigNumber(bal)
     const difference = bal.minus(found.currentEther)
