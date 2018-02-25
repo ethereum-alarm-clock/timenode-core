@@ -23,6 +23,7 @@ class StatsDB {
       this.stats.insert({
         account,
         claimed: 0,
+        executed: 0,
         startingEther: bal,
         currentEther: bal,
         executedTransactions: []
@@ -44,6 +45,7 @@ class StatsDB {
   // / Takes the account which has executed a transaction.
   async updateExecuted(account) {
     const found = this.stats.find({ account })[0]
+    found.executed += 1
     found.executedTransactions.push({ timestamp: Date.now() })
     let bal = await this.eac.Util.getBalance(account)
     bal = new BigNumber(bal)
