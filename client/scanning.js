@@ -1,6 +1,8 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require("./routing.js")
 
+const blockChainScanning, cacheScanning
+
 const start = (ms, conf) => {
   const log = conf.logger
 
@@ -8,13 +10,13 @@ const start = (ms, conf) => {
   log.info(`Validating results with factory at ${conf.factory.address}`)
   log.info(`Scanning every ${ms / 1000} seconds.`)
 
-  setInterval(async () => {
+  blockChainScanning = setInterval(async () => {
     if (conf.scanning) {
       await scanBlockchain(conf).catch(err => log.error(err))
     }
   }, ms)
 
-  setInterval(() => {
+  cacheScanning = setInterval(() => {
     if (conf.scanning) {
       scanCache(conf).catch(err => log.error(err))
     }
@@ -23,17 +25,19 @@ const start = (ms, conf) => {
   // setInterval(_ => {
   // 	conf.cache.sweepExpired()
   // }, 12 * 60 * 1000)
+
+  log.info('Scanning STARTED')
+}
+
+const stop = () => {
+  clearInterval(blockChainScanning)
+  clearInterval(cacheScanning)
+
+  log.info('Scanning STOPPED')
 }
 
 const inCache = (conf, address) => {
-  const log = conf.logger
-
-  if (conf.cache.has(address)) {
-    log.debug(`Cache HIT ${address}`)
-    return true
-  }
-  log.debug(`Cache MISS ${address}`)
-  return false
+  return conf.cache.has(address)
 }
 
 const scanBlockchain = async (conf) => {
@@ -68,7 +72,7 @@ const scan = async (conf, left, right) => {
   let nextRequestAddress = await requestTracker.nextFromLeft(left)
 
   if (nextRequestAddress === eac.Constants.NULL_ADDRESS) {
-    log.info("No new requests.")
+    log.debug("No new requests.")
     return
   } else if (!eac.Util.checkValidAddress(nextRequestAddress)) {
     throw new Error(`Received invalid response from Request Tracker | Response: ${nextRequestAddress}`)
@@ -103,7 +107,7 @@ const scan = async (conf, left, right) => {
 
     // Hearbeat
     if (nextRequestAddress === eac.Constants.NULL_ADDRESS) {
-      log.info("No new requests.")
+      log.debug("No new requests.")
     }
   }
 }
@@ -118,7 +122,7 @@ const getBlock = (web3, number = "latest") => Promise((resolve, reject) => {
 const store = (conf, txRequest) => {
   const log = conf.logger
 
-  log.info(`Storing found txRequest at address ${txRequest.address}`)
+  log.info(`Storing found transaction request at address ${txRequest.address}`)
   conf.cache.set(txRequest.address, txRequest.windowStart)
 }
 
@@ -140,5 +144,6 @@ const scanCache = async (conf) => {
 
 module.exports = {
   start,
-  scan
+  scan,
+  stop
 }

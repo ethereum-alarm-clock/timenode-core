@@ -38,7 +38,7 @@ const claim = async (conf, txRequest) => {
     return Promise.resolve({ status: "0x0" })
   }
 
-  log.info(`Attempting the claim of txRequest at address ${
+  log.info(`Attempting the claim of transaction request at address ${
     txRequest.address
   } | Payment: ${paymentWhenClaimed}`)
   conf.cache.set(txRequest.address, 102)
@@ -79,7 +79,7 @@ const execute = async (conf, txRequest) => {
     return Promise.reject(new Error("Execution gas exceeds the network gas limit."))
   }
 
-  log.info(`Attempting the execution of txRequest at address ${txRequest.address}`)
+  log.info(`Attempting the execution of transaction request at address ${txRequest.address}`)
   conf.cache.set(txRequest.address, -1)
 
   if (conf.wallet) {
@@ -245,7 +245,7 @@ const routeTxRequest = async (conf, txRequest) => {
       .then((receipt) => {
         // If success set to claimed
         if (receipt.status == 1) {
-          log.info(`TxRequest at ${txRequest.address} claimed!`)
+          log.info(`Transaction request at ${txRequest.address} claimed!`)
           conf.cache.set(txRequest.address, 103)
           web3.eth.getTransaction(receipt.transactionHash, (err, txObj) => {
             if (!err) {
@@ -296,7 +296,7 @@ const routeTxRequest = async (conf, txRequest) => {
     execute(conf, txRequest)
       .then((receipt) => {
         if (receipt.status == 1) {
-          log.info(`TxRequest at ${txRequest.address} executed!`)
+          log.info(`Transaction request at ${txRequest.address} executed!`)
           conf.cache.set(txRequest.address, 100)
           web3.eth.getTransaction(receipt.transactionHash, (err, txObj) => {
             if (!err) {

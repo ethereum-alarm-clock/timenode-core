@@ -27,8 +27,10 @@ class Cache {
 
   has(k) {
     if (this.cache.get(k) === null) {
+      this.log.cache(`miss ${k}`)
       return false
     }
+    this.log.cache(`hit ${k}`)
     return true
   }
 
