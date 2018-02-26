@@ -1,6 +1,6 @@
 const assert = require('chai').assert
 const BigNumber = require("bignumber.js")
-const scanning = require('../client/scanning')
+const { Scanner } = require('../client/scanner')
 const Cache = require('../client/cache')
 let eac = require("eac.js-lib")()
 
@@ -79,7 +79,6 @@ describe('Scanning', () => {
   describe('#scan()', () => {
     eac.transactionRequest = address => new TxRequest(address)
 
-    const { scan } = scanning
     const conf = {
       logger,
       tracker: new RequestTracker(),
@@ -88,8 +87,10 @@ describe('Scanning', () => {
       cache: new Cache(logger)
     }
 
+    const scanner = new Scanner(100, conf)
+
     it('should cache 2 last transactions', async () => {
-      await scan(conf, 0, 10)
+      await scanner.scan(0, 10)
 
       assert.isFalse(conf.cache.has(tx[0]), `Transaction ${tx[0]} in cache`)
 
