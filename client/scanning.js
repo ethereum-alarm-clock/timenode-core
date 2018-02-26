@@ -1,7 +1,8 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require("./routing.js")
 
-const blockChainScanning, cacheScanning
+let blockChainScanning
+let cacheScanning
 
 const start = (ms, conf) => {
   const log = conf.logger
