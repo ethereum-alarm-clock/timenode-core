@@ -49,7 +49,7 @@ const scanBlockchain = async (conf) => {
   const leftBlock = latestBlock.number - conf.scanSpread
   const rightBlock = leftBlock + (conf.scanSpread * 2)
 
-  const leftTimestamp = (await getBlock(leftBlock)).timestamp
+  const leftTimestamp = (await getBlock(web3, leftBlock)).timestamp
   const avgBlockTime = Math.floor(latestBlock.timestamp - (leftTimestamp / conf.scanSpread))
   const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * conf.scanSpread * 2))
 
