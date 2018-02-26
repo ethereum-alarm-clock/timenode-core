@@ -38,13 +38,14 @@ const inCache = (conf, address) => {
 
 const scanBlockchain = async (conf) => {
   const log = conf.logger
-  const { eac } = conf
+  const { web3 } = conf
 
-  const leftBlock = (await eac.Util.getBlockNumber()) - conf.scanSpread
+  const latestBlock = await getBlock(web3, "latest")
+  const leftBlock = latestBlock.number - conf.scanSpread
   const rightBlock = leftBlock + (conf.scanSpread * 2)
 
-  const leftTimestamp = await eac.Util.getTimestampForBlock(leftBlock)
-  const avgBlockTime = Math.floor((await eac.Util.getTimestamp()) - (leftTimestamp / conf.scanSpread))
+  const leftTimestamp = (await getBlock(leftBlock)).timestamp
+  const avgBlockTime = Math.floor(latestBlock.timestamp - (leftTimestamp / conf.scanSpread))
   const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * conf.scanSpread * 2))
 
   log.debug(`Scanning bounds from 
@@ -106,6 +107,13 @@ const scan = async (conf, left, right) => {
     }
   }
 }
+
+const getBlock = (web3, number = "latest") => Promise((resolve, reject) => {
+  web3.eth.getBlock(number, (err, block) => {
+    if (!err) resolve(block)
+    else reject(err)
+  })
+})
 
 const store = (conf, txRequest) => {
   const log = conf.logger
