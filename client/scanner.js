@@ -81,9 +81,9 @@ class Scanner {
           this.store(txRequest)
         }
       } else {
-        const windowStart = this.cache.get(nextRequestAddress) //window start won't change after schedule
+        const windowStart = parseInt(this.cache.get(nextRequestAddress)) //window start won't change after schedule
   
-        if (windowStart.greaterThan(right)) {
+        if (windowStart > right) {
           this.log.debug(`Scan exit condition hit! Next window start exceeds right bound. WindowStart: ${
             windowStart
           } | right: ${right}`)
