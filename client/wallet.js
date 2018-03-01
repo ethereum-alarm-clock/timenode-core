@@ -141,11 +141,11 @@ class Wallet {
                 const privKey = _this[from].privKey
                 tx.sign(new Buffer(privKey, 'hex'))
                 this.web3.eth.sendRawTransaction('0x'.concat(tx.serialize().toString('hex')), (err,res) => {
-                    if (err) {
-                        reject(err)
-                    } else {
+                    if (err) reject(err)
+                    this.web3.eth.getTransactionReceipt(res, (err, res) => {
+                        if (err) reject(err)
                         resolve(res)
-                    }
+                    })
                 })
             })
         })
