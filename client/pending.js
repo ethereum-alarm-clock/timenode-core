@@ -10,8 +10,8 @@ const hasPendingParity = async (conf, txRequest) => {
   return new Promise((resolve, reject) => {
     provider.send(
       {
-        jsonrpc: "2.0",
-        method: "parity_pendingTransactions",
+        jsonrpc: '2.0',
+        method: 'parity_pendingTransactions',
         params: [],
         id: 0o7,
       },
@@ -37,8 +37,8 @@ const hasPendingGeth = (conf, txRequest) => {
   return new Promise((resolve, reject) => {
     provider.send(
       {
-        jsonrpc: "2.0",
-        method: "txpool_content",
+        jsonrpc: '2.0',
+        method: 'txpool_content',
         params: [],
         id: 0o7,
       },
@@ -64,9 +64,9 @@ const hasPendingGeth = (conf, txRequest) => {
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  */
 const hasPending = (conf, txRequest) => {
-  if (conf.client == "parity") {
+  if (conf.client == 'parity') {
     return hasPendingParity(conf, txRequest)
-  } else if (conf.client == "geth") {
+  } else if (conf.client == 'geth') {
     return hasPendingGeth(conf, txRequest)
   }
 }
