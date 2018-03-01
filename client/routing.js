@@ -45,13 +45,13 @@ const claim = async (conf, txRequest) => {
 
   if (conf.wallet) {
     // Wallet is enabled, claim from the next index.
-    return conf.wallet.sendFromNext(
-        txRequest.address,
-        claimDeposit,
-        gasToClaim + 21000,
-        await Util.getGasPrice(web3),
+    return conf.wallet.sendFromNext({
+        to: txRequest.address,
+        value: claimDeposit,
+        gas: gasToClaim + 21000,
+        gasPrice: await Util.getGasPrice(web3),
         data
-    )
+    })
   } else {
       // Wallet disabled, claim from default account
       return txRequest.claim().send({
@@ -85,24 +85,21 @@ const execute = async (conf, txRequest) => {
   if (conf.wallet) {
     const executeData = txRequest.executeData
     const walletClaimIndex =  conf.wallet.getAccounts().indexOf(txRequest.claimedBy)
+    const opts = {
+      to: txRequest.address,
+      gas: executeGas,
+      gasPrice,
+      data: executeData,
+      value: 0
+    }
 
     if (walletClaimIndex !== -1) {
         return conf.wallet.sendFromIndex(
             walletClaimIndex,
-            txRequest.address,
-            0,
-            executeGas,
-            gasPrice,
-            executeData
+            opts
         )
     } else {
-        return conf.wallet.sendFromNext(
-            txRequest.address,
-            0,
-            executeGas,
-            gasPrice,
-            executeData
-        )
+        return conf.wallet.sendFromNext(opts)
     }
   } else {
       return txRequest.execute({
@@ -139,17 +136,20 @@ const cleanup = async (conf, txRequest) => {
     })
     const currentGasPrice = new BigNumber(await Util.getGasPrice(web3))
     const gasCostToCancel = currentGasPrice.times(gasToCancel)
+    const opts = {
+      to: txRequest.address,
+      value: 0,
+      gas: gasToCancel + 21000,
+      gasPrice: await web3.eth.getGasPrice(),
+      data: cancelData
+    }
 
     if (conf.wallet) {
       const ownerIndex = conf.wallet.getAccounts().indexOf(txRequest.getOwner())
       if (ownerIndex !== -1) {
           conf.wallet.sendFromIndex(
               ownerIndex,
-              txRequest.address,
-              0,
-              gasToCancel + 21000,
-              await web3.eth.getGasPrice(),
-              cancelData
+              opts
           )
       } else {
           // The more likely scenario is that one of our accounts is not the
@@ -160,13 +160,7 @@ const cleanup = async (conf, txRequest) => {
               // The transaction request does not have enough money to compensate.
               return
           }
-          conf.wallet.sendFromNext(
-              txRequest.address,
-              0,
-              gasToCancel + 21000,
-              await web3.eth.getGasPrice(),
-              cancelData
-          )
+          conf.wallet.sendFromNext(opts)
       }
     } else {
       if (txRequest.isClaimedBy(web3.eth.defaultAccount)) {
