@@ -213,7 +213,6 @@ const cleanup = async (conf, txRequest) => {
  */
 const routeTxRequest = async (conf, txRequest) => {
   const log = conf.logger
-  const { web3 } = conf
 
   // Return early the transaction already has a pending transaction
   // in the transaction pool
@@ -255,17 +254,12 @@ const routeTxRequest = async (conf, txRequest) => {
 
     claim(conf, txRequest)
       .then(receipt => {
-        // If success set to claimed
-        if (receipt.status == 1) {
+        if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
-          web3.eth.getTransaction(receipt.transactionHash, (err, txObj) => {
-            if (!err) {
-              conf.statsdb.updateClaimed(txObj.from)
-            } else {
-              log.error(err)
-            }
-          })
+          conf.statsdb.updateClaimed(receipt.from)
+        } else {
+          log.error(`[${txRequest.address}] Claiming failed.`)
         }
       })
       .catch(err => log.error(err))
@@ -301,10 +295,12 @@ const routeTxRequest = async (conf, txRequest) => {
     }
     execute(conf, txRequest)
       .then(receipt => {
-        if (receipt.status == 1) {
+        if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Executed.`)
           conf.cache.set(txRequest.address, 100)
           conf.statsdb.updateExecuted(receipt.from)
+        } else {
+          log.error(`[${txRequest.address}] Execution failed.`)
         }
       })
       .catch(err => log.error(err))
