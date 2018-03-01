@@ -52,49 +52,101 @@ class Scanner {
   [debug] blocks: ${leftBlock} to ${rightBlock}
   [debug] timestamps: ${leftTimestamp} tp ${rightTimestamp}`)
   
-    this.scan(leftBlock, rightBlock)
-    this.scan(leftTimestamp, rightTimestamp)
+    this.scanBlocks(leftBlock, rightBlock)
+    this.scanTimeStamps(leftTimestamp, rightTimestamp)
   }
 
-  async scan(left, right) {
-    let nextRequestAddress = await this.requestTracker.nextFromLeft(left)
-  
-    if (nextRequestAddress === this.eac.Constants.NULL_ADDRESS) {
+  isCorrect(requestAddres) {
+    if (requestAddres === this.eac.Constants.NULL_ADDRESS) {
       this.log.debug("No new requests.")
-      return
-    } else if (!this.eac.Util.checkValidAddress(nextRequestAddress)) {
-      throw new Error(`Received invalid response from Request Tracker | Response: ${nextRequestAddress}`)
+      return false
+    } else if (!this.eac.Util.checkValidAddress(requestAddres)) {
+      throw new Error(`Received invalid response from Request Tracker | Response: ${requestAddres}`)
     }
-  
-    while (nextRequestAddress !== this.eac.Constants.NULL_ADDRESS) {
-      this.log.debug(`Found request - ${nextRequestAddress}`)
-      if (!this.cache.has(nextRequestAddress)) {
-        const trackerWindowStart = await this.requestTracker.windowStartFor(nextRequestAddress)
-        const txRequest = await this.eac.transactionRequest(nextRequestAddress)
-        await txRequest.fillData()
-  
-        if (!txRequest.windowStart.equals(trackerWindowStart)) {
-          // The data between the txRequest we have and from the requestTracker do not match.
-          log.error(`Data mismatch between txRequest and requestTracker. Double check contract addresses.`)
-        } else if (txRequest.windowStart.lessThanOrEqualTo(right)) {
-          // This request is within bounds, store it.
-          this.store(txRequest)
+
+    return true
+  }
+
+  async fill(requestAddres) {
+    const trackerWindowStart = await this.requestTracker.windowStartFor(requestAddres)
+    const txRequest = await this.eac.transactionRequest(requestAddres)
+    await txRequest.fillData()
+
+    if (!txRequest.windowStart.equals(trackerWindowStart)) {
+      log.error(`Data mismatch between txRequest and requestTracker. Double check contract addresses.`)
+      return null
+    }
+
+    return txRequest
+  }
+
+  async scanBlocks(left, right) {
+    let firstRequestAddress = await this.requestTracker.previousFromRight(right)
+    this.scan(
+      left,
+      right,
+      firstRequestAddress,
+      windowStart => windowStart.isGreaterThanOrEqualTo(left),
+      windowStart => {
+        if (windowStart < left && windowStart > 105) {
+          this.log.debug(`Scan exit condition hit! Previous window start preceeds left bound. WindowStart: ${
+            windowStart
+          } | left: ${left}`)
+
+          return false
         }
-      } else {
-        const windowStart = parseInt(this.cache.get(nextRequestAddress)) //window start won't change after schedule
-  
+        return true
+      },
+      currentRequestAddress => this.requestTracker.previousRequest(currentRequestAddress)
+    )
+  }
+
+  async scanTimeStamps(left, right) {
+    let firstRequestAddress = await this.requestTracker.nextFromLeft(left)
+    this.scan(
+      left,
+      right,
+      firstRequestAddress,
+      windowStart => windowStart.lessThanOrEqualTo(right),
+      windowStart => {
         if (windowStart > right) {
           this.log.debug(`Scan exit condition hit! Next window start exceeds right bound. WindowStart: ${
             windowStart
           } | right: ${right}`)
+
+          return false
+        }
+        return true
+      },
+      currentRequestAddress => this.requestTracker.nextRequest(currentRequestAddress)
+    )
+  }
+
+  async scan(left, right, firstRequest, shouldStore, atBound, getNext) {
+    let currentRequestAddress = firstRequest
+  
+    if (!this.isCorrect(currentRequestAddress)) return
+  
+    while (currentRequestAddress !== this.eac.Constants.NULL_ADDRESS) {
+      this.log.debug(`Found request - ${currentRequestAddress}`)
+      if (!this.cache.has(currentRequestAddress)) {
+        const txRequest = await this.fill(currentRequestAddress)
+
+        if (txRequest && shouldStore(txRequest.windowStart)) {
+          this.store(txRequest)
+        }
+      } else {
+        const windowStart = parseInt(this.cache.get(currentRequestAddress)) //window start won't change after schedule
+  
+        if (atBound(windowStart)) {
           break
         }
       }
   
-      nextRequestAddress = await this.requestTracker.nextRequest(nextRequestAddress)
+      currentRequestAddress = await getNext(currentRequestAddress)
   
       // Hearbeat
-      if (nextRequestAddress === this.eac.Constants.NULL_ADDRESS) {
+      if (currentRequestAddress === this.eac.Constants.NULL_ADDRESS) {
         this.log.debug("No new requests.")
       }
     }
