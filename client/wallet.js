@@ -106,6 +106,65 @@ class Wallet {
         return this.sendFromIndex(next, opts)
     }
 
+    getNonce(account) {
+        return new Promise(resolve => {
+            this.web3.eth.getTransactionCount(account, (err,res) => {
+                resolve(res)
+            })
+        })
+    }
+
+    sendRawTransaction(tx) {
+        return new Promise((resolve, reject) => {
+            this.web3.eth.sendRawTransaction('0x'.concat(tx.serialize().toString('hex')), (err,res) => {
+                if (err) reject(err)
+                resolve(res)
+            })
+        })
+    }
+
+    getTransactionReceipt(hash) {
+        var transactionReceiptAsync;
+        const _this = this
+        transactionReceiptAsync = function(hash, resolve, reject) {
+            try {
+                var receipt = _this.web3.eth.getTransactionReceipt(hash);
+                if (receipt == null) {
+                    setTimeout(function () {
+                        transactionReceiptAsync(hash, resolve, reject);
+                    }, 500);
+                } else {
+                    resolve(receipt);
+                }
+            } catch (e) {
+                reject(e);
+            }
+        }
+        return new Promise((resolve, reject) => {
+            transactionReceiptAsync(hash, resolve, reject)
+        })
+    }
+
+    signTransaction(from, nonce, opts) {
+        return new Promise(resolve => {
+            const params = {
+                nonce,
+                from,
+                to: opts.to,
+                gas: this.web3.toHex(opts.gas),
+                gasPrice: this.web3.toHex(opts.gasPrice),
+                value: this.web3.toHex(opts.value),
+                data: opts.data
+            }
+
+            const tx = new ethTx(params)
+            const privKey = this[from].privKey
+            tx.sign(new Buffer(privKey, 'hex'))
+
+            resolve(tx)
+        })
+    }
+
     /**
      * sendFromIndex will send a transaction from the account index specified
      * @param {number} idx The index of the account to send a transaction from.
@@ -113,42 +172,14 @@ class Wallet {
      * @returns {Promise<string>} A promise which will resolve to the transaction hash
      */
     sendFromIndex(idx, opts) {
-        const _this = this
-
         if (idx > this.length) {
             throw new Error('Index is outside range of addresses.')
         }
-
         const from = this.getAccounts()[idx].getAddressString()
-        const getNonce = (account) => new Promise(resolve => {
-            this.web3.eth.getTransactionCount(account, (err,res) => {
-                resolve(res)
-            })
-        })
-        return new Promise((resolve, reject) => {
-            getNonce(from).then((txCount) => {
-                const txParams = {
-                    nonce: txCount,
-                    from,
-                    to: opts.to,
-                    gas: this.web3.toHex(opts.gas),
-                    gasPrice: this.web3.toHex(opts.gasPrice),
-                    value: this.web3.toHex(opts.value),
-                    data: opts.data
-                }
-
-                const tx = new ethTx(txParams)
-                const privKey = _this[from].privKey
-                tx.sign(new Buffer(privKey, 'hex'))
-                this.web3.eth.sendRawTransaction('0x'.concat(tx.serialize().toString('hex')), (err,res) => {
-                    if (err) reject(err)
-                    this.web3.eth.getTransactionReceipt(res, (err, res) => {
-                        if (err) reject(err)
-                        resolve(res)
-                    })
-                })
-            })
-        })
+        return this.getNonce(from)
+            .then(nonce => this.signTransaction(from, nonce, opts))
+            .then(tx => this.sendRawTransaction(tx))
+            .then(hash => this.getTransactionReceipt(hash))
     }
 
     getAccounts() {
