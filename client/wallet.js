@@ -123,7 +123,7 @@ class Wallet {
         })
     }
 
-    getTransactionReceipt(hash) {
+    getTransactionReceipt(hash, from) {
         var transactionReceiptAsync;
         const _this = this
         transactionReceiptAsync = function(hash, resolve, reject) {
@@ -134,7 +134,7 @@ class Wallet {
                         transactionReceiptAsync(hash, resolve, reject);
                     }, 500);
                 } else {
-                    resolve(receipt);
+                    resolve({ receipt, from });
                 }
             } catch (e) {
                 reject(e);
@@ -179,7 +179,7 @@ class Wallet {
         return this.getNonce(from)
             .then(nonce => this.signTransaction(from, nonce, opts))
             .then(tx => this.sendRawTransaction(tx))
-            .then(hash => this.getTransactionReceipt(hash))
+            .then(hash => this.getTransactionReceipt(hash, from))
     }
 
     getAccounts() {

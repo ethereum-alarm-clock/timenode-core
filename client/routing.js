@@ -253,11 +253,12 @@ const routeTxRequest = async (conf, txRequest) => {
     }
 
     claim(conf, txRequest)
-      .then(receipt => {
+      .then(res => {
+        const { receipt, from } = res
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
-          conf.statsdb.updateClaimed(receipt.from)
+          conf.statsdb.updateClaimed(from)
         } else {
           log.error(`[${txRequest.address}] Claiming failed.`)
         }
@@ -294,11 +295,12 @@ const routeTxRequest = async (conf, txRequest) => {
       return
     }
     execute(conf, txRequest)
-      .then(receipt => {
+      .then(res => {
+        const { receipt, from } = res
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Executed.`)
           conf.cache.set(txRequest.address, 100)
-          conf.statsdb.updateExecuted(receipt.from)
+          conf.statsdb.updateExecuted(from)
         } else {
           log.error(`[${txRequest.address}] Execution failed.`)
         }

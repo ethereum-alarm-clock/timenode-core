@@ -18,6 +18,9 @@ class StatsDB {
   // / Takes an arry of addresses and stores them as new stats objects.
   initialize(accounts) {
     accounts.forEach(async (account) => {
+      const found = this.stats.find({ account })[0]
+      if (found) return
+      
       let bal = await this.eac.Util.getBalance(account)
       bal = new BigNumber(bal)
       this.stats.insert({
