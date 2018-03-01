@@ -10,7 +10,7 @@ class Wallet {
 
     _findSafeIndex(pointer) {
         pointer = pointer || 0
-        if(this.hasOwnProperty(pointer)) {
+        if (this.hasOwnProperty(pointer)) {
             return this._findSafeIndex(pointer + 1)
         } else {
             return pointer
