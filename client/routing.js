@@ -254,12 +254,12 @@ const routeTxRequest = async (conf, txRequest) => {
 
     claim(conf, txRequest)
       .then(res => {
-        const { receipt, from } = res
+        const { receipt, from, ignore } = res
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
           conf.statsdb.updateClaimed(from)
-        } else if (!receipt || (receipt && !receipt.ignore)) {
+        } else if (!receipt && !ignore) {
           log.error(`[${txRequest.address}] Claiming failed.`)
         }
       })
