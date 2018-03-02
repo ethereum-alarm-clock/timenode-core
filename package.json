@@ -1,6 +1,6 @@
 {
   "name": "eac.js-client",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Javscript library for running an Ethereum Alarm Clock client",
   "main": "index.js",
   "scripts": {
