@@ -27,6 +27,9 @@ class Scanner {
     this.blockChainScanning = setInterval(async () => await this.scanBlockchain().catch(err => this.log.error(err)), this.ms)
     this.cacheScanning = setInterval(() => this.scanCache().catch(err => this.log.error(err)), this.ms + 1000)
 
+    this.scanBlockchain().catch(err => this.log.error(err))
+    this.scanCache().catch(err => this.log.error(err))
+
     this.started = true
     this.log.info('Scanning STARTED')
   }
