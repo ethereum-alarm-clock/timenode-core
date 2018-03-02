@@ -1,23 +1,26 @@
-const BigNumber = require("bignumber.js")
+const BigNumber = require('bignumber.js')
 
 // / Wrapper over a lokijs persistent storage to keep track of the stats of executing accounts.
 class StatsDB {
   /**
    * Creates an instance of StatsDB.
-   * @param {any} web3 
+   * @param {any} web3
    * @param {any} db Any storage solution that exposes find, update, insert
    * @memberof StatsDB
    */
   constructor(web3, db) {
     this.db = db
-    this.stats = this.db.addCollection("stats")
+    this.stats = this.db.addCollection('stats')
     this.web3 = web3
-    this.eac = require("eac.js-lib")(web3)
+    this.eac = require('eac.js-lib')(web3)
   }
 
   // / Takes an arry of addresses and stores them as new stats objects.
   initialize(accounts) {
     accounts.forEach(async (account) => {
+      const found = this.stats.find({ account })[0]
+      if (found) return
+      
       let bal = await this.eac.Util.getBalance(account)
       bal = new BigNumber(bal)
       this.stats.insert({

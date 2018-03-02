@@ -1,5 +1,5 @@
-const mem_cache = require("memory-cache")
-const _ = require("lodash")
+const mem_cache = require('memory-cache')
+const _ = require('lodash')
 
 // wrapper over memory-cache
 class Cache {
@@ -13,14 +13,13 @@ class Cache {
     if (_.indexOf(this.mem, k) === -1) {
       this.mem.push(k)
     }
-    const timeout = 200 * 60 * 1000 // deletes entries after 200 minutes
     this.cache.put(k, v) // , timeout, this.del(k))
     this.log.cache(`stored ${k} with value ${v}`)
   }
 
   get(k) {
     // / FIXME more elegant error handling for this...
-    if (this.cache.get(k) === null) { throw new Error("attempted to access key entry that does not exist") }
+    if (this.cache.get(k) === null) { throw new Error('attempted to access key entry that does not exist') }
     this.log.cache(`accessed ${k}`)
     return this.cache.get(k)
   }
