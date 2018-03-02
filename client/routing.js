@@ -49,7 +49,7 @@ const claim = async (conf, txRequest) => {
   })
 
   const { profitable, paymentWhenClaimed } = await isProfitableToClaim(conf, txRequest, gasToClaim)
-  if (!profitable) return Promise.resolve({ status: '0x0' })
+  if (!profitable) return Promise.resolve({ ignore: true })
 
   // The dice roll was originally implemented in the Python client, which I followed
   // for inspiration here.
@@ -57,7 +57,7 @@ const claim = async (conf, txRequest) => {
 
   if (diceroll >= txRequest.claimPaymentModifier()) {
     log.debug(`Fate insists you wait until later.`)
-    return Promise.resolve({ status: '0x0' })
+    return Promise.resolve({ ignore: true })
   }
 
   log.info(`[${txRequest.address}] Attempting the claim | Payment: ${paymentWhenClaimed}`)
@@ -259,7 +259,7 @@ const routeTxRequest = async (conf, txRequest) => {
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
           conf.statsdb.updateClaimed(from)
-        } else {
+        } else if (!receipt || (receipt && !receipt.ignore)) {
           log.error(`[${txRequest.address}] Claiming failed.`)
         }
       })
