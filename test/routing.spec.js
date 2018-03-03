@@ -17,6 +17,9 @@ const tx = [
 	"0xbB0B08590a6546A1742Fb37573B3f26C22ACF533",
 	"0x082E13494f12EBB7206FBf67E22A6E1975A1A669",
 	"0x09536dEA53e6D58d9844ec683854c40400435C8b",
+	"0x416299AAde6443e6F6e8ab67126e65a7F606eeF5",
+	"0xF910faC699d8e5A19Ec9B1d750c9593F466D3694",
+	"0xC4011E55471b232B61F1a746b20FCa1713Efec74",
 ]
 
 const logger = {
@@ -43,7 +46,11 @@ class TxRequest {
   beforeClaimWindow() {
     const now =  this.now()
     return this.claimWindowStart.greaterThan(now)
-  }
+	}
+	
+	getBalance() {
+		return new BigNumber(120000)
+	}
 }
 
 describe('Routing', () => {
@@ -113,11 +120,28 @@ describe('Routing', () => {
 		})
 
 		it('routes `inFreezePeriod()`', () => {
-
+			const TR_6 = new TxRequest(tx[5])
+			TR_6.claimWindowStart = new BigNumber(5)
+			TR_6.inClaimWindow = () => false
+			TR_6.inFreezePeriod = () => true
+			routeTxRequest(config, TR_6)
+			.then(res => {
+				expect(res).to.equal(6)
+			})
 		})
 
 		it('routes `inExecutionWindow()`', () => {
-
+			// const TR_7 = new TxRequest(tx[6])
+			// config.cache.set(tx[6], 3000)
+			// TR_7.claimWindowStart = new BigNumber(5)
+			// TR_7.inClaimWindow = () => false
+			// TR_7.inFreezePeriod = () => false
+			// TR_7.inExecutionWindow = () => true
+			// TR_7.wasCalled = true
+			// routeTxRequest(config, TR_7)
+			// .then(res => {
+			// 	expect(res).to.equal(7)
+			// })
 		})
 
 		it('routes `execute()`', () => {
