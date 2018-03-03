@@ -297,6 +297,9 @@ const routeTxRequest = async (conf, txRequest) => {
     execute(conf, txRequest)
       .then(res => {
         const { receipt, from } = res
+        // console.log(res)
+        // console.log(receipt)
+        // console.log(from)
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Executed.`)
           conf.cache.set(txRequest.address, 100)
