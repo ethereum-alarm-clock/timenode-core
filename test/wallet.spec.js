@@ -131,12 +131,12 @@ describe('Wallet', function () {
     })
 
     // You need to create a wallet and set the PASSWORD env variable to make this test run
-    it('loads a wallet from a saved keystore', () => {        
-        const w = new Wallet(web3)
-        const fs = require('fs')
-        const keystores = fs.readFileSync(__dirname + '/keyz', 'utf-8')
-        const ks = JSON.parse(keystores)
-        w.decrypt(ks, process.env.PASSWORD)
-        expect(w.length).to.equal(3)
-    })
+    // it('loads a wallet from a saved keystore', () => {        
+    //     const w = new Wallet(web3)
+    //     const fs = require('fs')
+    //     const keystores = fs.readFileSync(__dirname + '/keyz', 'utf-8')
+    //     const ks = JSON.parse(keystores)
+    //     w.decrypt(ks, process.env.PASSWORD)
+    //     expect(w.length).to.equal(3)
+    // })
 })

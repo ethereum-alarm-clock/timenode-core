@@ -55,7 +55,7 @@ class Config {
 
   }
 
-  static async create(
+  static create(
     opts
     // scanSpread,
     // logfile,

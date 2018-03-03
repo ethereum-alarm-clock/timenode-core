@@ -26,7 +26,7 @@ const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const gasCostToClaim = currentGasPrice.times(gasToClaim)
 
   if (gasCostToClaim.greaterThan(paymentWhenClaimed)) {
-    conf.log.debug(`[${txRequest.address}] Not profitable to claim. gasCostToClaim: ${gasCostToClaim} | paymentWhenClaimed: ${paymentWhenClaimed}`)
+    conf.logger.debug(`[${txRequest.address}] Not profitable to claim. gasCostToClaim: ${gasCostToClaim} | paymentWhenClaimed: ${paymentWhenClaimed}`)
     return { profitable: false, paymentWhenClaimed: 0 }
   }
 
@@ -114,14 +114,17 @@ const execute = async (conf, txRequest) => {
     }
 
     if (walletClaimIndex !== -1) {
+        // Returns a receipt
         return conf.wallet.sendFromIndex(
             walletClaimIndex,
             opts
         )
     } else {
+        // Returns a receipt
         return conf.wallet.sendFromNext(opts)
     }
   } else {
+    // Returns a receipt
       return txRequest.execute({
           from: web3.eth.defaultAccount,
           value: 0,
@@ -210,30 +213,36 @@ const cleanup = async (conf, txRequest) => {
  * or returns if no action can be taken.
  * @param {Config} conf
  * @param {TxRequest} txRequest
+ * @returns {Number} Magic number for what happened during routing. (Only used in tests.)
  */
 const routeTxRequest = async (conf, txRequest) => {
   const log = conf.logger
 
+  // console.log('beginning')
   // Return early the transaction already has a pending transaction
   // in the transaction pool
-  if (await hasPending(conf, txRequest)) {
-    log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
-    return
-  }
+  // if (await hasPending(conf, txRequest)) {
+  //   log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
+  //   console.log(0)
+  //   return 0
+  // }
 
   // Return early if the transaction request has been cancelled
   if (txRequest.isCancelled) {
     log.debug(`[${txRequest.address}] Ignorning already cancelled txRequest.`)
-    return
+    // console.log(1)
+    return 1
   }
 
   // Return early if the transaction request is before claim window,
   // and therefore not actionable upon
   if (await txRequest.beforeClaimWindow()) {
     log.debug(`[${txRequest.address}] Ignoring txRequest not in claim window.`)
-    return
+    // console.log(2)
+    return 2
   }
 
+  // console.log('beforeClaim')
   // If the transaction request is in the claim window, we check if
   // it already claimed and if not, we claim it
   if (await txRequest.inClaimWindow()) {
@@ -242,29 +251,46 @@ const routeTxRequest = async (conf, txRequest) => {
     // Using the cache codes is a primitive way to accomplish this.
     if (conf.cache.get(txRequest.address) <= 102) {
       // Already set in cache as having a claim request.
-      return
+      // console.log(3)
+      return 3
     }
     if (txRequest.isClaimed) {
       // Already claimed, do not attempt to claim it again.
       log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
       // Set it to the cache number so it won't do this again.
       conf.cache.set(txRequest.address, 103)
-      return
+      // console.log(4)
+      return 4
     }
 
     claim(conf, txRequest)
-      .then(res => {
-        const { receipt, from, ignore } = res
+      .then(async receiptOrIgnore => {
+        let receipt 
+        if (receiptOrIgnore.ignore) {
+          return
+        } else {
+          receipt = receiptOrIgnore
+        }
+        // const { receipt, from, ignore } = res
+        const getTxObj = hash => {
+          return new Promise(resolve => {
+            conf.web3.eth.getTransaction(hash, (err,res) => {
+              if (!err) resolve(res)
+            })
+          })
+        }
+        const obj = await getTxObj(receipt.transactionHash)
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
-          conf.statsdb.updateClaimed(from)
+          conf.statsdb.updateClaimed(obj.from)
         } else if (!receipt && !ignore) {
           log.error(`[${txRequest.address}] Claiming failed.`)
         }
       })
       .catch(err => log.error(err))
-    return
+    // console.log(5)
+    return 5
   }
 
   // If the transaction request is in the freeze period, it is not
@@ -273,46 +299,67 @@ const routeTxRequest = async (conf, txRequest) => {
     log.debug(`[${txRequest.address}] Ignoring frozen txRequest. Now ${await txRequest.now()} | Window start: ${
       txRequest.windowStart
     }`)
-    return
+    // console.log(6)
+    return 6
   }
 
   // If the transaction request is in the execution window, we can
   // attempt an execution of it
+  // console.log('here')
   if (await txRequest.inExecutionWindow()) {
     if (conf.cache.get(txRequest.address) <= 99) return // waiting to be cleaned
     if (txRequest.wasCalled) {
       log.debug(`[${txRequest.address}] Already called.`)
       cleanup(conf, txRequest)
-      return
+      // console.log(7)
+      return 7
     }
     if ((await txRequest.inReservedWindow()) && txRequest.isClaimed && !isClaimedByUs(conf, txRequest)) {
-        return
+      // console.log(8)
+      return 8
     }
     // This hacks the cache to set all executed requests to store the value
     // of -1 if it has been executed.
     if (conf.cache.get(txRequest.address) <= 101) {
       log.debug(`[${txRequest.address}] Already executed.`)
-      return
+      // console.log(9)
+      return 9
     }
     execute(conf, txRequest)
-      .then(res => {
-        const { receipt, from } = res
+      .then(async receipt => {
+        const getTxObj = hash => {
+          return new Promise(resolve => {
+            conf.web3.eth.getTransaction(hash, (err,res) => {
+              if (!err) resolve(res)
+            })
+          })
+        }
+        // const { receipt, from } = res
+        // console.log(res)
+        // console.log(receipt)
+        const obj = await getTxObj(receipt.transactionHash)
+        // console.log(obj)
+        // console.log(obj.from)
+        // console.log(from)
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Executed.`)
           conf.cache.set(txRequest.address, 100)
-          conf.statsdb.updateExecuted(from)
+          conf.statsdb.updateExecuted(obj.from)
         } else {
           log.error(`[${txRequest.address}] Execution failed.`)
         }
       })
       .catch(err => log.error(err))
-    return
+    // console.log(10)
+    return 10
   }
 
   // If the transaction request is expired, we try to clean it
   if (await txRequest.afterExecutionWindow()) {
     log.debug(`[${txRequest.address}] Cleaning up expired txRequest and removing from cache.`)
     cleanup(conf, txRequest)
+    // console.log(11)
+    return 11
   }
 }
 
