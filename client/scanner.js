@@ -185,6 +185,7 @@ class Scanner {
       // Hearbeat
       if (currentRequestAddress === this.eac.Constants.NULL_ADDRESS) {
         this.log.debug('No new requests discovered.')
+        break
       }
     }
   }

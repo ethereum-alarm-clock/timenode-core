@@ -123,12 +123,19 @@ class Wallet {
         })
     }
 
-    getTransactionReceipt(hash, from) {
+    async getTransactionReceipt(hash, from) {
         var transactionReceiptAsync;
         const _this = this
-        transactionReceiptAsync = function(hash, resolve, reject) {
+        transactionReceiptAsync = async function(hash, resolve, reject) {
             try {
-                var receipt = _this.web3.eth.getTransactionReceipt(hash);
+				const getTransactionReceipt = (hash) => {
+					return new Promise((resolve) => {
+						_this.web3.eth.getTransactionReceipt(hash, (err,res) => {
+							if (!err) resolve(res)
+						})
+					})
+				}
+                var receipt = await getTransactionReceipt(hash);
                 if (receipt == null) {
                     setTimeout(function () {
                         transactionReceiptAsync(hash, resolve, reject);
@@ -140,8 +147,8 @@ class Wallet {
                 reject(e);
             }
         }
-        return new Promise((resolve, reject) => {
-            transactionReceiptAsync(hash, resolve, reject)
+        return new Promise(async (resolve, reject) => {
+            await transactionReceiptAsync(hash, resolve, reject)
         })
     }
 

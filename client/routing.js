@@ -210,6 +210,7 @@ const cleanup = async (conf, txRequest) => {
  * or returns if no action can be taken.
  * @param {Config} conf
  * @param {TxRequest} txRequest
+ * @returns {Number} Magic number for what happened during routing. (Only used in tests.)
  */
 const routeTxRequest = async (conf, txRequest) => {
   const log = conf.logger
@@ -218,20 +219,20 @@ const routeTxRequest = async (conf, txRequest) => {
   // in the transaction pool
   if (await hasPending(conf, txRequest)) {
     log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
-    return
+    return 0
   }
 
   // Return early if the transaction request has been cancelled
   if (txRequest.isCancelled) {
     log.debug(`[${txRequest.address}] Ignorning already cancelled txRequest.`)
-    return
+    return 1
   }
 
   // Return early if the transaction request is before claim window,
   // and therefore not actionable upon
   if (await txRequest.beforeClaimWindow()) {
     log.debug(`[${txRequest.address}] Ignoring txRequest not in claim window.`)
-    return
+    return 2
   }
 
   // If the transaction request is in the claim window, we check if
@@ -242,14 +243,14 @@ const routeTxRequest = async (conf, txRequest) => {
     // Using the cache codes is a primitive way to accomplish this.
     if (conf.cache.get(txRequest.address) <= 102) {
       // Already set in cache as having a claim request.
-      return
+      return 3
     }
     if (txRequest.isClaimed) {
       // Already claimed, do not attempt to claim it again.
       log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
       // Set it to the cache number so it won't do this again.
       conf.cache.set(txRequest.address, 103)
-      return
+      return 4
     }
 
     claim(conf, txRequest)
@@ -264,7 +265,7 @@ const routeTxRequest = async (conf, txRequest) => {
         }
       })
       .catch(err => log.error(err))
-    return
+    return 5
   }
 
   // If the transaction request is in the freeze period, it is not
@@ -273,7 +274,7 @@ const routeTxRequest = async (conf, txRequest) => {
     log.debug(`[${txRequest.address}] Ignoring frozen txRequest. Now ${await txRequest.now()} | Window start: ${
       txRequest.windowStart
     }`)
-    return
+    return 6
   }
 
   // If the transaction request is in the execution window, we can
@@ -283,16 +284,16 @@ const routeTxRequest = async (conf, txRequest) => {
     if (txRequest.wasCalled) {
       log.debug(`[${txRequest.address}] Already called.`)
       cleanup(conf, txRequest)
-      return
+      return 7
     }
     if ((await txRequest.inReservedWindow()) && txRequest.isClaimed && !isClaimedByUs(conf, txRequest)) {
-        return
+      return 8
     }
     // This hacks the cache to set all executed requests to store the value
     // of -1 if it has been executed.
     if (conf.cache.get(txRequest.address) <= 101) {
       log.debug(`[${txRequest.address}] Already executed.`)
-      return
+      return 9
     }
     execute(conf, txRequest)
       .then(res => {
@@ -309,13 +310,14 @@ const routeTxRequest = async (conf, txRequest) => {
         }
       })
       .catch(err => log.error(err))
-    return
+    return 10
   }
 
   // If the transaction request is expired, we try to clean it
   if (await txRequest.afterExecutionWindow()) {
     log.debug(`[${txRequest.address}] Cleaning up expired txRequest and removing from cache.`)
     cleanup(conf, txRequest)
+    return 11
   }
 }
 
