@@ -51,7 +51,7 @@ class Scanner {
     const avgBlockTime = Math.floor(latestBlock.timestamp - (leftTimestamp / this.config.scanSpread))
     const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * this.config.scanSpread * 2))
 
-    this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} tp ${rightTimestamp}`)
+    this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
 
     this.scanBlocks(leftBlock, rightBlock)
     this.scanTimeStamps(leftTimestamp, rightTimestamp)
