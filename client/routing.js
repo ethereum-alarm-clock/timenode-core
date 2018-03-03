@@ -218,19 +218,16 @@ const cleanup = async (conf, txRequest) => {
 const routeTxRequest = async (conf, txRequest) => {
   const log = conf.logger
 
-  // console.log('beginning')
   // Return early the transaction already has a pending transaction
   // in the transaction pool
-  // if (await hasPending(conf, txRequest)) {
-  //   log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
-  //   console.log(0)
-  //   return 0
-  // }
+  if (await hasPending(conf, txRequest)) {
+    log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
+    return 0
+  }
 
   // Return early if the transaction request has been cancelled
   if (txRequest.isCancelled) {
     log.debug(`[${txRequest.address}] Ignorning already cancelled txRequest.`)
-    // console.log(1)
     return 1
   }
 
@@ -238,11 +235,9 @@ const routeTxRequest = async (conf, txRequest) => {
   // and therefore not actionable upon
   if (await txRequest.beforeClaimWindow()) {
     log.debug(`[${txRequest.address}] Ignoring txRequest not in claim window.`)
-    // console.log(2)
     return 2
   }
 
-  // console.log('beforeClaim')
   // If the transaction request is in the claim window, we check if
   // it already claimed and if not, we claim it
   if (await txRequest.inClaimWindow()) {
@@ -251,7 +246,6 @@ const routeTxRequest = async (conf, txRequest) => {
     // Using the cache codes is a primitive way to accomplish this.
     if (conf.cache.get(txRequest.address) <= 102) {
       // Already set in cache as having a claim request.
-      // console.log(3)
       return 3
     }
     if (txRequest.isClaimed) {
@@ -259,7 +253,6 @@ const routeTxRequest = async (conf, txRequest) => {
       log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
       // Set it to the cache number so it won't do this again.
       conf.cache.set(txRequest.address, 103)
-      // console.log(4)
       return 4
     }
 
@@ -289,7 +282,6 @@ const routeTxRequest = async (conf, txRequest) => {
         }
       })
       .catch(err => log.error(err))
-    // console.log(5)
     return 5
   }
 
@@ -299,30 +291,25 @@ const routeTxRequest = async (conf, txRequest) => {
     log.debug(`[${txRequest.address}] Ignoring frozen txRequest. Now ${await txRequest.now()} | Window start: ${
       txRequest.windowStart
     }`)
-    // console.log(6)
     return 6
   }
 
   // If the transaction request is in the execution window, we can
   // attempt an execution of it
-  // console.log('here')
   if (await txRequest.inExecutionWindow()) {
     if (conf.cache.get(txRequest.address) <= 99) return // waiting to be cleaned
     if (txRequest.wasCalled) {
       log.debug(`[${txRequest.address}] Already called.`)
       cleanup(conf, txRequest)
-      // console.log(7)
       return 7
     }
     if ((await txRequest.inReservedWindow()) && txRequest.isClaimed && !isClaimedByUs(conf, txRequest)) {
-      // console.log(8)
       return 8
     }
     // This hacks the cache to set all executed requests to store the value
     // of -1 if it has been executed.
     if (conf.cache.get(txRequest.address) <= 101) {
       log.debug(`[${txRequest.address}] Already executed.`)
-      // console.log(9)
       return 9
     }
     execute(conf, txRequest)
@@ -335,12 +322,8 @@ const routeTxRequest = async (conf, txRequest) => {
           })
         }
         // const { receipt, from } = res
-        // console.log(res)
-        // console.log(receipt)
         const obj = await getTxObj(receipt.transactionHash)
-        // console.log(obj)
-        // console.log(obj.from)
-        // console.log(from)
+
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Executed.`)
           conf.cache.set(txRequest.address, 100)
@@ -350,7 +333,6 @@ const routeTxRequest = async (conf, txRequest) => {
         }
       })
       .catch(err => log.error(err))
-    // console.log(10)
     return 10
   }
 
@@ -358,7 +340,6 @@ const routeTxRequest = async (conf, txRequest) => {
   if (await txRequest.afterExecutionWindow()) {
     log.debug(`[${txRequest.address}] Cleaning up expired txRequest and removing from cache.`)
     cleanup(conf, txRequest)
-    // console.log(11)
     return 11
   }
 }

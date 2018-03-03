@@ -8,7 +8,7 @@ const hasPendingParity = async (conf, txRequest) => {
   const provider = conf.web3.currentProvider
 
   return new Promise((resolve, reject) => {
-    provider.send(
+    provider.sendAsync(
       {
         jsonrpc: '2.0',
         method: 'parity_pendingTransactions',
