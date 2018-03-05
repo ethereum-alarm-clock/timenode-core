@@ -113,9 +113,9 @@ class Scanner {
             windowStart
           } | left: ${left}`)
 
-          return false
+          return true
         }
-        return true
+        return false
       },
       currentRequestAddress => this.requestTracker.previousRequest(currentRequestAddress)
     )
@@ -134,9 +134,9 @@ class Scanner {
             windowStart
           } | right: ${right}`)
 
-          return false
+          return true
         }
-        return true
+        return false
       },
       currentRequestAddress => this.requestTracker.nextRequest(currentRequestAddress)
     )
