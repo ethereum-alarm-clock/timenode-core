@@ -13,7 +13,7 @@ const isClaimedByUs = (conf, txRequest) => {
   return ourClaim
 }
 
-const getSender = (conf) => conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount
+const getSender = conf => conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount
 
 const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const { web3 } = conf
@@ -148,7 +148,7 @@ const cleanup = async (conf, txRequest) => {
   }
 
   if (!txRequest.isCancelled) {
-    const sender = getSender()
+    const sender = getSender(conf)
     const gasToCancel = await Util.estimateGas(web3, {
       from: sender,
       to: txRequest.address,
@@ -310,7 +310,6 @@ const routeTxRequest = async (conf, txRequest) => {
     execute(conf, txRequest)
       .then(result => {
         const { receipt, from } = result
-        debugger
         if (receipt && receipt.status == 1) {
           if (isExecuted(receipt)) {
             log.info(`[${txRequest.address}] Executed.`)

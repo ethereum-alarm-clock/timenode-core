@@ -61,7 +61,13 @@ describe('Routing', () => {
 			tracker: new RequestTrackerMock(tx),
 			eac,
 			cache: new Cache(logger),
-			web3: {exists: true},
+			web3: {
+				exists: true,
+				eth: {
+					defaultAccount: '0x89174A102f1aDba064Db5324198902B2Ee7952eB',
+					estimateGas: () => 50000
+				}
+			},
       provider: 'provider',
 		})
 
@@ -131,17 +137,17 @@ describe('Routing', () => {
 		})
 
 		it('routes `inExecutionWindow()`', () => {
-			// const TR_7 = new TxRequest(tx[6])
-			// config.cache.set(tx[6], 3000)
-			// TR_7.claimWindowStart = new BigNumber(5)
-			// TR_7.inClaimWindow = () => false
-			// TR_7.inFreezePeriod = () => false
-			// TR_7.inExecutionWindow = () => true
-			// TR_7.wasCalled = true
-			// routeTxRequest(config, TR_7)
-			// .then(res => {
-			// 	expect(res).to.equal(7)
-			// })
+			const TR_7 = new TxRequest(tx[6])
+			config.cache.set(tx[6], 3000)
+			TR_7.claimWindowStart = new BigNumber(5)
+			TR_7.inClaimWindow = () => false
+			TR_7.inFreezePeriod = () => false
+			TR_7.inExecutionWindow = () => true
+			TR_7.wasCalled = true
+			routeTxRequest(config, TR_7)
+			.then(res => {
+				expect(res).to.equal(7)
+			})
 		})
 
 		it('routes `execute()`', () => {
