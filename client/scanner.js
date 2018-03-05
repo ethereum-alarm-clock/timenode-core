@@ -102,7 +102,7 @@ class Scanner {
 
   async scanBlocks(left, right) {
     let firstRequestAddress = await this.requestTracker.previousFromRight(right)
-    this.scan(
+    return this.scan(
       left,
       right,
       firstRequestAddress,
@@ -123,7 +123,7 @@ class Scanner {
 
   async scanTimeStamps(left, right) {
     let firstRequestAddress = await this.requestTracker.nextFromLeft(left)
-    this.scan(
+    return this.scan(
       left,
       right,
       firstRequestAddress,
