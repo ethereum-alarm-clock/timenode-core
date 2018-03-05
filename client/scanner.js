@@ -24,7 +24,7 @@ class Scanner {
   start() {
 		// Reset the intervals if already started.
 		if (this.started) this.stop()
-		
+
 		// Set interval for scanning for new transaction requests on the blockchain.
     this.blockchainScanning = setInterval(async () => {
 			await this.scanBlockchain().catch(err => this.log.error(err))
@@ -56,17 +56,26 @@ class Scanner {
 
   async scanBlockchain() {
     const latestBlock = await this.getBlock('latest')
-    const leftBlock = latestBlock.number - this.config.scanSpread
-    const rightBlock = leftBlock + (this.config.scanSpread * 2)
+    const { leftBlock, rightBlock } = this.getWindowForBlock(latestBlock.number)
 
     const leftTimestamp = (await this.getBlock(leftBlock)).timestamp
-    const avgBlockTime = Math.floor(latestBlock.timestamp - (leftTimestamp / this.config.scanSpread))
-    const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * this.config.scanSpread * 2))
+    const rightTimestamp = this.getRightTimestamp(leftTimestamp, latestBlock.timestamp)
 
     this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
 
     this.scanBlocks(leftBlock, rightBlock)
     this.scanTimeStamps(leftTimestamp, rightTimestamp)
+  }
+
+  getWindowForBlock(latest) {
+    const leftBlock = latest - this.config.scanSpread
+    const rightBlock = leftBlock + (this.config.scanSpread * 2)
+
+    return { leftBlock, rightBlock }
+  }
+
+  getRightTimestamp(leftTimestamp, latestTimestamp) {
+    return 2 * latestTimestamp - leftTimestamp
   }
 
 	/**
