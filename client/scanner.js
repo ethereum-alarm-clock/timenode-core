@@ -54,19 +54,38 @@ class Scanner {
     this.log.info('Scanning STOPPED')
   }
 
-  async scanBlockchain() {
-    const latestBlock = await this.getBlock('latest')
-    const leftBlock = latestBlock.number - this.config.scanSpread
-    const rightBlock = leftBlock + (this.config.scanSpread * 2)
+  isValidBlock(block) {
+    if (!block) {
+      this.log.error("")
+      return false
+    }
 
-    const leftTimestamp = (await this.getBlock(leftBlock)).timestamp
-    const avgBlockTime = Math.floor((latestBlock.timestamp - leftTimestamp) / this.config.scanSpread)
-    const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * this.config.scanSpread * 2))
+    return true
+  }
+
+  async scanBlockchain() {
+    const latestBlockObject = await this.getBlock('latest')
+    const { leftBlock, rightBlock } = this.getWindowForBlock(latestBlockObject.number)
+
+    const leftBlockObject = await this.getBlock(leftBlock)
+    const leftTimestamp = leftBlockObject.timestamp
+    const rightTimestamp = this.getRightTimestamp(leftTimestamp, latestBlockObject.timestamp)
 
     this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
 
     this.scanBlocks(leftBlock, rightBlock)
     this.scanTimeStamps(leftTimestamp, rightTimestamp)
+  }
+
+  getWindowForBlock(latest) {
+    const leftBlock = latest - this.config.scanSpread
+    const rightBlock = leftBlock + (this.config.scanSpread * 2)
+
+    return { leftBlock, rightBlock }
+  }
+
+  getRightTimestamp(leftTimestamp, latestTimestamp) {
+    return 2 * latestTimestamp - leftTimestamp
   }
 
 	/**
@@ -102,7 +121,7 @@ class Scanner {
 
   async scanBlocks(left, right) {
     let firstRequestAddress = await this.requestTracker.previousFromRight(right)
-    this.scan(
+    return this.scan(
       left,
       right,
       firstRequestAddress,
@@ -123,7 +142,7 @@ class Scanner {
 
   async scanTimeStamps(left, right) {
     let firstRequestAddress = await this.requestTracker.nextFromLeft(left)
-    this.scan(
+    return this.scan(
       left,
       right,
       firstRequestAddress,
@@ -209,7 +228,9 @@ class Scanner {
   getBlock(number = 'latest') {
     return new Promise((resolve, reject) => {
       this.web3.eth.getBlock(number, (err, block) => {
-        if (!err) resolve(block)
+        if (!err)
+          if (block) resolve(block)
+          else reject(`Returned block ${number} is null`)
         else reject(err)
       })
     })
