@@ -54,12 +54,22 @@ class Scanner {
     this.log.info('Scanning STOPPED')
   }
 
-  async scanBlockchain() {
-    const latestBlock = await this.getBlock('latest')
-    const { leftBlock, rightBlock } = this.getWindowForBlock(latestBlock.number)
+  isValidBlock(block) {
+    if (!block) {
+      this.log.error("")
+      return false
+    }
 
-    const leftTimestamp = (await this.getBlock(leftBlock)).timestamp
-    const rightTimestamp = this.getRightTimestamp(leftTimestamp, latestBlock.timestamp)
+    return true
+  }
+
+  async scanBlockchain() {
+    const latestBlockObject = await this.getBlock('latest')
+    const { leftBlock, rightBlock } = this.getWindowForBlock(latestBlockObject.number)
+
+    const leftBlockObject = await this.getBlock(leftBlock)
+    const leftTimestamp = leftBlockObject.timestamp
+    const rightTimestamp = this.getRightTimestamp(leftTimestamp, latestBlockObject.timestamp)
 
     this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
 
@@ -218,7 +228,9 @@ class Scanner {
   getBlock(number = 'latest') {
     return new Promise((resolve, reject) => {
       this.web3.eth.getBlock(number, (err, block) => {
-        if (!err) resolve(block)
+        if (!err)
+          if (block) resolve(block)
+          else reject(`Returned block ${number} is null`)
         else reject(err)
       })
     })
