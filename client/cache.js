@@ -17,9 +17,13 @@ class Cache {
     this.log.cache(`stored ${k} with value ${v}`)
   }
 
-  get(k) {
+  get(k, d) {
     // / FIXME more elegant error handling for this...
-    if (this.cache.get(k) === null) { throw new Error('attempted to access key entry that does not exist') }
+    if (this.cache.get(k) === null) {
+      if (d === undefined) { throw new Error('attempted to access key entry that does not exist') }
+      else return d
+    }
+
     this.log.cache(`accessed ${k}`)
     return this.cache.get(k)
   }
