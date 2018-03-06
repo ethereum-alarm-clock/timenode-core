@@ -73,8 +73,8 @@ class Scanner {
 
     this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
 
-    this.scanBlocks(leftBlock, rightBlock)
-    this.scanTimeStamps(leftTimestamp, rightTimestamp)
+    await this.scanBlocks(leftBlock, rightBlock)
+    await this.scanTimeStamps(leftTimestamp, rightTimestamp)
   }
 
   getWindowForBlock(latest) {
@@ -180,22 +180,24 @@ class Scanner {
     // Loop the cache storage logic while we still get valid transaction requests.
     while (currentRequestAddress !== this.eac.Constants.NULL_ADDRESS) {
       this.log.debug(`[${currentRequestAddress}] Discovered.`)
-      if (!this.cache.has(currentRequestAddress)) {
+      // try get the value from cache, fallback to -1 as default
+      let windowStart = parseInt(this.cache.get(currentRequestAddress, -1))
+
+      if (windowStart === -1) {
         // If it's not already in cache, find windowStart.
         const txRequest = await this.fill(currentRequestAddress)
+        windowStart = txRequest.windowStart
 
-        if (txRequest && shouldStore(txRequest.windowStart)) {
+        if (txRequest && shouldStore(windowStart)) {
           // If the windowStart returns True to `shouldStore(...)`, store it.
           this.store(txRequest)
         }
-      } else {
-        // Else, we have it in storage and can get the windowStart from our cache.
-        const windowStart = parseInt(this.cache.get(currentRequestAddress))
+      }
 
-        if (atBound(windowStart)) {
-          // Stop looping if we hit the bounds.
-          break
-        }
+      // always check if we already hit bounds
+      if (atBound(windowStart)) {
+        // Stop looping if we hit the bounds.
+        break
       }
 
       // Get the next transaction request.
