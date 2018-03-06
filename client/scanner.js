@@ -26,14 +26,14 @@ class Scanner {
 		if (this.started) this.stop()
 
 		// Set interval for scanning for new transaction requests on the blockchain.
-    // this.blockchainScanning = setInterval(async () => {
-		// 	await this.scanBlockchain().catch(err => this.log.error(err))
-		// }, this.ms)
+    this.blockchainScanning = setInterval(async () => {
+			await this.scanBlockchain().catch(err => this.log.error(err))
+		}, this.ms)
 
-		// // Set interval for scanning for actionable transaction requests in the cache.
-		// this.cacheScanning = setInterval(() => {
-		// 	this.scanCache().catch(err => this.log.error(err))
-		// }, this.ms + 1000)
+		// Set interval for scanning for actionable transaction requests in the cache.
+		this.cacheScanning = setInterval(() => {
+			this.scanCache().catch(err => this.log.error(err))
+		}, this.ms + 1000)
 
 		// Immediately execute both scans.
     this.scanBlockchain().catch(err => this.log.error(err))
