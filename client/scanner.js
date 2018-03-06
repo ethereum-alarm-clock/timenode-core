@@ -24,7 +24,7 @@ class Scanner {
   start() {
 		// Reset the intervals if already started.
 		if (this.started) this.stop()
-		
+
 		// Set interval for scanning for new transaction requests on the blockchain.
     this.blockchainScanning = setInterval(async () => {
 			await this.scanBlockchain().catch(err => this.log.error(err))
@@ -60,7 +60,7 @@ class Scanner {
     const rightBlock = leftBlock + (this.config.scanSpread * 2)
 
     const leftTimestamp = (await this.getBlock(leftBlock)).timestamp
-    const avgBlockTime = Math.floor(latestBlock.timestamp - (leftTimestamp / this.config.scanSpread))
+    const avgBlockTime = Math.floor((latestBlock.timestamp - leftTimestamp) / this.config.scanSpread)
     const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * this.config.scanSpread * 2))
 
     this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
@@ -113,9 +113,9 @@ class Scanner {
             windowStart
           } | left: ${left}`)
 
-          return false
+          return true
         }
-        return true
+        return false
       },
       currentRequestAddress => this.requestTracker.previousRequest(currentRequestAddress)
     )
@@ -134,9 +134,9 @@ class Scanner {
             windowStart
           } | right: ${right}`)
 
-          return false
+          return true
         }
-        return true
+        return false
       },
       currentRequestAddress => this.requestTracker.nextRequest(currentRequestAddress)
     )
