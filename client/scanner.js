@@ -38,6 +38,7 @@ class Scanner {
 		// Immediately execute both scans.
     this.scanBlockchain().catch(err => this.log.error(err))
     this.scanCache().catch(err => this.log.error(err))
+    this.watchBlockchain();
 
 		// Mark that we've started.
     this.started = true
@@ -47,7 +48,8 @@ class Scanner {
   stop() {
 		// Clear scanning intervasls.
     clearInterval(this.blockchainScanning)
-    clearInterval(this.cacheScanning)
+    clearInterval(this.cacheScanning);
+    this.requestWatcher.stopWatching();
 
 		// Mark that we've stopped.
     this.started = false
