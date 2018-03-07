@@ -13,7 +13,7 @@ const isClaimedByUs = (conf, txRequest) => {
   return ourClaim
 }
 
-const getSender = (conf) => conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount
+const getSender = conf => conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount
 
 const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const { web3 } = conf
@@ -148,7 +148,7 @@ const cleanup = async (conf, txRequest) => {
   }
 
   if (!txRequest.isCancelled) {
-    const sender = getSender()
+    const sender = getSender(conf)
     const gasToCancel = await Util.estimateGas(web3, {
       from: sender,
       to: txRequest.address,
@@ -208,6 +208,15 @@ const cleanup = async (conf, txRequest) => {
   conf.cache.set(txRequest.address, 99)
 }
 
+const isExecuted = receipt => {
+  if (receipt) {
+    const executedEvent = '0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9'
+    return receipt.logs[0].topics.indexOf(executedEvent) > -1
+  }
+
+  return false
+}
+
 /**
  * Takes in a txRequest object and routes it to the thread that will act on it,
  * or returns if no action can be taken.
@@ -257,26 +266,12 @@ const routeTxRequest = async (conf, txRequest) => {
     }
 
     claim(conf, txRequest)
-      .then(async receiptOrIgnore => {
-        let receipt 
-        if (receiptOrIgnore.ignore) {
-          return
-        } else {
-          receipt = receiptOrIgnore
-        }
-        // const { receipt, from, ignore } = res
-        const getTxObj = hash => {
-          return new Promise(resolve => {
-            conf.web3.eth.getTransaction(hash, (err,res) => {
-              if (!err) resolve(res)
-            })
-          })
-        }
-        const obj = await getTxObj(receipt.transactionHash)
+      .then(result => {
+        const { receipt, from, ignore } = result
         if (receipt && receipt.status == 1) {
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
-          conf.statsdb.updateClaimed(obj.from)
+          conf.statsdb.updateClaimed(from)
         } else if (!receipt && !ignore) {
           log.error(`[${txRequest.address}] Claiming failed.`)
         }
@@ -313,21 +308,16 @@ const routeTxRequest = async (conf, txRequest) => {
       return 9
     }
     execute(conf, txRequest)
-      .then(async receipt => {
-        const getTxObj = hash => {
-          return new Promise(resolve => {
-            conf.web3.eth.getTransaction(hash, (err,res) => {
-              if (!err) resolve(res)
-            })
-          })
-        }
-        // const { receipt, from } = res
-        const obj = await getTxObj(receipt.transactionHash)
-
+      .then(result => {
+        const { receipt, from } = result
         if (receipt && receipt.status == 1) {
-          log.info(`[${txRequest.address}] Executed.`)
-          conf.cache.set(txRequest.address, 100)
-          conf.statsdb.updateExecuted(obj.from)
+          if (isExecuted(receipt)) {
+            log.info(`[${txRequest.address}] Executed.`)
+            conf.cache.set(txRequest.address, 100)
+            conf.statsdb.updateExecuted(from)
+          } else {
+            log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
+          }
         } else {
           log.error(`[${txRequest.address}] Execution failed.`)
         }

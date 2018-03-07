@@ -57,19 +57,38 @@ class Scanner {
     this.log.info('Scanning STOPPED')
   }
 
-  async scanBlockchain() {
-    const latestBlock = await this.getBlock('latest')
-    const leftBlock = latestBlock.number - this.config.scanSpread
-    const rightBlock = leftBlock + (this.config.scanSpread * 2)
+  isValidBlock(block) {
+    if (!block) {
+      this.log.error("")
+      return false
+    }
 
-    const leftTimestamp = (await this.getBlock(leftBlock)).timestamp
-    const avgBlockTime = Math.floor((latestBlock.timestamp - leftTimestamp) / this.config.scanSpread)
-    const rightTimestamp = Math.floor(leftTimestamp + (avgBlockTime * this.config.scanSpread * 2))
+    return true
+  }
+
+  async scanBlockchain() {
+    const latestBlockObject = await this.getBlock('latest')
+    const { leftBlock, rightBlock } = this.getWindowForBlock(latestBlockObject.number)
+
+    const leftBlockObject = await this.getBlock(leftBlock)
+    const leftTimestamp = leftBlockObject.timestamp
+    const rightTimestamp = this.getRightTimestamp(leftTimestamp, latestBlockObject.timestamp)
 
     this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
 
-    this.scanBlocks(leftBlock, rightBlock)
-    this.scanTimeStamps(leftTimestamp, rightTimestamp)
+    await this.scanBlocks(leftBlock, rightBlock)
+    await this.scanTimeStamps(leftTimestamp, rightTimestamp)
+  }
+
+  getWindowForBlock(latest) {
+    const leftBlock = latest - this.config.scanSpread
+    const rightBlock = leftBlock + (this.config.scanSpread * 2)
+
+    return { leftBlock, rightBlock }
+  }
+
+  getRightTimestamp(leftTimestamp, latestTimestamp) {
+    return 2 * latestTimestamp - leftTimestamp
   }
 
   async watchBlockchain() {
@@ -114,7 +133,7 @@ class Scanner {
 
   async scanBlocks(left, right) {
     let firstRequestAddress = await this.requestTracker.previousFromRight(right)
-    this.scan(
+    return this.scan(
       left,
       right,
       firstRequestAddress,
@@ -135,7 +154,7 @@ class Scanner {
 
   async scanTimeStamps(left, right) {
     let firstRequestAddress = await this.requestTracker.nextFromLeft(left)
-    this.scan(
+    return this.scan(
       left,
       right,
       firstRequestAddress,
@@ -173,22 +192,24 @@ class Scanner {
     // Loop the cache storage logic while we still get valid transaction requests.
     while (currentRequestAddress !== this.eac.Constants.NULL_ADDRESS) {
       this.log.debug(`[${currentRequestAddress}] Discovered.`)
-      if (!this.cache.has(currentRequestAddress)) {
+      // try get the value from cache, fallback to -1 as default
+      let windowStart = parseInt(this.cache.get(currentRequestAddress, -1))
+
+      if (windowStart === -1) {
         // If it's not already in cache, find windowStart.
         const txRequest = await this.fill(currentRequestAddress)
+        windowStart = txRequest.windowStart
 
-        if (txRequest && shouldStore(txRequest.windowStart)) {
+        if (txRequest && shouldStore(windowStart)) {
           // If the windowStart returns True to `shouldStore(...)`, store it.
           this.store(txRequest)
         }
-      } else {
-        // Else, we have it in storage and can get the windowStart from our cache.
-        const windowStart = parseInt(this.cache.get(currentRequestAddress))
+      }
 
-        if (atBound(windowStart)) {
-          // Stop looping if we hit the bounds.
-          break
-        }
+      // always check if we already hit bounds
+      if (atBound(windowStart)) {
+        // Stop looping if we hit the bounds.
+        break
       }
 
       // Get the next transaction request.
@@ -245,7 +266,9 @@ class Scanner {
   getBlock(number = 'latest') {
     return new Promise((resolve, reject) => {
       this.web3.eth.getBlock(number, (err, block) => {
-        if (!err) resolve(block)
+        if (!err)
+          if (block) resolve(block)
+          else reject(`Returned block ${number} is null`)
         else reject(err)
       })
     })
