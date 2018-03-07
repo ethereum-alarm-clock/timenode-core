@@ -50,7 +50,9 @@ class Scanner {
 		// Clear scanning intervasls.
     clearInterval(this.blockchainScanning)
     clearInterval(this.cacheScanning);
-    this.requestWatcher.stopWatching();
+    if (this.requestWatcher) {
+      this.requestWatcher.stopWatching()
+    }
 
 		// Mark that we've stopped.
     this.started = false
@@ -230,8 +232,7 @@ class Scanner {
    */
   async watchBlocks(fromBlock) {
     const requestFactory = await this.eac.requestFactory();
-    console.log(this.eac.requestFactory, requestFactory)
-    this.requestWatcher = requestFactory.watchRequests(fromBlock,
+    this.requestWatcher = await requestFactory.watchRequests(fromBlock,
       async (request) => {
         if (!this.isCorrect(request)) return;
 
