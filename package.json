@@ -4,7 +4,7 @@
   "description": "Javscript library for running an Ethereum Alarm Clock client",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha --reporter spec && rm -f ./src/assets/tester.json"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
