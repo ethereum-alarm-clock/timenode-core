@@ -229,7 +229,8 @@ class Scanner {
    * @returns {void}
    */
   async watchBlocks(fromBlock) {
-    this.requestWatcher = await this.eac.requestFactory.watchRequests(fromBlock,
+    console.log(this.eac.requestFactory)
+    this.requestWatcher = await this.eac.requestFactory().watchRequests(fromBlock,
       async (request) => {
         if (!this.isCorrect(request)) return;
 
