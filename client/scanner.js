@@ -69,6 +69,15 @@ class Scanner {
     this.scanTimeStamps(leftTimestamp, rightTimestamp)
   }
 
+  async watchBlockchain() {
+    const latestBlock = await this.getBlock('latest')
+    const startBlock = latestBlock.number - (this.config.scanSpread * 2)
+
+    this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
+
+    this.watchBlocks(startBlock)
+  }
+
 	/**
 	 * Verifies that a transaction request is valid.
 	 * @param {String} requestAddress Address of the transaction request.
@@ -188,6 +197,30 @@ class Scanner {
         break
       }
     }
+  }
+
+  /**
+   * Watch for new transactions as they are created.
+   * @param {Number} fromBlock The block from which to begin watch.
+   * @returns {void}
+   */
+  async watchBlocks(fromBlock) {
+    this.requestWatcher = await this.eac.requestFactory.watchRequests(fromBlock,
+      async (request) => {
+        if (!this.isCorrect(request)) return;
+
+        this.log.debug(`[${request}] Discovered.`)
+        if (!this.cache.has(request)) {
+          // If it's not already in cache, find windowStart.
+          const latestBlock = await this.getBlock('latest')
+          const txRequest = await this.fill(request)
+
+          if (txRequest && txRequest.windowStart > latestBlock) {
+            // If the windowStart returns True to `shouldStore(...)`, store it.
+            this.store(txRequest)
+          }
+        }
+    })
   }
 
   async scanCache() {
