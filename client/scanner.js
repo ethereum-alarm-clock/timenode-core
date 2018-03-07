@@ -25,10 +25,11 @@ class Scanner {
 		// Reset the intervals if already started.
 		if (this.started) this.stop()
 
-		// Set interval for scanning for new transaction requests on the blockchain.
+    // Set interval for scanning for new transaction requests on the blockchain.
+    // Scanning runs less frequently as a check for the watch function
     this.blockchainScanning = setInterval(async () => {
 			await this.scanBlockchain().catch(err => this.log.error(err))
-		}, this.ms)
+    }, this.ms*5)
 
 		// Set interval for scanning for actionable transaction requests in the cache.
 		this.cacheScanning = setInterval(() => {
