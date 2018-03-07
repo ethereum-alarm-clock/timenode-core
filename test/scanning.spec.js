@@ -96,4 +96,18 @@ describe('Scanning', () => {
       })
     })
   })
+
+  // Unable to run, as it requires an actual web3 instance
+  // describe('#watchBlockchain()', async () => {
+  //   it('should start Request watcher', async () => {
+  //     await scanner.watchBlockchain()
+  //     assert.notEqual(scanner.requestWatcher ,null, `Failed to start Requests watcher`)
+  //   })
+
+  //   it('should stop Request watcher', async () => {
+  //     scanner.requestWatcher.stopWatching( (e,r) => {
+  //       assert.isTrue(r,`Failed to stop watcher`)
+  //     })
+  //   })
+  // })
 })
