@@ -17,6 +17,7 @@ class Config {
     // eac,
     // provider,
     // walletFile,
+    // walletStore,
     // password,
     // autostart
   ) {
@@ -67,18 +68,22 @@ class Config {
     // eac,
     // provider,
     // walletFile,
+    // walletStore,
     // password,
     // autostart
   ) {
     let conf = new Config(opts)
     if (opts.walletFile) {
-      if (typeof opts.walletFile === "string" || typeof opts.walletFile === 'object') {
+      if (typeof opts.walletFile === "string") {
         conf.wallet = new Wallet(opts.web3)
 
         const encKeystore = fs.readFileSync(opts.walletFile, 'utf8');
         conf.wallet.decrypt([encKeystore], opts.password)
       }
-    } else {
+    } else if (typeof opts.walletStore === 'object') {
+      conf.wallet = new Wallet(opts.web3)
+      conf.wallet.decrypt([opts.walletStore], opts.password)
+    } else  {
       conf.wallet = false
     }
     return conf
