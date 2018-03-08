@@ -1,3 +1,4 @@
+const fs = require('fs');
 const Cache = require("./cache.js")
 const Wallet = require('./wallet.js')
 
@@ -73,7 +74,9 @@ class Config {
     if (opts.walletFile) {
       if (typeof opts.walletFile === "string" || typeof opts.walletFile === 'object') {
         conf.wallet = new Wallet(opts.web3)
-        conf.wallet.decrypt([opts.walletFile], opts.password)
+
+        const encKeystore = fs.readFileSync(opts.walletFile, 'utf8');
+        conf.wallet.decrypt([encKeystore], opts.password)
       }
     } else {
       conf.wallet = false
