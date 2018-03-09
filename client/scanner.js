@@ -73,6 +73,17 @@ class Scanner {
     return true
   }
 
+  async isExecutable(txRequest) {
+    if (txRequest.temporalUnit == TEMPORAL_UNIT.BLOCK) {
+      const latestBlock = await this.getBlock('latest')
+      return txRequest.windowStart > latestBlock
+    } else if (txRequest.temporalUnit == TEMPORAL_UNIT.TIMESTAMP) {
+      const now = Math.floor(new Date().valueOf() / 1000);
+      return txRequest.windowStart > now
+    }
+    return false;
+  }
+
   async scanBlockchain() {
     const latestBlockObject = await this.getBlock('latest')
     const { leftBlock, rightBlock } = this.getWindowForBlock(latestBlockObject.number)
@@ -246,17 +257,8 @@ class Scanner {
           // If it's not already in cache, find windowStart.
           const txRequest = await this.fill(request)
 
-          let isExecutable;
-          if (txRequest.temporalUnit == TEMPORAL_UNIT.BLOCK) {
-            const latestBlock = await this.getBlock('latest')
-            isExecutable = txRequest.windowStart > latestBlock
-          } else if (txRequest.temporalUnit == TEMPORAL_UNIT.TIMESTAMP) {
-            const now = Math.floor(new Date().valueOf()/1000);
-            isExecutable = txRequest.windowStart > now
-          }
-
-          if (txRequest && isExecutable) {
-            // If the windowStart returns True to `shouldStore(...)`, store it.
+          if (txRequest && await this.isExecutable(txRequest) ) {
+            // If the isExecutable returns True, store it.
             this.store(txRequest)
           }
         }
