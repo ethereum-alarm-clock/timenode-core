@@ -1,5 +1,10 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require('./routing.js')
+const TEMPORAL_UNIT = {
+  BLOCK : 1,
+  TIMESTAMP : 2
+}
+const SCAN_DELAY = 5;
 
 class Scanner {
   constructor(ms, config) {
@@ -16,7 +21,7 @@ class Scanner {
 
     this.log.info(`Scanning request tracker at ${this.config.tracker.address}`)
     this.log.info(`Validating results with factory at ${this.config.factory.address}`)
-    this.log.info(`Scanning every ${this.ms / 1000} seconds.`)
+    this.log.info(`Scanning every ${this.ms * SCAN_DELAY / 1000} seconds.`)
 
     this.started = false
   }
@@ -29,7 +34,7 @@ class Scanner {
     // Scanning runs less frequently as a check for the watch function
     this.blockchainScanning = setInterval(async () => {
 			await this.scanBlockchain().catch(err => this.log.error(err))
-    }, this.ms*5)
+    }, this.ms * SCAN_DELAY)
 
 		// Set interval for scanning for actionable transaction requests in the cache.
 		this.cacheScanning = setInterval(() => {
@@ -239,10 +244,18 @@ class Scanner {
         this.log.debug(`[${request}] Discovered.`)
         if (!this.cache.has(request)) {
           // If it's not already in cache, find windowStart.
-          const latestBlock = await this.getBlock('latest')
           const txRequest = await this.fill(request)
 
-          if (txRequest && txRequest.windowStart > latestBlock) {
+          let isExecutable;
+          if (txRequest.temporalUnit == TEMPORAL_UNIT.BLOCK) {
+            const latestBlock = await this.getBlock('latest')
+            isExecutable = txRequest.windowStart > latestBlock
+          } else if (txRequest.temporalUnit == TEMPORAL_UNIT.TIMESTAMP) {
+            const now = Math.floor(new Date().valueOf()/1000);
+            isExecutable = txRequest.windowStart > now
+          }
+
+          if (txRequest && isExecutable) {
             // If the windowStart returns True to `shouldStore(...)`, store it.
             this.store(txRequest)
           }
