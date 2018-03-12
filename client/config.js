@@ -1,4 +1,3 @@
-const fs = require('fs');
 const Cache = require("./cache.js")
 const Wallet = require('./wallet.js')
 
@@ -16,7 +15,6 @@ class Config {
     // web3,
     // eac,
     // provider,
-    // walletFile,
     // walletStore,
     // password,
     // autostart
@@ -67,20 +65,12 @@ class Config {
     // web3,
     // eac,
     // provider,
-    // walletFile,
     // walletStore,
     // password,
     // autostart
   ) {
     let conf = new Config(opts)
-    if (opts.walletFile) {
-      if (typeof opts.walletFile === "string") {
-        conf.wallet = new Wallet(opts.web3)
-
-        const encKeystore = fs.readFileSync(opts.walletFile, 'utf8');
-        conf.wallet.decrypt([encKeystore], opts.password)
-      }
-    } else if (typeof opts.walletStore === 'object') {
+    if (opts.walletStore && typeof opts.walletStore === 'object') {
       conf.wallet = new Wallet(opts.web3)
       conf.wallet.decrypt([opts.walletStore], opts.password)
     } else  {
