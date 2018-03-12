@@ -71,7 +71,7 @@ class Config {
   ) {
     let conf = new Config(opts)
     if (opts.walletStore ) {
-      if (opts.walletStore !== 'string') {
+      if (typeof opts.walletStore === 'object') {
         opts.walletStore = JSON.stringify(opts.walletStore);
       }
       conf.wallet = new Wallet(opts.web3)
