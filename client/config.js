@@ -70,7 +70,10 @@ class Config {
     // autostart
   ) {
     let conf = new Config(opts)
-    if (opts.walletStore && typeof opts.walletStore === 'object') {
+    if (opts.walletStore ) {
+      if (opts.walletStore !== 'string') {
+        opts.walletStore = JSON.stringify(opts.walletStore);
+      }
       conf.wallet = new Wallet(opts.web3)
       conf.wallet.decrypt([opts.walletStore], opts.password)
     } else  {
