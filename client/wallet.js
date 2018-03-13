@@ -86,7 +86,7 @@ class Wallet {
         const _this = this
 
         encryptedKeystores.forEach((keystore) => {
-            const wallet = ethWallet.fromV3(keystore, password)
+            const wallet = ethWallet.fromV3(keystore, password, true)
 
             if (wallet) {
                 _this.add(wallet)
