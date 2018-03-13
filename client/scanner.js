@@ -1,5 +1,6 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require('./routing.js')
+const SCAN_DELAY = 1;
 
 class Scanner {
   constructor(ms, config) {
@@ -16,7 +17,7 @@ class Scanner {
 
     this.log.info(`Scanning request tracker at ${this.config.tracker.address}`)
     this.log.info(`Validating results with factory at ${this.config.factory.address}`)
-    this.log.info(`Scanning every ${this.ms / 1000} seconds.`)
+    this.log.info(`Scanning every ${this.ms * SCAN_DELAY / 1000} seconds.`)
 
     this.started = false
   }
@@ -25,19 +26,21 @@ class Scanner {
 		// Reset the intervals if already started.
 		if (this.started) this.stop()
 
-		// Set interval for scanning for new transaction requests on the blockchain.
+    // Set interval for scanning for new transaction requests on the blockchain.
+    // Scanning runs less frequently as a check for the watch function
     this.blockchainScanning = setInterval(async () => {
 			await this.scanBlockchain().catch(err => this.log.error(err))
-		}, this.ms)
+    }, this.ms * SCAN_DELAY)
 
 		// Set interval for scanning for actionable transaction requests in the cache.
 		this.cacheScanning = setInterval(() => {
 			this.scanCache().catch(err => this.log.error(err))
-		}, this.ms + 1000)
+		}, this.ms )
 
 		// Immediately execute both scans.
     this.scanBlockchain().catch(err => this.log.error(err))
     this.scanCache().catch(err => this.log.error(err))
+    this.watchBlockchain();
 
 		// Mark that we've started.
     this.started = true
@@ -47,7 +50,10 @@ class Scanner {
   stop() {
 		// Clear scanning intervasls.
     clearInterval(this.blockchainScanning)
-    clearInterval(this.cacheScanning)
+    clearInterval(this.cacheScanning);
+    if (this.requestWatcher) {
+      this.requestWatcher.stopWatching()
+    }
 
 		// Mark that we've stopped.
     this.started = false
@@ -61,6 +67,10 @@ class Scanner {
     }
 
     return true
+  }
+
+  async isExecutable(txRequest) {
+    return await txRequest.beforeClaimWindow() || await txRequest.inClaimWindow() || await txRequest.inFreezePeriod() || await txRequest.inExecutionWindow()
   }
 
   async scanBlockchain() {
@@ -86,6 +96,15 @@ class Scanner {
 
   getRightTimestamp(leftTimestamp, latestTimestamp) {
     return 2 * latestTimestamp - leftTimestamp
+  }
+
+  async watchBlockchain() {
+    const latestBlock = await this.getBlock('latest')
+    const startBlock = latestBlock.number - (this.config.scanSpread * 2)
+
+    this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
+
+    this.watchBlocks(startBlock)
   }
 
 	/**
@@ -209,6 +228,31 @@ class Scanner {
         break
       }
     }
+  }
+
+  /**
+   * Watch for new transactions as they are created.
+   * @param {Number} fromBlock The block from which to begin watch.
+   * @returns {void}
+   */
+  async watchBlocks(fromBlock) {
+    const requestFactory = await this.eac.requestFactory();
+    this.requestWatcher = await requestFactory.watchRequests(fromBlock,
+      async (request) => {
+        if (!this.isCorrect(request)) return;
+
+        this.log.debug(`[${request}] Discovered.`)
+        if (!this.cache.has(request)) {
+          // If it's not already in cache, find windowStart.
+          const txRequest = await this.fill(request)
+
+          if (txRequest && await this.isExecutable(txRequest) ) {
+            // If the isExecutable returns True, store it.
+            this.store(txRequest)
+            routeTxRequest(this.config, txRequest)
+          }
+        }
+    })
   }
 
   async scanCache() {
