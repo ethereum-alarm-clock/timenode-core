@@ -35,7 +35,7 @@ class Scanner {
 		// Set interval for scanning for actionable transaction requests in the cache.
 		this.cacheScanning = setInterval(() => {
 			this.scanCache().catch(err => this.log.error(err))
-		}, this.ms + 1000)
+		}, this.ms )
 
 		// Immediately execute both scans.
     this.scanBlockchain().catch(err => this.log.error(err))
