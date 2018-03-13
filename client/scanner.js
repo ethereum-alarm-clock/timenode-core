@@ -1,6 +1,6 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require('./routing.js')
-const SCAN_DELAY = 5;
+const SCAN_DELAY = 1;
 
 class Scanner {
   constructor(ms, config) {
