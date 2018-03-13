@@ -1,9 +1,5 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require('./routing.js')
-const TEMPORAL_UNIT = {
-  BLOCK : 1,
-  TIMESTAMP : 2
-}
 const SCAN_DELAY = 5;
 
 class Scanner {
@@ -74,14 +70,7 @@ class Scanner {
   }
 
   async isExecutable(txRequest) {
-    if (txRequest.temporalUnit == TEMPORAL_UNIT.BLOCK) {
-      const latestBlock = await this.getBlock('latest')
-      return txRequest.windowStart > latestBlock
-    } else if (txRequest.temporalUnit == TEMPORAL_UNIT.TIMESTAMP) {
-      const now = Math.floor(new Date().valueOf() / 1000);
-      return txRequest.windowStart > now
-    }
-    return false;
+    return await txRequest.beforeClaimWindow() || await txRequest.inClaimWindow() || await txRequest.inFreezePeriod() || await txRequest.inExecutionWindow()
   }
 
   async scanBlockchain() {
@@ -260,6 +249,7 @@ class Scanner {
           if (txRequest && await this.isExecutable(txRequest) ) {
             // If the isExecutable returns True, store it.
             this.store(txRequest)
+            routeTxRequest(this.config, txRequest)
           }
         }
     })
