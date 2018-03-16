@@ -1,5 +1,6 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require('./routing.js')
+const { Analytics } = require('./analytics.js')
 const SCAN_DELAY = 1;
 
 class Scanner {
@@ -14,6 +15,10 @@ class Scanner {
     this.requestTracker = this.config.tracker
     this.requestFactory = this.config.factory
     this.requestTracker.setFactory(this.requestFactory.address)
+
+    if (config.analyticsOn) {
+      this.analytics = new Analytics(this.web3);
+    }
 
     this.log.info(`Scanning request tracker at ${this.config.tracker.address}`)
     this.log.info(`Validating results with factory at ${this.config.factory.address}`)
@@ -41,6 +46,9 @@ class Scanner {
     this.scanBlockchain().catch(err => this.log.error(err))
     this.scanCache().catch(err => this.log.error(err))
     this.watchBlockchain();
+    if (this.analytics) {
+      this.analytics.startAnalytics();
+    }
 
 		// Mark that we've started.
     this.started = true
@@ -53,6 +61,10 @@ class Scanner {
     clearInterval(this.cacheScanning);
     if (this.requestWatcher) {
       this.requestWatcher.stopWatching()
+    }
+
+    if (this.analytics) {
+      this.analytics.stopAnalytics();
     }
 
 		// Mark that we've stopped.
