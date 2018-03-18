@@ -10,27 +10,32 @@ class StatsDB {
    */
   constructor(web3, db) {
     this.db = db
-    this.stats = this.db.addCollection('stats')
     this.web3 = web3
     this.eac = require('eac.js-lib')(web3)
+
+    const fetchedStats = this.db.getCollection('stats')
+    this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats')
   }
 
   // / Takes an arry of addresses and stores them as new stats objects.
   initialize(accounts) {
     accounts.forEach(async (account) => {
       const found = this.stats.find({ account })[0]
-      if (found) return
-      
-      let bal = await this.eac.Util.getBalance(account)
-      bal = new BigNumber(bal)
-      this.stats.insert({
-        account,
-        claimed: 0,
-        executed: 0,
-        startingEther: bal,
-        currentEther: bal,
-        executedTransactions: []
-      })
+      if (found) {
+        found.startingEther = new BigNumber(found.startingEther)
+        found.currentEther = new BigNumber(found.currentEther)
+      } else {
+        let bal = await this.eac.Util.getBalance(account)
+        bal = new BigNumber(bal)
+        this.stats.insert({
+          account,
+          claimed: 0,
+          executed: 0,
+          startingEther: bal,
+          currentEther: bal,
+          executedTransactions: []
+        })
+      }
     })
   }
 
