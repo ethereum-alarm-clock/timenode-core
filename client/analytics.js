@@ -1,35 +1,31 @@
-import Keen from 'keen-js';
+const Keen = require('keen-js');
 
 const COLLECTIONS = {
     EACNODES: 'eacnodes'
 };
 
 const KEENKCONSTS = {
-    PROJECTID: 'eacnodes',
-    WRITEKEY: '',
-    READKEY: ''
+    PROJECTID: 'eacnodes'
 };
 
 // 5 minutes in milliseconds
 const ACTIVE_EACNODES_POLLING_INTERVAL = 5 * 60 * 1000;
 
 class Analytics {
-    activeEacnodes = 0;
 
-    projectId = '';
-    writeKey = '';
-    readKey = '';
-    client = null;
-    networkId = null;
-
-    _web3 = null;
-
-    constructor(web3) {
+    constructor(writeKey, readKey, web3) {
         this.projectId = KEENKCONSTS.PROJECTID;
-        this.writeKey = KEENKCONSTS.WRITEKEY;
-        this.readKey = KEENKCONSTS.READKEY;
+        this.writeKey = writeKey;
+        this.readKey = readKey;
 
         this._web3 = web3;
+
+        this.activeEacnodes = 0;
+        this.projectId = '';
+        this.writeKey = '';
+        this.readKey = '';
+        this.client = null;
+        this.networkId = null;
 
         this.initialize();
     }
@@ -53,17 +49,19 @@ class Analytics {
         });
     }
 
-    startAnalytics () {
-        this.notifyNetworkNodeActive();
+    startAnalytics(nodeAddress) {
+        this.notifyNetworkNodeActive(nodeAddress);
         this.pollActiveEacnodesCount();
     }
 
     stopAnalytics() {
         if (this.notifyInterval) {
             clearInterval(this.notifyInterval);
+            this.notifyInterval = null;
         }
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
+            this.pollInterval = null;
         }
     }
 
@@ -77,7 +75,7 @@ class Analytics {
     }
 
     notifyNetworkNodeActive(nodeAddress, networkId = this.networkId) {
-        sendActiveTimeNodeEvent(nodeAddress, networkId)
+        this.sendActiveTimeNodeEvent(nodeAddress, networkId)
         this.notifyInterval = setInterval(() => this.sendActiveTimeNodeEvent(nodeAddress, networkId));
     }
 
