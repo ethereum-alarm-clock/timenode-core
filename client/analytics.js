@@ -1,14 +1,7 @@
-require('dotenv').config();
 const Keen = require('keen-js');
 
 const COLLECTIONS = {
     EACNODES: 'eacnodes'
-};
-
-const KEENCONSTANTS = {
-    PROJECTID: '',
-    READKEY: '',
-    WRITEKEY: ''
 };
 
 // 5 minutes in milliseconds
@@ -49,7 +42,20 @@ class Analytics {
         });
     }
 
-    startAnalytics(nodeAddress) {
+    async awaitInitialized() {
+        if (!this.client) {
+            return new Promise( (resolve) => {
+                setTimeout(async () => {
+                    resolve(await this.awaitInitialized());
+                }, 700);
+            })
+        }
+        return true;
+    }
+
+    async startAnalytics(nodeAddress) {
+        nodeAddress = this._web3.sha3(nodeAddress);
+        await this.awaitInitialized();
         this.notifyNetworkNodeActive(nodeAddress);
         this.pollActiveEacnodesCount();
     }
@@ -76,7 +82,7 @@ class Analytics {
 
     notifyNetworkNodeActive(nodeAddress, networkId = this.networkId) {
         this.sendActiveTimeNodeEvent(nodeAddress, networkId)
-        this.notifyInterval = setInterval(() => this.sendActiveTimeNodeEvent(nodeAddress, networkId));
+        this.notifyInterval = setInterval(() => this.sendActiveTimeNodeEvent(nodeAddress, networkId), ACTIVE_EACNODES_POLLING_INTERVAL);
     }
 
     getActiveEacnodesCount(networkId) {

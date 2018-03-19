@@ -41,28 +41,13 @@ describe('Analysis', () => {
       assert.equal(notifyNetworkNodeActive, 'function');
       assert.equal(pollActiveEacnodesCount, 'function');
     })
-
-    // it('should attempt to start analytics', async () => {
-    //   await analytics.startAnalytics(nodeAddress);
-
-    //   assert.notEqual(analytics.notifyInterval, null);
-    //   assert.notEqual(analytics.pollInterval, null);
-    // })
   })
 
   describe('#stopAnalytics()', () => {
 
-    // it('required functions should exist', () => {
-    //   assert.notEqual(analytics.notifyInterval, null);
-    //   assert.notEqual(analytics.pollInterval, null);
-    // })
-
-    // it('should attempt to stop analytics', async () => {
-    //   await analytics.stopAnalytics();
-
-    //   assert.equal(analytics.notifyInterval, null);
-    //   assert.equal(analytics.pollInterval, null);
-    // })
+    it('required functions should exist', () => {
+      assert.notEqual(analytics.stopAnalytics, null);
+    })
   })
 
 })

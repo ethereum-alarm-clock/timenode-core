@@ -16,7 +16,7 @@ class Scanner {
     this.requestFactory = this.config.factory
     this.requestTracker.setFactory(this.requestFactory.address)
 
-    if (config.analyticsOn) {
+    if (config.analytics) {
       this.analytics = new Analytics(this.web3);
     }
 
@@ -47,7 +47,8 @@ class Scanner {
     this.scanCache().catch(err => this.log.error(err))
     this.watchBlockchain();
     if (this.analytics) {
-      this.analytics.startAnalytics();
+      const addresses = this.config.wallet.getAddresses()
+      this.analytics.startAnalytics(addresses[0]);
     }
 
 		// Mark that we've started.

@@ -42,7 +42,7 @@ class Config {
     this.web3 = opts.web3
     this.eac = opts.eac
     this.provider = opts.provider
-    this.analyticsOn = opts.analytics || true
+    this.analytics = opts.analytics && opts.analytics.toLowerCase() === 'off' ? false : true
     if (!this.factory ||
         !this.tracker ||
         !this.web3 ||
