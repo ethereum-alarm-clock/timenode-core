@@ -47,7 +47,7 @@ class TxRequest {
     const now =  this.now()
     return this.claimWindowStart.greaterThan(now)
 	}
-	
+
 	getBalance() {
 		return new BigNumber(120000)
 	}

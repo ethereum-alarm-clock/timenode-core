@@ -1,10 +1,6 @@
 const assert = require('chai').assert
 const { Analytics } = require('../client/analytics')
 
-const KEENKCONSTS = {
-    WRITEKEY: '',
-    READKEY: ''
-};
 const nodeAddress = '0x47863b9E8C590323768E4352A78Ca759BBd37E8B';
 
 class Web3 {
@@ -24,7 +20,7 @@ class Web3 {
 describe('Analysis', () => {
   const web3 = new Web3();
 
-  const analytics = new Analytics(KEENKCONSTS.WRITEKEY, KEENKCONSTS.READKEY, web3)
+  const analytics = new Analytics(web3)
 
   describe('#getActiveNetwork()', () => {
     it('should fetch the active network Id', async () => {

@@ -1,11 +1,14 @@
+require('dotenv').config();
 const Keen = require('keen-js');
 
 const COLLECTIONS = {
     EACNODES: 'eacnodes'
 };
 
-const KEENKCONSTS = {
-    PROJECTID: 'eacnodes'
+const KEENCONSTANTS = {
+    PROJECTID: '',
+    READKEY: '',
+    WRITEKEY: ''
 };
 
 // 5 minutes in milliseconds
@@ -13,17 +16,14 @@ const ACTIVE_EACNODES_POLLING_INTERVAL = 5 * 60 * 1000;
 
 class Analytics {
 
-    constructor(writeKey, readKey, web3) {
-        this.projectId = KEENKCONSTS.PROJECTID;
-        this.writeKey = writeKey;
-        this.readKey = readKey;
+    constructor(web3) {
+        this.projectId = process.env.KEEN_PROJECT_ID;
+        this.writeKey = process.env.KEEN_WRITE_KEY;
+        this.readKey = process.env.KEEN_READ_KEY;
 
         this._web3 = web3;
 
         this.activeEacnodes = 0;
-        this.projectId = '';
-        this.writeKey = '';
-        this.readKey = '';
         this.client = null;
         this.networkId = null;
 
