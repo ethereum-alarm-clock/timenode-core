@@ -1,4 +1,5 @@
-const Keen = require('keen-js');
+const KeenAnalysis = require('keen-analysis');
+const KeenTracking = require('keen-tracking');
 
 const COLLECTIONS = {
     EACNODES: 'eacnodes'
@@ -35,15 +36,19 @@ class Analytics {
     async initialize() {
         await this.getActiveNetwork();
 
-        this.client = new Keen({
+        this.analysisClient = new KeenAnalysis({
             projectId: this.projectId,
-            writeKey: this.writeKey,
             readKey: this.readKey
+        });
+
+        this.trackingClient = new KeenTracking({
+            projectId: this.projectId,
+            writeKey: this.writeKey
         });
     }
 
     async awaitInitialized() {
-        if (!this.client) {
+        if (!this.analysisClient || !this.trackingClient) {
             return new Promise( (resolve) => {
                 setTimeout(async () => {
                     resolve(await this.awaitInitialized());
@@ -77,7 +82,7 @@ class Analytics {
             networkId,
             status: 'active'
         };
-        this.client.addEvent(COLLECTIONS.EACNODES, event);
+        this.trackingClient.addEvent(COLLECTIONS.EACNODES, event);
     }
 
     notifyNetworkNodeActive(nodeAddress, networkId = this.networkId) {
@@ -86,7 +91,7 @@ class Analytics {
     }
 
     getActiveEacnodesCount(networkId) {
-        const count = new Keen.Query('count_unique', {
+        const count = new KeenAnalysis.Query('count_unique', {
             event_collection: COLLECTIONS.EACNODES,
             target_property: 'nodeAddress',
             timeframe: 'previous_5_minutes',
@@ -104,7 +109,7 @@ class Analytics {
             ]
         });
 
-        this.client.run(count, (err, response) => {
+        this.analysisClient.run(count, (err, response) => {
             this.activeEacnodes = response.result;
         });
     }
