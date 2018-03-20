@@ -84,7 +84,7 @@ class Analytics {
             networkId,
             status: 'active'
         };
-        this.trackingClient.addEvent(COLLECTIONS.EACNODES, event);
+        this.trackingClient.recordEvent(COLLECTIONS.EACNODES, event);
     }
 
     notifyNetworkNodeActive(nodeAddress, networkId = this.networkId) {
