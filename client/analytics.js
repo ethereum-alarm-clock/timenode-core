@@ -38,12 +38,14 @@ class Analytics {
 
         this.analysisClient = new KeenAnalysis({
             projectId: this.projectId,
-            readKey: this.readKey
+            readKey: this.readKey,
+            requestType: 'xhr'
         });
 
         this.trackingClient = new KeenTracking({
             projectId: this.projectId,
-            writeKey: this.writeKey
+            writeKey: this.writeKey,
+            requestType: 'xhr'
         });
     }
 
