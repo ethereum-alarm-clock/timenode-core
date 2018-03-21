@@ -207,7 +207,7 @@ class Scanner {
         const txRequest = await this.fill(currentRequestAddress)
         windowStart = txRequest.windowStart
 
-        if (txRequest && shouldStore(windowStart)) {
+        if (txRequest && shouldStore(windowStart) && this.isExecutable(txRequest)) {
           // If the windowStart returns True to `shouldStore(...)`, store it.
           this.store(txRequest)
         }
