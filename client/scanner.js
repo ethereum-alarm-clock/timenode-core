@@ -1,5 +1,6 @@
 /* eslint no-await-in-loop: "off" */
 const { routeTxRequest } = require('./routing.js')
+const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
 
 class Scanner {
@@ -10,16 +11,37 @@ class Scanner {
     this.cache = config.cache
     this.web3 = config.web3
     this.eac = config.eac
+    this.logNetwork();
 
     this.requestTracker = this.config.tracker
     this.requestFactory = this.config.factory
     this.requestTracker.setFactory(this.requestFactory.address)
 
+    this.log.info(`eac.js-client : version ${clientVersion}`)
     this.log.info(`Scanning request tracker at ${this.config.tracker.address}`)
     this.log.info(`Validating results with factory at ${this.config.factory.address}`)
     this.log.info(`Scanning every ${this.ms * SCAN_DELAY / 1000} seconds.`)
 
     this.started = false
+  }
+
+  logNetwork() {
+    const Networks = {
+      0: 'Private',
+      1: 'Mainnet',
+      2: 'Mordern',
+      3: 'Ropsten',
+      4: 'Rinkeby',
+      42: 'Kovan'
+
+    }
+    this.web3.version.getNetwork( (err,res) => {
+      console.log('net',err,res)
+      if (err) {
+        this.log.error(`Unable to connect to a Network`)
+      }
+      this.log.info(`Network : ${Networks[res || 0]} Network`)
+    });
   }
 
   start() {
