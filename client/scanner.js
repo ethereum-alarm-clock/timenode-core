@@ -36,7 +36,6 @@ class Scanner {
 
     }
     this.web3.version.getNetwork( (err,res) => {
-      console.log('net',err,res)
       if (err) {
         this.log.error(`Unable to connect to a Network`)
       }
