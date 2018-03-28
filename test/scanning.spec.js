@@ -25,6 +25,10 @@ class TxRequest {
   get windowStart() {
     return new BigNumber(10)
   }
+
+  beforeClaimWindow() {
+    return true
+  }
 }
 
 const logger = {
@@ -41,7 +45,14 @@ describe('Scanning', () => {
     factory: new RequestFactoryMock(),
     eac,
     cache: new Cache(logger),
-    web3: { exists: true },
+    web3: {
+      exists: true,
+      version: {
+        getNetwork(){
+          return (null,42);
+        }
+      }
+    },
     provider: 'provider',
     scanSpread: 100
   }
