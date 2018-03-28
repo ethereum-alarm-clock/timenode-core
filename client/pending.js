@@ -18,7 +18,7 @@ const hasPendingParity = async (conf, txRequest) => {
       (err, res) => {
         if (err) reject(err)
 
-        const hasTx = !!res.result.filter(tx => tx.to === txRequest.address).length
+        const hasTx = res && res.result && !!res.result.filter(tx => tx.to === txRequest.address).length
         resolve(hasTx)
       }
     )
