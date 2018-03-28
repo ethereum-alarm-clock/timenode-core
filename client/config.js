@@ -15,7 +15,7 @@ class Config {
     // web3,
     // eac,
     // provider,
-    // walletStore,
+    // walletStores,
     // password,
     // autostart
   ) {
@@ -65,17 +65,19 @@ class Config {
     // web3,
     // eac,
     // provider,
-    // walletStore,
+    // walletStores,
     // password,
     // autostart
   ) {
     let conf = new Config(opts)
-    if (opts.walletStore ) {
-      if (typeof opts.walletStore === 'object') {
-        opts.walletStore = JSON.stringify(opts.walletStore);
-      }
+    if (opts.walletStores && typeof opts.walletStores.length !== 'undefined' && opts.walletStores.length > 0) {
+      opts.walletStores.forEach( (store, index ) => {
+        if (typeof store === 'object') {
+          opts.walletStores[index] = JSON.stringify(store);
+        }
+      })
       conf.wallet = new Wallet(opts.web3)
-      conf.wallet.decrypt([opts.walletStore], opts.password)
+      conf.wallet.decrypt(opts.walletStores, opts.password)
     } else  {
       conf.wallet = false
     }
