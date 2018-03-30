@@ -68,12 +68,12 @@ class Scanner {
     this.log.info('Scanning STARTED')
   }
 
-  stop() {
+  async stop() {
 		// Clear scanning intervasls.
     clearInterval(this.blockchainScanning)
     clearInterval(this.cacheScanning);
     if (this.requestWatcher) {
-      this.requestWatcher.stopWatching()
+      await this.requestFactory.stopWatch(this.requestWatcher)//.stopWatching()
       this.log.info('Watching STOPPED')
     }
 
@@ -121,31 +121,23 @@ class Scanner {
   }
 
   async watchBlockchain() {
-    // console.log(this.web3.currentProvider)
-    console.log(this.web3.currentProvider.sendAsync)
-    try{
-      this.web3.currentProvider.sendAsync({
-        jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
-      }, async (e) => {
+    this.web3.currentProvider.sendAsync({
+      jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
+    }, async (e) => {
 
-        if (e !== null) {
-          this.log.info(`Watching DISABLED`)
-          return;
-        }
+      if (e !== null) {
+        this.log.info(`Watching DISABLED`)
+        return;
+      }
 
-        const latestBlock = await this.getBlock('latest')
-        const startBlock = latestBlock.number - (this.config.scanSpread * 2)
+      const latestBlock = await this.getBlock('latest')
+      const startBlock = latestBlock.number - (this.config.scanSpread * 2)
 
-        this.log.info(`Watching STARTED`)
-        this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
+      this.log.info(`Watching STARTED`)
+      this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
 
-        this.watchBlocks(startBlock)
-      });
-    } catch (e) {
-      console.log('e',e)
-      this.log.info(`Watching DISABLED`)
-      return;
-    }
+      this.watchBlocks(startBlock)
+    });
   }
 
 	/**
