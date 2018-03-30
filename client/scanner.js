@@ -73,7 +73,7 @@ class Scanner {
     clearInterval(this.blockchainScanning)
     clearInterval(this.cacheScanning);
     if (this.requestWatcher) {
-      await this.requestFactory.stopWatch(this.requestWatcher)//.stopWatching()
+      await this.requestFactory.stopWatch(this.requestWatcher)
       this.log.info('Watching STOPPED')
     }
 
