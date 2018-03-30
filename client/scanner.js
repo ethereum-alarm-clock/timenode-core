@@ -84,7 +84,6 @@ class Scanner {
 
   isValidBlock(block) {
     if (!block) {
-      this.log.error('')
       return false
     }
 
@@ -131,7 +130,7 @@ class Scanner {
       }
 
       const latestBlock = await this.getBlock('latest')
-      const startBlock = latestBlock.number - (this.config.scanSpread * 2)
+      const startBlock = latestBlock.number - this.config.scanSpread
 
       this.log.info(`Watching STARTED`)
       this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
