@@ -1,4 +1,4 @@
-/* eslint no-await-in-loop: "off" */
+/* eslint no-await-in-loop: 'off' */
 const { routeTxRequest } = require('./routing.js')
 const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
@@ -74,6 +74,7 @@ class Scanner {
     clearInterval(this.cacheScanning);
     if (this.requestWatcher) {
       this.requestWatcher.stopWatching()
+      this.log.info('Watching STOPPED')
     }
 
 		// Mark that we've stopped.
@@ -83,7 +84,7 @@ class Scanner {
 
   isValidBlock(block) {
     if (!block) {
-      this.log.error("")
+      this.log.error('')
       return false
     }
 
@@ -120,12 +121,31 @@ class Scanner {
   }
 
   async watchBlockchain() {
-    const latestBlock = await this.getBlock('latest')
-    const startBlock = latestBlock.number - (this.config.scanSpread * 2)
+    // console.log(this.web3.currentProvider)
+    console.log(this.web3.currentProvider.sendAsync)
+    try{
+      this.web3.currentProvider.sendAsync({
+        jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
+      }, async (e) => {
 
-    this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
+        if (e !== null) {
+          this.log.info(`Watching DISABLED`)
+          return;
+        }
 
-    this.watchBlocks(startBlock)
+        const latestBlock = await this.getBlock('latest')
+        const startBlock = latestBlock.number - (this.config.scanSpread * 2)
+
+        this.log.info(`Watching STARTED`)
+        this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
+
+        this.watchBlocks(startBlock)
+      });
+    } catch (e) {
+      console.log('e',e)
+      this.log.info(`Watching DISABLED`)
+      return;
+    }
   }
 
 	/**
