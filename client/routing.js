@@ -63,6 +63,12 @@ const claim = async (conf, txRequest) => {
   log.info(`[${txRequest.address}] Attempting the claim | Payment: ${paymentWhenClaimed}`)
   conf.cache.set(txRequest.address, 102)
 
+  // FIXME: This is only a temporary check for now until we solve the 
+  // claiming mechanism problem.
+  if (await hasPending(conf, txRequest)) {
+    return 
+  }
+
   if (conf.wallet) {
     // Wallet is enabled, claim from the next index.
     return conf.wallet.sendFromNext({
@@ -74,7 +80,7 @@ const claim = async (conf, txRequest) => {
     })
   } else {
       // Wallet disabled, claim from default account
-      return txRequest.claim().send({
+      return txRequest.claim({
           from: web3.eth.defaultAccount,
           value: claimDeposit,
           gas: gasToClaim + 21000,
