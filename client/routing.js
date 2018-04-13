@@ -315,12 +315,13 @@ const routeTxRequest = async (conf, txRequest) => {
     }
     execute(conf, txRequest)
       .then(result => {
-        const { receipt, from } = result
-        if (receipt && receipt.status == 1) {
+        const receipt = result
+        if (receipt && (receipt.status == 1 || receipt.status == '0x01')) {
           if (isExecuted(receipt)) {
+            // console.log(JSON.stringify(receipt))
             log.info(`[${txRequest.address}] Executed.`)
             conf.cache.set(txRequest.address, 100)
-            conf.statsdb.updateExecuted(from)
+            // conf.statsdb.updateExecuted(receipt)
           } else {
             log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
           }
