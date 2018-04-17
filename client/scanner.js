@@ -106,13 +106,58 @@ class Scanner {
         return;
       }
 
+      const reqFactory = await this.eac.requestFactory()
+
       const latestBlock = await this.getBlock('latest')
-      const startBlock = latestBlock.number - this.config.scanSpread
+      // const startBlock = latestBlock.number - this.config.scanSpread
+
+      const blockBucket = reqFactory.calcBucket(latestBlock.number, 1)
+      const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2)
+
+      const handleRequests = async (request) => {
+        if (!this.isCorrect(request)) return;
+        this.log.debug(`[${request}] Discovered.`)
+        if (!this.cache.has(request)) {
+          // If it's not already in cache, find windowStart.
+          const txRequest = await this.fill(request)
+
+          if (txRequest && await this.isExecutable(txRequest) ) {
+            // If the isExecutable returns True, store it.
+            this.store(txRequest)
+            routeTxRequest(this.config, txRequest)
+          }
+        }
+      }
+
+      // Start watching the current buckets right away.
+      reqFactory.watchRequestsByBucket(blockBucket, handleRequests)
+      reqFactory.watchRequestsByBucket(tsBucket, handleRequests)
+
+      const watchNextBuckets = (block) => {
+        const blockBucketSize = 240
+        const tsBucketSize = 3600
+
+        const nextBlockInterval = block.number + blockBucketSize
+        const nextTsInterval = block.timestamp + tsBucketSize
+
+        const nextBlockBucket = calcBucket(nextBlockInterval)
+        const nextTxBucket = calcBucket(nextTsInterval)
+
+        reqFactory.watchRequestsByBucket(nextBlockBucket)
+        reqFactory.watchRequestsByBucket(nextTsInterval)
+      }
+
+      // Set an timeout for every hour
+      setInterval(() => {
+        const curBlock = await this.getBlock('latest')
+        watchNextBuckets(curBlock)
+      }, 60 * 60 * 1000)
+
+      // Also start watching the next one now.
+      watchNextBuckets(latestBlock)
 
       this.log.info(`Watching STARTED`)
       this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
-
-      this.watchBlocks(startBlock)
     });
   }
 
@@ -189,31 +234,6 @@ class Scanner {
         break
       }
     }
-  }
-
-  /**
-   * Watch for new transactions as they are created.
-   * @param {Number} fromBlock The block from which to begin watch.
-   * @returns {void}
-   */
-  async watchBlocks(fromBlock) {
-    const requestFactory = await this.eac.requestFactory();
-    this.requestWatcher = await requestFactory.watchRequests(fromBlock,
-      async (request) => {
-        if (!this.isCorrect(request)) return;
-
-        this.log.debug(`[${request}] Discovered.`)
-        if (!this.cache.has(request)) {
-          // If it's not already in cache, find windowStart.
-          const txRequest = await this.fill(request)
-
-          if (txRequest && await this.isExecutable(txRequest) ) {
-            // If the isExecutable returns True, store it.
-            this.store(txRequest)
-            routeTxRequest(this.config, txRequest)
-          }
-        }
-    })
   }
 
   async scanCache() {
