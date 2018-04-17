@@ -140,15 +140,15 @@ class Scanner {
         const nextBlockInterval = block.number + blockBucketSize
         const nextTsInterval = block.timestamp + tsBucketSize
 
-        const nextBlockBucket = calcBucket(nextBlockInterval)
-        const nextTxBucket = calcBucket(nextTsInterval)
+        const nextBlockBucket = reqFactory.calcBucket(nextBlockInterval)
+        const nextTxBucket = reqFactory.calcBucket(nextTsInterval)
 
-        reqFactory.watchRequestsByBucket(nextBlockBucket)
-        reqFactory.watchRequestsByBucket(nextTsInterval)
+        reqFactory.watchRequestsByBucket(nextBlockBucket, handleRequests)
+        reqFactory.watchRequestsByBucket(nextTsInterval, handleRequests)
       }
 
       // Set an timeout for every hour
-      setInterval(() => {
+      setInterval(async () => {
         const curBlock = await this.getBlock('latest')
         watchNextBuckets(curBlock)
       }, 60 * 60 * 1000)
@@ -157,7 +157,7 @@ class Scanner {
       watchNextBuckets(latestBlock)
 
       this.log.info(`Watching STARTED`)
-      this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
+      this.log.debug(`Watching for new Requests from current bucket `)
     });
   }
 
