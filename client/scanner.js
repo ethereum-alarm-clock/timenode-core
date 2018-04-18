@@ -114,18 +114,13 @@ class Scanner {
       const blockBucket = reqFactory.calcBucket(latestBlock.number, 1)
       const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2)
 
+      // @param request {Object} of form {address: 0xAF...34, uintArgs: uint[12]}
       const handleRequests = async (request) => {
-        if (!this.isCorrect(request)) return;
-        this.log.debug(`[${request}] Discovered.`)
-        if (!this.cache.has(request)) {
+        if (!this.isCorrect(request.address)) return;
+        this.log.debug(`[${request.address}] Discovered.`)
+        if (!this.cache.has(request.address)) {
           // If it's not already in cache, find windowStart.
-          const txRequest = await this.fill(request)
-
-          if (txRequest && await this.isExecutable(txRequest) ) {
-            // If the isExecutable returns True, store it.
-            this.store(txRequest)
-            routeTxRequest(this.config, txRequest)
-          }
+          this.store(request.address, request.params[7])
         }
       }
 
@@ -178,10 +173,11 @@ class Scanner {
     return true
   }
 
-
-  async fill(requestAddress) {
-    const txRequest = await this.eac.transactionRequest(requestAddress)
-    await txRequest.fillData()
+  // @param request {Object} of form {address: 0xAF...34, uintArgs: uint[12]}
+  async fill(request) {
+    const txRequest = await this.eac.transactionRequest(request.address)
+    txRequest.fillWithParams(request.uintArgs)
+    // await txRequest.fillData()
 
     return txRequest
   }

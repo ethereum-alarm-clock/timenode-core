@@ -94,19 +94,19 @@ describe('Scanning', () => {
 
   })
 
-  describe('#scanTimeStamps()', () => {
-    eac.transactionRequest = address => new TxRequest(address)
+  // describe('#scanTimeStamps()', () => {
+  //   eac.transactionRequest = address => new TxRequest(address)
 
-    it('should cache 2 last transactions', async () => {
-      await scanner.scanTimeStamps(0, 10)
+  //   it('should cache 2 last transactions', async () => {
+  //     await scanner.scanTimeStamps(0, 10)
 
-      assert.isFalse(conf.cache.has(tx[0]), `Transaction ${tx[0]} in cache`)
+  //     assert.isFalse(conf.cache.has(tx[0]), `Transaction ${tx[0]} in cache`)
 
-      tx.slice(1).map(t => {
-        assert.isTrue(conf.cache.has(t), `Transaction ${t} not in cache`)
-      })
-    })
-  })
+  //     tx.slice(1).map(t => {
+  //       assert.isTrue(conf.cache.has(t), `Transaction ${t} not in cache`)
+  //     })
+  //   })
+  // })
 
   // Unable to run, as it requires an actual web3 instance
   // describe('#watchBlockchain()', async () => {
