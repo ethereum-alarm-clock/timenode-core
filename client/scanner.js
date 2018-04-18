@@ -126,7 +126,7 @@ class Scanner {
     }
   }
 
-  backupScanBlockchain() {
+  async backupScanBlockchain() {
     const reqFactory = await this.eac.requestFactory()
     const latestBlock = await this.getBlock('latest')
 
