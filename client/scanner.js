@@ -142,6 +142,8 @@ class Scanner {
   }
 
   getNextBuckets(block) {
+    const reqFactory = await this.eac.requestFactory()
+
     const blockBucketSize = 240
     const tsBucketSize = 3600
 
