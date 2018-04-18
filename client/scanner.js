@@ -51,9 +51,6 @@ class Scanner {
 
     // Immediately start.
     const watchingEnabled = await new Promise(resolve=> {
-
-      resolve(false)
-
       this.web3.currentProvider.sendAsync({
         jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
       }, async (e) => {
