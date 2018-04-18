@@ -321,7 +321,7 @@ const routeTxRequest = async (conf, txRequest) => {
     execute(conf, txRequest)
       .then(result => {
         const { receipt, from } = result
-        if (receipt && receipt.status == 1) {
+        if (receipt && (receipt.status == 1 || receipt.status == '0x01')) {
           if (isExecuted(receipt)) {
             log.info(`[${txRequest.address}] Executed.`)
             conf.cache.set(txRequest.address, 100)

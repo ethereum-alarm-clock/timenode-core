@@ -38,12 +38,10 @@ class Config {
 
     // These are all required options
     this.factory = opts.factory
-    this.tracker = opts.tracker
     this.web3 = opts.web3
     this.eac = opts.eac
     this.provider = opts.provider
     if (!this.factory ||
-        !this.tracker ||
         !this.web3 ||
         !this.eac ||
         !this.provider) {

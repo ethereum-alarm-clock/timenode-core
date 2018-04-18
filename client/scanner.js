@@ -13,12 +13,9 @@ class Scanner {
     this.eac = config.eac
     this.logNetwork();
 
-    this.requestTracker = this.config.tracker
     this.requestFactory = this.config.factory
-    this.requestTracker.setFactory(this.requestFactory.address)
 
     this.log.info(`eac.js-client : version ${clientVersion}`)
-    this.log.info(`Scanning request tracker at ${this.config.tracker.address}`)
     this.log.info(`Validating results with factory at ${this.config.factory.address}`)
     this.log.info(`Scanning every ${this.ms * SCAN_DELAY / 1000} seconds.`)
 
@@ -47,21 +44,15 @@ class Scanner {
 		// Reset the intervals if already started.
 		if (this.started) this.stop()
 
-    // Set interval for scanning for new transaction requests on the blockchain.
-    // Scanning runs less frequently as a check for the watch function
-    this.blockchainScanning = setInterval(async () => {
-			await this.scanBlockchain().catch(err => this.log.error(err))
-    }, this.ms * SCAN_DELAY)
-
 		// Set interval for scanning for actionable transaction requests in the cache.
 		this.cacheScanning = setInterval(() => {
 			this.scanCache().catch(err => this.log.error(err))
 		}, this.ms )
 
-		// Immediately execute both scans.
-    this.scanBlockchain().catch(err => this.log.error(err))
-    this.scanCache().catch(err => this.log.error(err))
+		// Immediately start.
     this.watchBlockchain();
+    this.scanCache().catch(err => this.log.error(err))
+
 
 		// Mark that we've started.
     this.started = true
@@ -94,20 +85,6 @@ class Scanner {
     return await txRequest.beforeClaimWindow() || await txRequest.inClaimWindow() || await txRequest.inFreezePeriod() || await txRequest.inExecutionWindow()
   }
 
-  async scanBlockchain() {
-    const latestBlockObject = await this.getBlock('latest')
-    const { leftBlock, rightBlock } = this.getWindowForBlock(latestBlockObject.number)
-
-    const leftBlockObject = await this.getBlock(leftBlock)
-    const leftTimestamp = leftBlockObject.timestamp
-    const rightTimestamp = this.getRightTimestamp(leftTimestamp, latestBlockObject.timestamp)
-
-    this.log.debug(`Scanning bounds from | blocks: ${leftBlock} to ${rightBlock} | timestamps: ${leftTimestamp} to ${rightTimestamp}`)
-
-    await this.scanBlocks(leftBlock, rightBlock)
-    await this.scanTimeStamps(leftTimestamp, rightTimestamp)
-  }
-
   getWindowForBlock(latest) {
     const leftBlock = latest - this.config.scanSpread
     const rightBlock = leftBlock + (this.config.scanSpread * 2)
@@ -129,13 +106,58 @@ class Scanner {
         return;
       }
 
+      const reqFactory = await this.eac.requestFactory()
+
       const latestBlock = await this.getBlock('latest')
-      const startBlock = latestBlock.number - this.config.scanSpread
+      // const startBlock = latestBlock.number - this.config.scanSpread
+
+      const blockBucket = reqFactory.calcBucket(latestBlock.number, 1)
+      const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2)
+
+      const handleRequests = async (request) => {
+        if (!this.isCorrect(request)) return;
+        this.log.debug(`[${request}] Discovered.`)
+        if (!this.cache.has(request)) {
+          // If it's not already in cache, find windowStart.
+          const txRequest = await this.fill(request)
+
+          if (txRequest && await this.isExecutable(txRequest) ) {
+            // If the isExecutable returns True, store it.
+            this.store(txRequest)
+            routeTxRequest(this.config, txRequest)
+          }
+        }
+      }
+
+      // Start watching the current buckets right away.
+      reqFactory.watchRequestsByBucket(blockBucket, handleRequests)
+      reqFactory.watchRequestsByBucket(tsBucket, handleRequests)
+
+      const watchNextBuckets = (block) => {
+        const blockBucketSize = 240
+        const tsBucketSize = 3600
+
+        const nextBlockInterval = block.number + blockBucketSize
+        const nextTsInterval = block.timestamp + tsBucketSize
+
+        const nextBlockBucket = reqFactory.calcBucket(nextBlockInterval)
+        const nextTxBucket = reqFactory.calcBucket(nextTsInterval)
+
+        reqFactory.watchRequestsByBucket(nextBlockBucket, handleRequests)
+        reqFactory.watchRequestsByBucket(nextTsInterval, handleRequests)
+      }
+
+      // Set an timeout for every hour
+      setInterval(async () => {
+        const curBlock = await this.getBlock('latest')
+        watchNextBuckets(curBlock)
+      }, 60 * 60 * 1000)
+
+      // Also start watching the next one now.
+      watchNextBuckets(latestBlock)
 
       this.log.info(`Watching STARTED`)
-      this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
-
-      this.watchBlocks(startBlock)
+      this.log.debug(`Watching for new Requests from current bucket `)
     });
   }
 
@@ -158,58 +180,10 @@ class Scanner {
 
 
   async fill(requestAddress) {
-    const trackerWindowStart = await this.requestTracker.windowStartFor(requestAddress)
     const txRequest = await this.eac.transactionRequest(requestAddress)
     await txRequest.fillData()
 
-    if (!txRequest.windowStart.equals(trackerWindowStart)) {
-      this.log.error(`[${requestAddress}] Data mismatch between txRequest and requestTracker. Double check contract addresses.`)
-      return null
-    }
-
     return txRequest
-  }
-
-  async scanBlocks(left, right) {
-    let firstRequestAddress = await this.requestTracker.previousFromRight(right)
-    return this.scan(
-      left,
-      right,
-      firstRequestAddress,
-      windowStart => windowStart >= left,
-      windowStart => {
-        if (windowStart < left && windowStart > 105) {
-          this.log.debug(`Scan exit condition hit! Previous window start preceeds left bound. WindowStart: ${
-            windowStart
-          } | left: ${left}`)
-
-          return true
-        }
-        return false
-      },
-      currentRequestAddress => this.requestTracker.previousRequest(currentRequestAddress)
-    )
-  }
-
-  async scanTimeStamps(left, right) {
-    let firstRequestAddress = await this.requestTracker.nextFromLeft(left)
-    return this.scan(
-      left,
-      right,
-      firstRequestAddress,
-      windowStart => windowStart <= right,
-      windowStart => {
-        if (windowStart > right) {
-          this.log.debug(`Scan exit condition hit! Next window start exceeds right bound. WindowStart: ${
-            windowStart
-          } | right: ${right}`)
-
-          return true
-        }
-        return false
-      },
-      currentRequestAddress => this.requestTracker.nextRequest(currentRequestAddress)
-    )
   }
 
   /**
@@ -260,31 +234,6 @@ class Scanner {
         break
       }
     }
-  }
-
-  /**
-   * Watch for new transactions as they are created.
-   * @param {Number} fromBlock The block from which to begin watch.
-   * @returns {void}
-   */
-  async watchBlocks(fromBlock) {
-    const requestFactory = await this.eac.requestFactory();
-    this.requestWatcher = await requestFactory.watchRequests(fromBlock,
-      async (request) => {
-        if (!this.isCorrect(request)) return;
-
-        this.log.debug(`[${request}] Discovered.`)
-        if (!this.cache.has(request)) {
-          // If it's not already in cache, find windowStart.
-          const txRequest = await this.fill(request)
-
-          if (txRequest && await this.isExecutable(txRequest) ) {
-            // If the isExecutable returns True, store it.
-            this.store(txRequest)
-            routeTxRequest(this.config, txRequest)
-          }
-        }
-    })
   }
 
   async scanCache() {
