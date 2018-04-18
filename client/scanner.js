@@ -40,7 +40,7 @@ class Scanner {
     });
   }
 
-  start() {
+  async start() {
 		// Reset the intervals if already started.
 		if (this.started) this.stop()
 
