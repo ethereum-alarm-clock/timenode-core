@@ -141,7 +141,7 @@ class Scanner {
     reqFactory.getRequestsByBucket(next.tsBucket).forEach(this.handleRequests)
   }
 
-  getNextBuckets(block) {
+  async getNextBuckets(block) {
     const reqFactory = await this.eac.requestFactory()
 
     const blockBucketSize = 240
