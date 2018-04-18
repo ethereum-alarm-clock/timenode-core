@@ -63,10 +63,10 @@ const claim = async (conf, txRequest) => {
   log.info(`[${txRequest.address}] Attempting the claim | Payment: ${paymentWhenClaimed}`)
   conf.cache.set(txRequest.address, 102)
 
-  // FIXME: This is only a temporary check for now until we solve the 
+  // FIXME: This is only a temporary check for now until we solve the
   // claiming mechanism problem.
   if (await hasPending(conf, txRequest)) {
-    return 
+    return
   }
 
   if (conf.wallet) {
@@ -80,11 +80,14 @@ const claim = async (conf, txRequest) => {
     })
   } else {
       // Wallet disabled, claim from default account
-      return txRequest.claim({
+      return Promise.resolve({
+        receipt: txRequest.claim({
           from: web3.eth.defaultAccount,
           value: claimDeposit,
           gas: gasToClaim + 21000,
           gasPrice: await Util.getGasPrice(web3),
+      }),
+        from: web3.eth.defaultAccount
       })
   }
 }
@@ -130,12 +133,14 @@ const execute = async (conf, txRequest) => {
         return conf.wallet.sendFromNext(opts)
     }
   } else {
-    // Returns a receipt
-      return txRequest.execute({
+      return Promise.resolve({
+        receipt: await txRequest.execute({
           from: web3.eth.defaultAccount,
           value: 0,
           gas: executeGas,
           gasPrice: gasPrice
+        }),
+        from: web3.eth.defaultAccount
       })
   }
 }
