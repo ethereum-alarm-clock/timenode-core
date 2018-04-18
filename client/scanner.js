@@ -63,11 +63,11 @@ class Scanner {
     })
 
     if (watchingEnabled) {
-      this.blockchainScanning = this.watchBlockchain()
+      this.watchBlockchain()
     } else {
       // backup scan
       this.blockchainScanning = setInterval(() => {
-        this.backupScanBlockchain()
+        this.backupScanBlockchain().catch(err => this.log.error(err))
       }, this.ms)
     }
     
@@ -117,14 +117,14 @@ class Scanner {
   }
 
   // @param request {Object} of form {address: 0xAF...34, uintArgs: uint[12]}
-  async handleRequests (request) {
-    if (!this.isCorrect(request.address)) return;
-    this.log.debug(`[${request.address}] Discovered.`)
-    if (!this.cache.has(request.address)) {
-      // If it's not already in cache, find windowStart.
-      this.store(request.address, request.params[7])
-    }
-  }
+  // async handleRequests (request) {
+  //   if (!this.isCorrect(request.address)) return;
+  //   this.log.debug(`[${request.address}] Discovered.`)
+  //   if (!this.cache.has(request.address)) {
+  //     // If it's not already in cache, find windowStart.
+  //     this.store(request)
+  //   }
+  // }
 
   async backupScanBlockchain() {
     const reqFactory = await this.eac.requestFactory()
@@ -135,10 +135,19 @@ class Scanner {
 
     const next = this.getNextBuckets(latestBlock)
 
-    reqFactory.getRequestsByBucket(blockBucket).forEach(this.handleRequests)
-    reqFactory.getRequestsByBucket(tsBucket).forEach(this.handleRequests)
-    reqFactory.getRequestsByBucket(next.blockBucket).forEach(this.handleRequests)
-    reqFactory.getRequestsByBucket(next.tsBucket).forEach(this.handleRequests)
+    const handleRequests = (request) => {
+      if (!this.isCorrect(request.address)) return;
+      this.log.debug(`[${request.address}] Discovered.`)
+      if (!this.cache.has(request.address)) {
+        // If it's not already in cache, find windowStart.
+        this.store(request)
+      }
+    }
+
+    reqFactory.getRequestsByBucket(blockBucket).forEach(handleRequests)
+    reqFactory.getRequestsByBucket(tsBucket).forEach(handleRequests)
+    reqFactory.getRequestsByBucket(next.blockBucket).forEach(handleRequests)
+    reqFactory.getRequestsByBucket(next.tsBucket).forEach(handleRequests)
   }
 
   async getNextBuckets(block) {
@@ -168,28 +177,49 @@ class Scanner {
     const blockBucket = reqFactory.calcBucket(latestBlock.number, 1)
     const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2)
 
-    // Start watching the current buckets right away.
-    reqFactory.watchRequestsByBucket(blockBucket, this.handleRequests)
-    reqFactory.watchRequestsByBucket(tsBucket, this.handleRequests)
-
-    const watchNextBuckets = (block) => {
-      const next = this.getNextBuckets(block)
-
-      reqFactory.watchRequestsByBucket(next.blockBucket, this.handleRequests)
-      reqFactory.watchRequestsByBucket(next.tsBucket, this.handleRequests)
+    const handleRequests = (request) => {
+      if (!this.isCorrect(request.address)) return;
+      this.log.debug(`[${request.address}] Discovered.`)
+      if (!this.cache.has(request.address)) {
+        // If it's not already in cache, find windowStart.
+        this.store(request)
+      }
     }
 
+    // Start watching the current buckets right away.
+    reqFactory.watchRequestsByBucket(blockBucket, handleRequests)
+    reqFactory.watchRequestsByBucket(tsBucket, handleRequests)
     // Also start watching the next one now.
-    watchNextBuckets(latestBlock)
+    this.watchNextBuckets(latestBlock)
 
     this.log.info(`Watching STARTED`)
     this.log.debug(`Watching for new Requests from current bucket `)
 
     // Set an timeout for every hour
-    return setInterval(async () => {
+    setInterval(async () => {
       const curBlock = await this.getBlock('latest')
-      watchNextBuckets(curBlock)
+      this.watchNextBuckets(curBlock)
     }, 60 * 60 * 1000)
+  }
+
+  async watchNextBuckets(block) {
+    const reqFactory = await this.eac.requestFactory()
+
+    const next = this.getNextBuckets(block)
+
+
+    const handleRequests = (request) => {
+      if (!this.isCorrect(request.address)) return;
+      this.log.debug(`[${request.address}] Discovered.`)
+      if (!this.cache.has(request.address)) {
+        // If it's not already in cache, find windowStart.
+        this.store(request)
+      }
+    }
+
+    reqFactory.watchRequestsByBucket(next.blockBucket, handleRequests)
+    reqFactory.watchRequestsByBucket(next.tsBucket, handleRequests)
+
   }
 
 	/**
@@ -295,9 +325,9 @@ class Scanner {
     })
   }
 
-  store(txRequest) {
-    this.log.info(`[${txRequest.address}] Storing.`)
-    this.cache.set(txRequest.address, txRequest.windowStart)
+  store(request) {
+    this.log.info(`[${request.address}] Storing.`)
+    this.cache.set(request.address, request.params[7])
   }
 }
 
