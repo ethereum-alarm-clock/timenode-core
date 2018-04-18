@@ -51,6 +51,9 @@ class Scanner {
 
     // Immediately start.
     const watchingEnabled = await new Promise(resolve=> {
+
+      resolve(false)
+
       this.web3.currentProvider.sendAsync({
         jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
       }, async (e) => {
@@ -63,12 +66,10 @@ class Scanner {
     })
 
     if (watchingEnabled) {
-      this.watchBlockchain()
+      this.blockchainScanning = this.watchBlockchain()
     } else {
       // backup scan
-      this.blockchainScanning = setInterval(() => {
-        this.backupScanBlockchain().catch(err => this.log.error(err))
-      }, this.ms)
+      this.blockchainScanning = this.backupScanBlockchain()
     }
     
     this.scanCache().catch(err => this.log.error(err))
@@ -144,10 +145,14 @@ class Scanner {
       }
     }
 
-    reqFactory.getRequestsByBucket(blockBucket).forEach(handleRequests)
-    reqFactory.getRequestsByBucket(tsBucket).forEach(handleRequests)
-    reqFactory.getRequestsByBucket(next.blockBucket).forEach(handleRequests)
-    reqFactory.getRequestsByBucket(next.tsBucket).forEach(handleRequests)
+    (await reqFactory.getRequestsByBucket(blockBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(tsBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(next.blockBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(next.tsBucket)).map(handleRequests);
+
+    return setInterval(() => {
+      this.backupScanBlockchain().catch(err => this.log.error(err))
+    }, this.ms)
   }
 
   async getNextBuckets(block) {
@@ -196,7 +201,7 @@ class Scanner {
     this.log.debug(`Watching for new Requests from current bucket `)
 
     // Set an timeout for every hour
-    setInterval(async () => {
+    return setInterval(async () => {
       const curBlock = await this.getBlock('latest')
       this.watchNextBuckets(curBlock)
     }, 60 * 60 * 1000)
@@ -206,7 +211,6 @@ class Scanner {
     const reqFactory = await this.eac.requestFactory()
 
     const next = this.getNextBuckets(block)
-
 
     const handleRequests = (request) => {
       if (!this.isCorrect(request.address)) return;
