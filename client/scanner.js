@@ -49,8 +49,28 @@ class Scanner {
 			this.scanCache().catch(err => this.log.error(err))
 		}, this.ms )
 
-		// Immediately start.
-    this.watchBlockchain();
+    // Immediately start.
+    const watchingEnabled = await new Promise(resolve=> {
+      this.web3.currentProvider.sendAsync({
+        jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
+      }, async (e) => {
+        if (e !== null) {
+          this.log.info(`Watching DISABLED`)
+          resolve(false)
+        }
+        resolve(true)
+      })
+    })
+
+    if (watchingEnabled) {
+      this.blockchainScanning = this.watchBlockchain()
+    } else {
+      // backup scan
+      this.blockchainScanning = setInterval(() => {
+        this.backupScanBlockchain()
+      }, this.ms)
+    }
+    
     this.scanCache().catch(err => this.log.error(err))
 
 
@@ -96,64 +116,78 @@ class Scanner {
     return 2 * latestTimestamp - leftTimestamp
   }
 
+  // @param request {Object} of form {address: 0xAF...34, uintArgs: uint[12]}
+  async handleRequests (request) {
+    if (!this.isCorrect(request.address)) return;
+    this.log.debug(`[${request.address}] Discovered.`)
+    if (!this.cache.has(request.address)) {
+      // If it's not already in cache, find windowStart.
+      this.store(request.address, request.params[7])
+    }
+  }
+
+  backupScanBlockchain() {
+    const reqFactory = await this.eac.requestFactory()
+    const latestBlock = await this.getBlock('latest')
+
+    const blockBucket = reqFactory.calcBucket(latestBlock.number, 1)
+    const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2)
+
+    const next = this.getNextBuckets(latestBlock)
+
+    reqFactory.getRequestsByBucket(blockBucket).forEach(this.handleRequests)
+    reqFactory.getRequestsByBucket(tsBucket).forEach(this.handleRequests)
+    reqFactory.getRequestsByBucket(next.blockBucket).forEach(this.handleRequests)
+    reqFactory.getRequestsByBucket(next.tsBucket).forEach(this.handleRequests)
+  }
+
+  getNextBuckets () {
+    const blockBucketSize = 240
+    const tsBucketSize = 3600
+
+    const nextBlockInterval = block.number + blockBucketSize
+    const nextTsInterval = block.timestamp + tsBucketSize
+
+    const blockBucket = reqFactory.calcBucket(nextBlockInterval)
+    const tsBucket = reqFactory.calcBucket(nextTsInterval)
+
+    return {
+      blockBucket,
+      tsBucket,
+    }
+  }
+
   async watchBlockchain() {
-    this.web3.currentProvider.sendAsync({
-      jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
-    }, async (e) => {
+    const reqFactory = await this.eac.requestFactory()
 
-      if (e !== null) {
-        this.log.info(`Watching DISABLED`)
-        return;
-      }
+    const latestBlock = await this.getBlock('latest')
+    // const startBlock = latestBlock.number - this.config.scanSpread
 
-      const reqFactory = await this.eac.requestFactory()
+    const blockBucket = reqFactory.calcBucket(latestBlock.number, 1)
+    const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2)
 
-      const latestBlock = await this.getBlock('latest')
-      // const startBlock = latestBlock.number - this.config.scanSpread
+    // Start watching the current buckets right away.
+    reqFactory.watchRequestsByBucket(blockBucket, this.handleRequests)
+    reqFactory.watchRequestsByBucket(tsBucket, this.handleRequests)
 
-      const blockBucket = reqFactory.calcBucket(latestBlock.number, 1)
-      const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2)
+    const watchNextBuckets = (block) => {
+      const next = this.getNextBuckets(block)
 
-      // @param request {Object} of form {address: 0xAF...34, uintArgs: uint[12]}
-      const handleRequests = async (request) => {
-        if (!this.isCorrect(request.address)) return;
-        this.log.debug(`[${request.address}] Discovered.`)
-        if (!this.cache.has(request.address)) {
-          // If it's not already in cache, find windowStart.
-          this.store(request.address, request.params[7])
-        }
-      }
+      reqFactory.watchRequestsByBucket(next.blockBucket, this.handleRequests)
+      reqFactory.watchRequestsByBucket(next.tsBucket, this.handleRequests)
+    }
 
-      // Start watching the current buckets right away.
-      reqFactory.watchRequestsByBucket(blockBucket, handleRequests)
-      reqFactory.watchRequestsByBucket(tsBucket, handleRequests)
+    // Also start watching the next one now.
+    watchNextBuckets(latestBlock)
 
-      const watchNextBuckets = (block) => {
-        const blockBucketSize = 240
-        const tsBucketSize = 3600
+    this.log.info(`Watching STARTED`)
+    this.log.debug(`Watching for new Requests from current bucket `)
 
-        const nextBlockInterval = block.number + blockBucketSize
-        const nextTsInterval = block.timestamp + tsBucketSize
-
-        const nextBlockBucket = reqFactory.calcBucket(nextBlockInterval)
-        const nextTxBucket = reqFactory.calcBucket(nextTsInterval)
-
-        reqFactory.watchRequestsByBucket(nextBlockBucket, handleRequests)
-        reqFactory.watchRequestsByBucket(nextTsInterval, handleRequests)
-      }
-
-      // Set an timeout for every hour
-      setInterval(async () => {
-        const curBlock = await this.getBlock('latest')
-        watchNextBuckets(curBlock)
-      }, 60 * 60 * 1000)
-
-      // Also start watching the next one now.
-      watchNextBuckets(latestBlock)
-
-      this.log.info(`Watching STARTED`)
-      this.log.debug(`Watching for new Requests from current bucket `)
-    });
+    // Set an timeout for every hour
+    return setInterval(async () => {
+      const curBlock = await this.getBlock('latest')
+      watchNextBuckets(curBlock)
+    }, 60 * 60 * 1000)
   }
 
 	/**
