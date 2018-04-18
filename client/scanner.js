@@ -141,7 +141,7 @@ class Scanner {
     reqFactory.getRequestsByBucket(next.tsBucket).forEach(this.handleRequests)
   }
 
-  getNextBuckets () {
+  getNextBuckets(block) {
     const blockBucketSize = 240
     const tsBucketSize = 3600
 
