@@ -109,7 +109,9 @@ class Scanner {
   }
 
   getWindowForBlock(latest) {
-    const leftBlock = latest - this.config.scanSpread
+    const leftProposed = latest - this.config.scanSpread
+
+    const leftBlock = leftProposed < 0 ? 0 : leftProposed
     const rightBlock = leftBlock + (this.config.scanSpread * 2)
 
     return { leftBlock, rightBlock }
