@@ -109,12 +109,15 @@ class Scanner {
   }
 
   getWindowForBlock(latest) {
-    const leftProposed = latest - this.config.scanSpread
-
-    const leftBlock = leftProposed < 0 ? 0 : leftProposed
+    const leftBlock = this.getLeftBlock(latest)
     const rightBlock = leftBlock + (this.config.scanSpread * 2)
 
     return { leftBlock, rightBlock }
+  }
+
+  getLeftBlock(latest) {
+    const leftBlock = latest - this.config.scanSpread
+    return leftBlock < 0 ? 0 : leftBlock
   }
 
   getRightTimestamp(leftTimestamp, latestTimestamp) {
@@ -132,7 +135,7 @@ class Scanner {
       }
 
       const latestBlock = await this.getBlock('latest')
-      const startBlock = latestBlock.number - this.config.scanSpread
+      const startBlock = this.getLeftBlock(latestBlock.number)
 
       this.log.info(`Watching STARTED`)
       this.log.debug(`Watching for new Requests from | block: ${startBlock} `)
