@@ -208,7 +208,7 @@ class Scanner {
   async watchNextBuckets(block) {
     const reqFactory = await this.eac.requestFactory()
 
-    const next = this.getNextBuckets(block)
+    const next = await this.getNextBuckets(block)
 
     const handleRequests = (request) => {
       if (!this.isCorrect(request.address)) return;
