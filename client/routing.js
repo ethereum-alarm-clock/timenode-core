@@ -96,11 +96,19 @@ const execute = async (conf, txRequest) => {
   const log = conf.logger
   const { web3 } = conf
 
+  const getBlock = () => {
+    return new Promise(resolve => {
+      web3.eth.getBlock('latest', (err,res) => {
+        if (!err) resolve(res)
+      })
+    })
+  }
+
   // txRequest.callGas + 180000 is the exact amount of gas needed by the transaction
   // to execute, however delegate call only recieves 63/64 of the total gas sent
   // so we send a bit extra
   const executeGas = txRequest.callGas.add(180000).div(64).times(65).round()
-  const gasLimit = new BigNumber(web3.eth.getBlock('latest').gasLimit)
+  const gasLimit = new BigNumber((await getBlock()).gasLimit)
 
   const { gasPrice } = txRequest
 
@@ -196,22 +204,22 @@ const cleanup = async (conf, txRequest) => {
       }
     } else {
       if (txRequest.isClaimedBy(web3.eth.defaultAccount)) {
-        // txRequest.cancel({
-        //   from: web3.eth.defaultAccount,
-        //   value: 0,
-        //   gas: gasToCancel + 21000,
-        //   gasPrice: await Util.getGasPrice(web3),
-        // })
+        txRequest.cancel({
+          from: web3.eth.defaultAccount,
+          value: 0,
+          gas: gasToCancel + 21000,
+          gasPrice: await Util.getGasPrice(web3),
+        })
       } else {
         if (gasCostToCancel.greaterThan(txRequestBalance)) {
           return
         }
-        // txRequest.cancel({
-        //   from: web3.eth.defaultAccount,
-        //   value: 0,
-        //   gas: gasToCancel + 21000,
-        //   gasPrice: await Util.getGasPrice(web3),
-        // })
+        txRequest.cancel({
+          from: web3.eth.defaultAccount,
+          value: 0,
+          gas: gasToCancel + 21000,
+          gasPrice: await Util.getGasPrice(web3),
+        })
       }
     }
   }
@@ -321,7 +329,7 @@ const routeTxRequest = async (conf, txRequest) => {
     execute(conf, txRequest)
       .then(result => {
         const { receipt, from } = result
-        if (receipt && (receipt.status == 1 || receipt.status == '0x01')) {
+        if (receipt && parseInt(receipt.status) === 1 ) {
           if (isExecuted(receipt)) {
             log.info(`[${txRequest.address}] Executed.`)
             conf.cache.set(txRequest.address, 100)
