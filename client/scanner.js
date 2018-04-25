@@ -50,21 +50,18 @@ class Scanner {
 		}, this.ms )
 
     // Immediately start.
-    // const watchingEnabled = await new Promise(resolve=> {
-    //   this.web3.currentProvider.sendAsync({
-    //     jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
-    //   }, async (e) => {
-    //     if (e !== null) {
-    //       this.log.info(`Watching DISABLED`)
-    //       resolve(false)
-    //     }
-    //     resolve(true)
-    //   })
-    // })
+    const watchingEnabled = await new Promise(resolve=> {
+      this.web3.currentProvider.sendAsync({
+        jsonrpc: '2.0', id: 1, method: 'eth_getFilterLogs', params: []
+      }, async (e) => {
+        if (e !== null) {
+          this.log.info(`Watching DISABLED`)
+          resolve(false)
+        }
+        resolve(true)
+      })
+    })
 
-    const watchingEnabled = false
-
-    this.log.info(watchingEnabled)
     if (watchingEnabled) {
       this.blockchainScanning = this.watchBlockchain()
     } else {
