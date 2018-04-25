@@ -177,7 +177,7 @@ const cleanup = async (conf, txRequest) => {
     }
 
     if (conf.wallet) {
-      const ownerIndex = conf.wallet.getAddresses().indexOf(txRequest.getOwner())
+      const ownerIndex = conf.wallet.getAddresses().indexOf(txRequest.owner)
       if (ownerIndex !== -1) {
           conf.wallet.sendFromIndex(
               ownerIndex,
@@ -196,22 +196,22 @@ const cleanup = async (conf, txRequest) => {
       }
     } else {
       if (txRequest.isClaimedBy(web3.eth.defaultAccount)) {
-        txRequest.cancel({
-          from: web3.eth.defaultAccount,
-          value: 0,
-          gas: gasToCancel + 21000,
-          gasPrice: await Util.getGasPrice(web3),
-        })
+        // txRequest.cancel({
+        //   from: web3.eth.defaultAccount,
+        //   value: 0,
+        //   gas: gasToCancel + 21000,
+        //   gasPrice: await Util.getGasPrice(web3),
+        // })
       } else {
         if (gasCostToCancel.greaterThan(txRequestBalance)) {
           return
         }
-        txRequest.cancel({
-          from: web3.eth.defaultAccount,
-          value: 0,
-          gas: gasToCancel + 21000,
-          gasPrice: await Util.getGasPrice(web3),
-        })
+        // txRequest.cancel({
+        //   from: web3.eth.defaultAccount,
+        //   value: 0,
+        //   gas: gasToCancel + 21000,
+        //   gasPrice: await Util.getGasPrice(web3),
+        // })
       }
     }
   }
