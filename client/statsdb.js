@@ -17,7 +17,7 @@ class StatsDB {
     this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats')
   }
 
-  // / Takes an arry of addresses and stores them as new stats objects.
+  // / Takes an array of addresses and stores them as new stats objects.
   initialize(accounts) {
     accounts.forEach(async (account) => {
       const found = this.stats.find({ account })[0]
@@ -31,8 +31,9 @@ class StatsDB {
           account,
           claimed: 0,
           executed: 0,
-          startingEther: bal,
-          currentEther: bal,
+          bounties: 0,
+          costs: 0,
+          profit: 0,
           executedTransactions: []
         })
       }
@@ -51,14 +52,15 @@ class StatsDB {
   }
 
   // / Takes the account which has executed a transaction.
-  async updateExecuted(account) {
+  async updateExecuted(account, timeBounty, fee, gas) {
     const found = this.stats.find({ account })[0]
     found.executed += 1
     found.executedTransactions.push({ timestamp: Date.now() })
-    let bal = await this.eac.Util.getBalance(account)
-    bal = new BigNumber(bal)
-    const difference = bal.minus(found.currentEther)
-    found.currentEther = found.currentEther.plus(difference)
+
+    found.bounties += timeBounty
+    found.costs += gas
+    found.profit = found.bounties - found.costs
+
     this.stats.update(found)
   }
 
