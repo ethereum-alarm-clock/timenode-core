@@ -280,9 +280,12 @@ const routeTxRequest = async (conf, txRequest) => {
       .then(result => {
         const { receipt, from, ignore } = result
         if (receipt && receipt.status == 1) {
+          const data = receipt.logs[0].data
+          const gas = web3.toDecimal('0x' + data.slice(131, 194))
+
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
-          conf.statsdb.updateClaimed(from)
+          conf.statsdb.updateClaimed(from, gas)
         } else if (!receipt && !ignore) {
           log.error(`[${txRequest.address}] Claiming failed.`)
         }
@@ -323,19 +326,24 @@ const routeTxRequest = async (conf, txRequest) => {
         const { web3 } = conf
         const { receipt, from } = result
 
-        if (receipt && receipt.status == 1) {
-          if (isExecuted(receipt)) {
+        if (receipt) {
+          if (receipt.status == 1) {
             const data = receipt.logs[0].data
+            if (isExecuted(receipt)) {
+              const timeBounty = web3.toDecimal(data.slice(0, 66))
 
-            const timeBounty = web3.toDecimal('0x' + data.slice(2, 66))
-            const fee = web3.toDecimal('0x' + data.slice(67, 130))
+              log.info(`[${txRequest.address}] Executed.`)
+              conf.cache.set(txRequest.address, 100)
+              conf.statsdb.updateExecuted(from, timeBounty)
+            } else {
+              log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
+            }
+          } else if ([0, '0x00', false].includes(receipt.status)) {
+            const data = receipt.logs[0].data
             const gas = web3.toDecimal('0x' + data.slice(131, 194))
 
-            log.info(`[${txRequest.address}] Executed.`)
-            conf.cache.set(txRequest.address, 100)
-            conf.statsdb.updateExecuted(from, timeBounty, fee, gas)
-          } else {
-            log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
+            conf.statsdb.updateExecuted(from, 0, gas)
+            log.info(`[${txRequest.address}] Transaction reverted.`)
           }
         } else {
           log.error(`[${txRequest.address}] Execution failed.`)

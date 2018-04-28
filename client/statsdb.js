@@ -34,7 +34,6 @@ class StatsDB {
           executed: 0,
           bounties: 0,
           costs: 0,
-          profit: 0,
           executedTransactions: []
         })
       }
@@ -42,25 +41,22 @@ class StatsDB {
   }
 
   // / Takes the account which has claimed a transaction.
-  async updateClaimed(account) {
+  async updateClaimed(account, cost) {
     const found = this.stats.find({ account })[0]
     found.claimed += 1
-    let bal = await this.eac.Util.getBalance(account)
-    bal = new BigNumber(bal)
-    const difference = bal.minus(found.currentEther)
-    found.currentEther = found.currentEther.plus(difference)
+    found.costs += cost
+
     this.stats.update(found)
   }
 
   // / Takes the account which has executed a transaction.
-  async updateExecuted(account, timeBounty, fee, gas) {
+  async updateExecuted(account, bounty, cost) {
     const found = this.stats.find({ account })[0]
     found.executed += 1
     found.executedTransactions.push({ timestamp: Date.now() })
 
-    found.bounties += timeBounty
-    found.costs += gas
-    found.profit = found.bounties - found.costs
+    found.bounties += bounty
+    found.costs += cost
 
     this.stats.update(found)
   }
