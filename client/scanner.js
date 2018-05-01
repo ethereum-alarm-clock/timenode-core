@@ -105,10 +105,15 @@ class Scanner {
   }
 
   getWindowForBlock(latest) {
-    const leftBlock = latest - this.config.scanSpread
+    const leftBlock = this.getLeftBlock(latest)
     const rightBlock = leftBlock + (this.config.scanSpread * 2)
 
     return { leftBlock, rightBlock }
+  }
+
+  getLeftBlock(latest) {
+    const leftBlock = latest - this.config.scanSpread
+    return leftBlock < 0 ? 0 : leftBlock
   }
 
   getRightTimestamp(leftTimestamp, latestTimestamp) {
