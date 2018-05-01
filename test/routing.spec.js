@@ -85,7 +85,7 @@ describe('Routing', () => {
 			// claimWindowStart > now ?
 			const res = await routeTxRequest(config, TR_2)
 
-			expect(res).to.equal(2)
+			expect(res).to.equal(ROUTING_RESULT.BEFORE_CLAIM)
 		})
 
 		it('routes `inClaimWindow()`', async() => {
@@ -95,7 +95,7 @@ describe('Routing', () => {
 			TR_3.inClaimWindow = () => true
 			const res = await routeTxRequest(config, TR_3)
 
-			expect(res).to.equal(3)
+			expect(res).to.equal(ROUTING_RESULT.CLAIMING)
 		})
 
 		it('routes `isClaimed`', async() => {
@@ -106,7 +106,7 @@ describe('Routing', () => {
 			TR_4.isClaimed = true
 			const res = await routeTxRequest(config, TR_4)
 
-			expect(res).to.equal(4)
+			expect(res).to.equal(ROUTING_RESULT.CLAIMED)
 			expect(config.cache.get(tx[3])).to.equal(CACHE_STATE.CLAIMED)
 		})
 
@@ -117,7 +117,7 @@ describe('Routing', () => {
 			TR_5.inClaimWindow = () => true
 			const res = await routeTxRequest(config, TR_5)
 
-			expect(res).to.equal(5)
+			expect(res).to.equal(ROUTING_RESULT.CLAIMING)
 		})
 
 		it('routes `inFreezePeriod()`', async() => {
@@ -127,7 +127,7 @@ describe('Routing', () => {
 			TR_6.inFreezePeriod = () => true
 			const res = await routeTxRequest(config, TR_6)
 
-			expect(res).to.equal(6)
+			expect(res).to.equal(ROUTING_RESULT.IN_FREEZE)
 		})
 
 		it('routes `inExecutionWindow()`', async() => {
@@ -140,7 +140,7 @@ describe('Routing', () => {
 			TR_7.wasCalled = true
 			const res = await routeTxRequest(config, TR_7)
 
-			expect(res).to.equal(7)
+			expect(res).to.equal(ROUTING_RESULT.EXECUTED)
 		})
 
 		it('routes `execute()`', () => {
