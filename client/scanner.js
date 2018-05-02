@@ -69,7 +69,7 @@ class Scanner {
       // backup scan
       this.blockchainScanning = this.backupScanBlockchain()
     }
-    
+
     this.scanCache().catch(err => this.log.error(err))
 
 
