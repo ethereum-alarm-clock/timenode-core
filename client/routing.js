@@ -14,18 +14,6 @@ const isClaimedByUs = (conf, txRequest) => {
   return ourClaim
 }
 
-const ROUTING_RESULT = {
-  IN_POOL: 0,
-  CANCELLED: 1,
-  BEFORE_CLAIM: 2,
-  CLAIMING: 3,
-  CLAIMED: 4,
-  IN_FREEZE: 5,
-  EXECUTING: 6,
-  EXECUTED: 7,
-  RESERVED: 8
-}
-
 const getSender = conf => conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount
 
 const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
@@ -241,6 +229,147 @@ const isExecuted = receipt => {
   return false
 }
 
+const preClaimingState = async(conf, txRequest) => {
+  const log = conf.logger
+  const self = STATE.PRE_CLAIMING
+  const next = STATE.CLAIMING
+
+  if (await hasPending(conf, txRequest)) {
+    log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
+    return self
+  }
+
+  // Return early if the transaction request has been cancelled
+  if (txRequest.isCancelled) {
+    log.debug(`[${txRequest.address}] Ignorning already cancelled txRequest.`)
+    return STATE.DONE
+  }
+
+  // Return early if the transaction request is before claim window,
+  // and therefore not actionable upon
+  if (await txRequest.beforeClaimWindow()) {
+    log.debug(`[${txRequest.address}] Ignoring txRequest not in claim window.`)
+    return self
+  }
+
+  return next
+}
+
+const doneState = async(conf, txRequest) => {
+  cleanup(conf,txRequest)
+  return STATE.DONE
+}
+
+const claimingState = async(conf, txRequest) => {
+  const log = conf.logger
+  const self = STATE.CLAIMING
+  const next = STATE.PRE_EXECUTION
+
+  if (conf.cache.get(txRequest.address) == CACHE_STATE.ATTEMPTED_CLAIM) {
+    // Already set in cache as having a claim request.
+    return self
+  }
+
+  if (txRequest.isClaimed) {
+    // Already claimed, do not attempt to claim it again.
+    log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
+    // Set it to the cache number so it won't do this again.
+    conf.cache.set(txRequest.address, CACHE_STATE.CLAIMED)
+    return next
+  }
+
+  try {
+    const { receipt, from, ignore } = await claim(conf, txRequest)
+
+    if (receipt && receipt.status == 1) {
+      log.info(`[${txRequest.address}] Claimed!`)
+      conf.cache.set(txRequest.address, CACHE_STATE.CLAIMED)
+      conf.statsdb.updateClaimed(from)
+    } else if (!receipt && !ignore) {
+      log.error(`[${txRequest.address}] Claiming failed.`)
+    }
+  } catch (err) {
+    log.error(err)
+  }
+
+  return next
+}
+
+const preExecutionState = async(conf, txRequest) => {
+  const log = conf.logger
+  const self = STATE.PRE_EXECUTION
+  const next = STATE.EXECUTION
+
+  if (await txRequest.inFreezePeriod()) {
+    log.debug(`[${txRequest.address}] Ignoring frozen txRequest. Now ${await txRequest.now()} | Window start: ${
+      txRequest.windowStart
+    }`)
+    return self
+  }
+  if (!(await txRequest.inExecutionWindow())) {
+    return self
+  }
+
+  return next
+}
+
+const executionState = async(conf, txRequest) => {
+  const log = conf.logger
+  const self = STATE.EXECUTION
+  const next = STATE.DONE
+
+  if (conf.cache.get(txRequest.address) == CACHE_STATE.ATTEMPTED_EXECUTION) {
+    log.debug(`[${txRequest.address}] Attempted execution.`)
+    return self
+  }
+
+  if (txRequest.wasCalled) {
+    log.debug(`[${txRequest.address}] Already called.`)
+    return next
+  }
+
+  if ((await txRequest.inReservedWindow()) && !isClaimedByUs(conf, txRequest)) {
+    return self
+  }
+
+  try {
+    const { receipt, from } = await execute(conf, txRequest)
+
+    if (receipt && receipt.status == 1) {
+      if (isExecuted(receipt)) {
+        log.info(`[${txRequest.address}] Executed.`)
+        conf.cache.set(txRequest.address, CACHE_STATE.EXECUTED)
+        conf.statsdb.updateExecuted(from)
+      } else {
+        log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
+      }
+    } else {
+      log.error(`[${txRequest.address}] Execution failed.`)
+    }
+  } catch (err) {
+    log.error(err)
+  }
+
+  return next
+}
+
+const STATE = {
+  PRE_CLAIMING: 0,
+  CLAIMING: 1,
+  PRE_EXECUTION: 2,
+  EXECUTION: 3,
+  DONE: 4,
+}
+
+let state = {}
+state[STATE.DONE] = doneState
+state[STATE.PRE_CLAIMING] = preClaimingState
+state[STATE.CLAIMING] = claimingState
+state[STATE.PRE_EXECUTION] = preExecutionState
+state[STATE.EXECUTION] = executionState
+
+const txRequestState = {}
+
 /**
  * Takes in a txRequest object and routes it to the thread that will act on it,
  * or returns if no action can be taken.
@@ -249,119 +378,15 @@ const isExecuted = receipt => {
  * @returns {Number} Magic number for what happened during routing. (Only used in tests.)
  */
 const routeTxRequest = async (conf, txRequest) => {
-  const log = conf.logger
+  let currentState = txRequestState[txRequest.address] || STATE.PRE_CLAIMING
+  let nextState = await state[currentState](conf, txRequest)
 
-  // Return early the transaction already has a pending transaction
-  // in the transaction pool
-  if (await hasPending(conf, txRequest)) {
-    log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
-    return ROUTING_RESULT.IN_POOL
+  while (nextState != currentState) {
+    currentState = nextState
+    nextState = await state[currentState](conf, txRequest)
   }
 
-  // Return early if the transaction request has been cancelled
-  if (txRequest.isCancelled) {
-    log.debug(`[${txRequest.address}] Ignorning already cancelled txRequest.`)
-    return ROUTING_RESULT.CANCELLED
-  }
-
-  // Return early if the transaction request is before claim window,
-  // and therefore not actionable upon
-  if (await txRequest.beforeClaimWindow()) {
-    log.debug(`[${txRequest.address}] Ignoring txRequest not in claim window.`)
-    return ROUTING_RESULT.BEFORE_CLAIM
-  }
-
-  // If the transaction request is in the claim window, we check if
-  // it already claimed and if not, we claim it
-  if (await txRequest.inClaimWindow()) {
-    // The client set the txRequest to `attempted claim` and watch
-    // for the result and either marked successfully `claimed` or not.
-    // Using the cache codes is a primitive way to accomplish this.
-    if (conf.cache.get(txRequest.address) == CACHE_STATE.ATTEMPTED_CLAIM) {
-      // Already set in cache as having a claim request.
-      return ROUTING_RESULT.CLAIMING
-    }
-    if (txRequest.isClaimed) {
-      // Already claimed, do not attempt to claim it again.
-      log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
-      // Set it to the cache number so it won't do this again.
-      conf.cache.set(txRequest.address, CACHE_STATE.CLAIMED)
-      return ROUTING_RESULT.CLAIMED
-    }
-
-    claim(conf, txRequest)
-      .then(result => {
-        const { receipt, from, ignore } = result
-        if (receipt && receipt.status == 1) {
-          log.info(`[${txRequest.address}] Claimed!`)
-          conf.cache.set(txRequest.address, CACHE_STATE.CLAIMED)
-          conf.statsdb.updateClaimed(from)
-        } else if (!receipt && !ignore) {
-          log.error(`[${txRequest.address}] Claiming failed.`)
-        }
-      })
-      .catch(err => log.error(err))
-    return ROUTING_RESULT.CLAIMING
-  }
-
-  // If the transaction request is in the freeze period, it is not
-  // actionable upon and we return early
-  if (await txRequest.inFreezePeriod()) {
-    log.debug(`[${txRequest.address}] Ignoring frozen txRequest. Now ${await txRequest.now()} | Window start: ${
-      txRequest.windowStart
-    }`)
-    return ROUTING_RESULT.IN_FREEZE
-  }
-
-  // If the transaction request is in the execution window, we can
-  // attempt an execution of it
-  if (await txRequest.inExecutionWindow()) {
-    if (conf.cache.get(txRequest.address) == CACHE_STATE.ATTEMPTED_EXECUTION) {
-      log.debug(`[${txRequest.address}] Attempted execution.`)
-      return ROUTING_RESULT.EXECUTING
-    }
-    if (txRequest.wasCalled) {
-      log.debug(`[${txRequest.address}] Already called.`)
-      cleanup(conf, txRequest)
-      return ROUTING_RESULT.EXECUTED
-    }
-    if ((await txRequest.inReservedWindow()) && txRequest.isClaimed && !isClaimedByUs(conf, txRequest)) {
-      return ROUTING_RESULT.RESERVED
-    }
-    // This hacks the cache to set all executed requests to store the value
-    // of -1 if it has been executed.
-    if (conf.cache.get(txRequest.address) <= 101) {
-      log.debug(`[${txRequest.address}] Already executed.`)
-      return 10
-    }
-    execute(conf, txRequest)
-      .then(result => {
-        const { receipt, from } = result
-        if (receipt && receipt.status == 1) {
-          if (isExecuted(receipt)) {
-            log.info(`[${txRequest.address}] Executed.`)
-            conf.cache.set(txRequest.address, CACHE_STATE.EXECUTED)
-            conf.statsdb.updateExecuted(from)
-
-            cleanup(conf, txRequest)
-          } else {
-            log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
-            cleanup(conf, txRequest)
-          }
-        } else {
-          log.error(`[${txRequest.address}] Execution failed.`)
-        }
-      })
-      .catch(err => log.error(err))
-    return ROUTING_RESULT.EXECUTING
-  }
-
-  // If the transaction request is expired, we try to clean it
-  if (await txRequest.afterExecutionWindow()) {
-    log.debug(`[${txRequest.address}] Cleaning up expired txRequest and removing from cache.`)
-    cleanup(conf, txRequest)
-    return CACHE_STATE.EXECUTED
-  }
+  return nextState
 }
 
-module.exports = { routeTxRequest, ROUTING_RESULT }
+module.exports = { routeTxRequest, STATE }

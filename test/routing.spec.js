@@ -1,6 +1,6 @@
 const { Cache, CACHE_STATE } = require('../client/cache')
 const { Config } = require('../index')
-const { routeTxRequest, ROUTING_RESULT } = require('../client/routing')
+const { routeTxRequest, STATE } = require('../client/routing')
 
 const RequestFactoryMock = require('./helpers/RequestFactoryMock')
 const RequestTrackerMock = require('./helpers/RequestTrackerMock')
@@ -76,7 +76,7 @@ describe('Routing', () => {
 			TR_1.isCancelled = true
 			const res = await routeTxRequest(config, TR_1)
 
-			expect(res).to.equal(ROUTING_RESULT.CANCELLED)
+			expect(res).to.equal(STATE.DONE)
 		})
 
 		it('routes `beforeClaimWindow()`', async() => {
@@ -85,7 +85,7 @@ describe('Routing', () => {
 			// claimWindowStart > now ?
 			const res = await routeTxRequest(config, TR_2)
 
-			expect(res).to.equal(ROUTING_RESULT.BEFORE_CLAIM)
+			expect(res).to.equal(STATE.PRE_CLAIMING)
 		})
 
 		it('routes `inClaimWindow()`', async() => {
@@ -95,7 +95,7 @@ describe('Routing', () => {
 			TR_3.inClaimWindow = () => true
 			const res = await routeTxRequest(config, TR_3)
 
-			expect(res).to.equal(ROUTING_RESULT.CLAIMING)
+			expect(res).to.equal(STATE.CLAIMING)
 		})
 
 		it('routes `isClaimed`', async() => {
@@ -103,10 +103,11 @@ describe('Routing', () => {
 			config.cache.set(tx[3], 3000)
 			TR_4.claimWindowStart = new BigNumber(5)
 			TR_4.inClaimWindow = () => true
+			TR_4.inFreezePeriod = () => true
 			TR_4.isClaimed = true
 			const res = await routeTxRequest(config, TR_4)
 
-			expect(res).to.equal(ROUTING_RESULT.CLAIMED)
+			expect(res).to.equal(STATE.PRE_EXECUTION)
 			expect(config.cache.get(tx[3])).to.equal(CACHE_STATE.CLAIMED)
 		})
 
@@ -115,19 +116,22 @@ describe('Routing', () => {
 			config.cache.set(tx[4], 3000)
 			TR_5.claimWindowStart = new BigNumber(5)
 			TR_5.inClaimWindow = () => true
+			TR_5.inFreezePeriod = () => false
+			TR_5.inExecutionWindow = () => false
 			const res = await routeTxRequest(config, TR_5)
 
-			expect(res).to.equal(ROUTING_RESULT.CLAIMING)
+			expect(res).to.equal(STATE.PRE_EXECUTION)
 		})
 
 		it('routes `inFreezePeriod()`', async() => {
 			const TR_6 = new TxRequest(tx[5])
+			config.cache.set(tx[5], CACHE_STATE.CLAIMED)
 			TR_6.claimWindowStart = new BigNumber(5)
 			TR_6.inClaimWindow = () => false
 			TR_6.inFreezePeriod = () => true
 			const res = await routeTxRequest(config, TR_6)
 
-			expect(res).to.equal(ROUTING_RESULT.IN_FREEZE)
+			expect(res).to.equal(STATE.PRE_EXECUTION)
 		})
 
 		it('routes `inExecutionWindow()`', async() => {
@@ -137,18 +141,25 @@ describe('Routing', () => {
 			TR_7.inClaimWindow = () => false
 			TR_7.inFreezePeriod = () => false
 			TR_7.inExecutionWindow = () => true
-			TR_7.wasCalled = true
+			TR_7.inReservedWindow = () => true
+			TR_7.isClaimedBy = () => false
 			const res = await routeTxRequest(config, TR_7)
 
-			expect(res).to.equal(ROUTING_RESULT.EXECUTED)
+			expect(res).to.equal(STATE.EXECUTION)
 		})
 
-		it('routes `execute()`', () => {
+		it('routes `execute()`', async() => {
+			const TR_8 = new TxRequest(tx[7])
+			config.cache.set(tx[7], 3000)
+			TR_8.claimWindowStart = new BigNumber(5)
+			TR_8.inClaimWindow = () => false
+			TR_8.inFreezePeriod = () => false
+			TR_8.inExecutionWindow = () => true
+			TR_8.inReservedWindow = () => false
+			TR_8.isClaimedBy = () => false
+			const res = await routeTxRequest(config, TR_8)
 
-		})
-
-		it('routes `afterExecutionWindow()`', () => {
-
+			expect(res).to.equal(STATE.DONE)
 		})
 	})
 })
