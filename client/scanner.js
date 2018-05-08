@@ -302,8 +302,6 @@ class Scanner {
       .filter(address => this.cache.get(address) > CACHE_STATE.EXPIRED)
       .map(address => this.eac.transactionRequest(address))
 
-    console.log(allTxRequests)
-
 		// Get fresh data on our transaction requests and route them into appropiate action.
     Promise.all(allTxRequests).then((txRequests) => {
       txRequests.forEach((txRequest) => {

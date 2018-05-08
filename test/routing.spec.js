@@ -6,28 +6,28 @@ const RequestFactoryMock = require('./helpers/RequestFactoryMock')
 const RequestTrackerMock = require('./helpers/RequestTrackerMock')
 
 const BigNumber = require('bignumber.js')
-const eac = require("eac.js-lib")()
+const eac = require('eac.js-lib')()
 const { expect } = require('chai')
 
 const tx = [
-	"0x47863b9E8C590323768E4352A78Ca759BBd37E8B",
-	"0xE5CDce77122865032Ba5f584eAF393f06a493045",
-	"0x002f7D343c75166856b6459c6a1967969AFc62e7",
-	"0xCa3e42CC90F3f6ED038C43f57D701df4027D7D83",
-	"0xbB0B08590a6546A1742Fb37573B3f26C22ACF533",
-	"0x082E13494f12EBB7206FBf67E22A6E1975A1A669",
-	"0x09536dEA53e6D58d9844ec683854c40400435C8b",
-	"0x416299AAde6443e6F6e8ab67126e65a7F606eeF5",
-	"0xF910faC699d8e5A19Ec9B1d750c9593F466D3694",
-	"0xC4011E55471b232B61F1a746b20FCa1713Efec74",
+	'0x47863b9E8C590323768E4352A78Ca759BBd37E8B',
+	'0xE5CDce77122865032Ba5f584eAF393f06a493045',
+	'0x002f7D343c75166856b6459c6a1967969AFc62e7',
+	'0xCa3e42CC90F3f6ED038C43f57D701df4027D7D83',
+	'0xbB0B08590a6546A1742Fb37573B3f26C22ACF533',
+	'0x082E13494f12EBB7206FBf67E22A6E1975A1A669',
+	'0x09536dEA53e6D58d9844ec683854c40400435C8b',
+	'0x416299AAde6443e6F6e8ab67126e65a7F606eeF5',
+	'0xF910faC699d8e5A19Ec9B1d750c9593F466D3694',
+	'0xC4011E55471b232B61F1a746b20FCa1713Efec74',
 ]
 
 const logger = {
-	debug: x => 'debug',
-	log: x => 'log',
-	info: x => 'info',
-	cache: x => 'cache',
-	error: x => 'error',
+	debug: () => 'debug',
+	log: () => 'log',
+	info: () => 'info',
+	cache: () => 'cache',
+	error: () => 'error',
 }
 
 class TxRequest {
