@@ -279,16 +279,18 @@ const routeTxRequest = async (conf, txRequest) => {
     claim(conf, txRequest)
       .then(result => {
         const { receipt, from, ignore } = result
-        if (receipt && receipt.status == 1) {
-          const data = receipt.logs[0].data
-          const gas = web3.toDecimal('0x' + data.slice(131, 194))
 
-          log.info(`[${txRequest.address}] Claimed!`)
-          conf.cache.set(txRequest.address, 103)
-          conf.statsdb.updateClaimed(from, gas)
-        } else if (!receipt && !ignore) {
-          log.error(`[${txRequest.address}] Claiming failed.`)
-        }
+        receipt.then(result => {
+          if (result && result.status == 1) {
+            const gas = result.gasUsed * txRequest.data.txData.gasPrice
+
+            log.info(`[${txRequest.address}] Claimed!`)
+            conf.cache.set(txRequest.address, 103)
+            conf.statsdb.updateClaimed(from, gas)
+          } else if (!result && !ignore) {
+            log.error(`[${txRequest.address}] Claiming failed.`)
+          }
+        })
       })
       .catch(err => log.error(err))
     return 5
@@ -334,13 +336,12 @@ const routeTxRequest = async (conf, txRequest) => {
 
               log.info(`[${txRequest.address}] Executed.`)
               conf.cache.set(txRequest.address, 100)
-              conf.statsdb.updateExecuted(from, timeBounty)
+              conf.statsdb.updateExecuted(from, timeBounty, 0)
             } else {
               log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
             }
           } else if ([0, '0x00', false].includes(receipt.status)) {
-            const data = receipt.logs[0].data
-            const gas = web3.toDecimal('0x' + data.slice(131, 194))
+            const gas = result.gasUsed * txRequest.data.txData.gasPrice
 
             conf.statsdb.updateExecuted(from, 0, gas)
             log.info(`[${txRequest.address}] Transaction reverted.`)
