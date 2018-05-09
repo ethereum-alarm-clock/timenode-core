@@ -330,8 +330,7 @@ const routeTxRequest = async (conf, txRequest) => {
         const { web3 } = conf
         const { receipt, from } = result
 
-        if (receipt) {
-          if (receipt.status == 1) {
+        if (receipt && receipt.status == 1) {
             const data = receipt.logs[0].data
             if (isExecuted(receipt)) {
               const timeBounty = web3.toDecimal(data.slice(0, 66))
@@ -339,18 +338,17 @@ const routeTxRequest = async (conf, txRequest) => {
               log.info(`[${txRequest.address}] Executed.`)
               conf.cache.set(txRequest.address, 100)
               conf.statsdb.updateExecuted(from, timeBounty, 0)
+              
+              return
             } else {
               log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
             }
-          } else if ([0, '0x00', false].includes(receipt.status)) {
-            const gas = receipt.gasUsed * txRequest.data.txData.gasPrice
-
-            conf.statsdb.updateExecuted(from, 0, gas)
-            log.info(`[${txRequest.address}] Transaction reverted.`)
-          }
         } else {
           log.error(`[${txRequest.address}] Execution failed.`)
         }
+
+        const txCost = receipt.gasUsed * txRequest.data.txData.gasPrice
+        conf.statsdb.updateExecuted(from, 0, txCost)
       })
       .catch(err => log.error(err))
     return 10
