@@ -2,7 +2,6 @@
 const { routeTxRequest } = require('./routing.js')
 const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
-const { CACHE_STATE } = require('./cache.js')
 
 class Scanner {
   constructor(ms, config) {
@@ -299,7 +298,7 @@ class Scanner {
 		// Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.cache
       .stored()
-      .filter(address => this.cache.get(address) > CACHE_STATE.EXPIRED)
+      .filter(address => this.cache.get(address) > 0)
       .map(address => this.eac.transactionRequest(address))
 
 		// Get fresh data on our transaction requests and route them into appropiate action.

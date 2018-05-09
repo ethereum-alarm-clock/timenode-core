@@ -1,14 +1,6 @@
 const mem_cache = require('memory-cache')
 const _ = require('lodash')
 
-const CACHE_STATE = {
-  ATTEMPTED_CLAIM: 103,
-  CLAIMED: 102,
-  ATTEMPTED_EXECUTION: 101,
-  EXECUTED: 100,
-  EXPIRED: 99
-}
-
 // wrapper over memory-cache
 class Cache {
   constructor(logger) {
@@ -75,7 +67,7 @@ class Cache {
   }
 }
 
-module.exports = { Cache, CACHE_STATE }
+module.exports = Cache
 
 // The cache assigns each key (txRequestAddress) the original value of its WindowStart
 // During certain conditions it will change the value

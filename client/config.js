@@ -1,4 +1,4 @@
-const { Cache } = require("./cache.js")
+const Cache = require("./cache.js")
 const Wallet = require('./wallet.js')
 
 /**

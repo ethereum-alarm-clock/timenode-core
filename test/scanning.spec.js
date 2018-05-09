@@ -1,7 +1,7 @@
 const assert = require('chai').assert
 const BigNumber = require('bignumber.js')
 const { Scanner } = require('../client/scanner')
-const { Cache } = require('../client/cache')
+const Cache = require('../client/cache')
 const eac = require('eac.js-lib')()
 
 const RequestFactoryMock = require('./helpers/RequestFactoryMock')

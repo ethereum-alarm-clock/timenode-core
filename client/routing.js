@@ -155,7 +155,7 @@ const cleanup = async (conf, txRequest) => {
 
   // If a transaction request has been executed it will route into this option.
   if (txRequestBalance.equals(0)) {
-    conf.cache.del(txRequest.address)
+    conf.cache.set(txRequest.address, 0)
     return
   }
 
@@ -256,7 +256,7 @@ const preClaimingState = async(conf, txRequest) => {
 }
 
 const doneState = async(conf, txRequest) => {
-  cleanup(conf,txRequest)
+  cleanup(conf, txRequest)
   return STATE.DONE
 }
 
@@ -307,7 +307,7 @@ const preExecutionState = async(conf, txRequest) => {
 
 const executionState = async(conf, txRequest) => {
   const log = conf.logger
-  const web3 = conf.web3
+  const { web3 } = conf
   const self = STATE.EXECUTION
   const next = STATE.DONE
 
@@ -331,7 +331,8 @@ const executionState = async(conf, txRequest) => {
         log.info(`[${txRequest.address}] Executed.`)
 
         conf.statsdb.updateExecuted(from, timeBounty, 0)
-        return
+
+        return next
       } else {
         log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
       }
@@ -373,14 +374,21 @@ const txRequestState = {}
  * @returns {STATE} nextState
  */
 const routeTxRequest = async (conf, txRequest) => {
+  const log = conf.logger
   let currentState = txRequestState[txRequest.address] || STATE.PRE_CLAIMING
+  log.debug(`[${txRequest.address}] Start state ${currentState}`)
+
   let nextState = await state[currentState](conf, txRequest)
 
   while (nextState != currentState) {
     currentState = nextState
     nextState = await state[currentState](conf, txRequest)
+
+    log.debug(`[${txRequest.address}] State transition ${currentState} -> ${nextState}`)
   }
 
+  log.debug(`[${txRequest.address}] End state ${nextState}`)
+  txRequestState[txRequest.address] = nextState
   return nextState
 }
 
