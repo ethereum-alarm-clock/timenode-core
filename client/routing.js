@@ -331,8 +331,8 @@ const routeTxRequest = async (conf, txRequest) => {
         const { receipt, from } = result
 
         if (receipt && receipt.status == 1) {
-            const data = receipt.logs[0].data
-            if (isExecuted(receipt)) {
+          if (isExecuted(receipt)) {
+              const data = receipt.logs[0].data
               const timeBounty = web3.toDecimal(data.slice(0, 66))
 
               log.info(`[${txRequest.address}] Executed.`)
