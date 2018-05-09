@@ -284,17 +284,15 @@ const routeTxRequest = async (conf, txRequest) => {
       .then(result => {
         const { receipt, from, ignore } = result
 
-        receipt.then(result => {
-          if (result && result.status == 1) {
-            const gas = result.gasUsed * txRequest.data.txData.gasPrice
+        if (receipt && receipt.status == 1) {
+          const gas = receipt.gasUsed * txRequest.data.txData.gasPrice
 
-            log.info(`[${txRequest.address}] Claimed!`)
-            conf.cache.set(txRequest.address, 103)
-            conf.statsdb.updateClaimed(from, gas)
-          } else if (!result && !ignore) {
-            log.error(`[${txRequest.address}] Claiming failed.`)
-          }
-        })
+          log.info(`[${txRequest.address}] Claimed!`)
+          conf.cache.set(txRequest.address, 103)
+          conf.statsdb.updateClaimed(from, gas)
+        } else if (!result && !ignore) {
+          log.error(`[${txRequest.address}] Claiming failed.`)
+        }
       })
       .catch(err => log.error(err))
     return 5
