@@ -341,7 +341,7 @@ const routeTxRequest = async (conf, txRequest) => {
               log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
             }
           } else if ([0, '0x00', false].includes(receipt.status)) {
-            const gas = result.gasUsed * txRequest.data.txData.gasPrice
+            const gas = receipt.gasUsed * txRequest.data.txData.gasPrice
 
             conf.statsdb.updateExecuted(from, 0, gas)
             log.info(`[${txRequest.address}] Transaction reverted.`)
