@@ -36,28 +36,29 @@ const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
 const claim = async (conf, txRequest) => {
   const log = conf.logger
   const { web3 } = conf
+  const ignore = { ignore: true }
 
   // All the checks have been done in routing, now we follow through on the actions.
-  const claimDeposit = txRequest.requiredDeposit
+  const value = txRequest.requiredDeposit
   const data = txRequest.claimData
   const sender = getSender(conf)
   const gasToClaim = await Util.estimateGas(web3, {
     from: sender,
     to: txRequest.address,
-    value: claimDeposit.toString(),
+    value: value.toString(),
     data,
   })
 
   const { profitable, paymentWhenClaimed } = await isProfitableToClaim(conf, txRequest, gasToClaim)
-  if (!profitable) return Promise.resolve({ ignore: true })
+  if (!profitable) return ignore
 
   // The dice roll was originally implemented in the Python client, which I followed
   // for inspiration here.
-  const diceroll = Math.floor(Math.random() * 100)
+  const diceRoll = Math.floor(Math.random() * 100)
 
-  if (diceroll >= txRequest.claimPaymentModifier()) {
+  if (diceRoll >= txRequest.claimPaymentModifier()) {
     log.debug(`Fate insists you wait until later.`)
-    return Promise.resolve({ ignore: true })
+    return ignore
   }
 
   log.info(`[${txRequest.address}] Attempting the claim | Payment: ${paymentWhenClaimed}`)
@@ -69,26 +70,29 @@ const claim = async (conf, txRequest) => {
     return
   }
 
+  const gas = gasToClaim + 21000
+  const gasPrice = await Util.getGasPrice(web3)
+
   if (conf.wallet) {
     // Wallet is enabled, claim from the next index.
     return conf.wallet.sendFromNext({
         to: txRequest.address,
-        value: claimDeposit,
-        gas: gasToClaim + 21000,
-        gasPrice: await Util.getGasPrice(web3),
+        value,
+        gas,
+        gasPrice,
         data
     })
   } else {
       // Wallet disabled, claim from default account
-      return Promise.resolve({
-        receipt: txRequest.claim({
+      return {
+        receipt: await txRequest.claim({
           from: web3.eth.defaultAccount,
-          value: claimDeposit,
-          gas: gasToClaim + 21000,
-          gasPrice: await Util.getGasPrice(web3),
+          value,
+          gas,
+          gasPrice
       }),
         from: web3.eth.defaultAccount
-      })
+      }
   }
 }
 
@@ -133,7 +137,7 @@ const execute = async (conf, txRequest) => {
         return conf.wallet.sendFromNext(opts)
     }
   } else {
-      return Promise.resolve({
+      return {
         receipt: await txRequest.execute({
           from: web3.eth.defaultAccount,
           value: 0,
@@ -141,7 +145,7 @@ const execute = async (conf, txRequest) => {
           gasPrice: gasPrice
         }),
         from: web3.eth.defaultAccount
-      })
+      }
   }
 }
 
@@ -279,11 +283,14 @@ const routeTxRequest = async (conf, txRequest) => {
     claim(conf, txRequest)
       .then(result => {
         const { receipt, from, ignore } = result
+
         if (receipt && receipt.status == 1) {
+          const gas = receipt.gasUsed * txRequest.data.txData.gasPrice
+
           log.info(`[${txRequest.address}] Claimed!`)
           conf.cache.set(txRequest.address, 103)
-          conf.statsdb.updateClaimed(from)
-        } else if (!receipt && !ignore) {
+          conf.statsdb.updateClaimed(from, gas)
+        } else if (!result && !ignore) {
           log.error(`[${txRequest.address}] Claiming failed.`)
         }
       })
@@ -320,18 +327,28 @@ const routeTxRequest = async (conf, txRequest) => {
     }
     execute(conf, txRequest)
       .then(result => {
+        const { web3 } = conf
         const { receipt, from } = result
+
         if (receipt && receipt.status == 1) {
           if (isExecuted(receipt)) {
-            log.info(`[${txRequest.address}] Executed.`)
-            conf.cache.set(txRequest.address, 100)
-            conf.statsdb.updateExecuted(from)
-          } else {
-            log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
-          }
+              const data = receipt.logs[0].data
+              const timeBounty = web3.toDecimal(data.slice(0, 66))
+
+              log.info(`[${txRequest.address}] Executed.`)
+              conf.cache.set(txRequest.address, 100)
+              conf.statsdb.updateExecuted(from, timeBounty, 0)
+              
+              return
+            } else {
+              log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
+            }
         } else {
           log.error(`[${txRequest.address}] Execution failed.`)
         }
+
+        const txCost = receipt.gasUsed * txRequest.data.txData.gasPrice
+        conf.statsdb.updateExecuted(from, 0, txCost)
       })
       .catch(err => log.error(err))
     return 10

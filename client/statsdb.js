@@ -17,22 +17,20 @@ class StatsDB {
     this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats')
   }
 
-  // / Takes an arry of addresses and stores them as new stats objects.
+  // / Takes an array of addresses and stores them as new stats objects.
   initialize(accounts) {
     accounts.forEach(async (account) => {
       const found = this.stats.find({ account })[0]
       if (found) {
-        found.startingEther = new BigNumber(found.startingEther)
-        found.currentEther = new BigNumber(found.currentEther)
+        found.bounties = new BigNumber(found.bounties)
+        found.costs = new BigNumber(found.costs)
       } else {
-        let bal = await this.eac.Util.getBalance(account)
-        bal = new BigNumber(bal)
         this.stats.insert({
           account,
           claimed: 0,
           executed: 0,
-          startingEther: bal,
-          currentEther: bal,
+          bounties: 0,
+          costs: 0,
           executedTransactions: []
         })
       }
@@ -40,25 +38,23 @@ class StatsDB {
   }
 
   // / Takes the account which has claimed a transaction.
-  async updateClaimed(account) {
+  async updateClaimed(account, cost) {
     const found = this.stats.find({ account })[0]
     found.claimed += 1
-    let bal = await this.eac.Util.getBalance(account)
-    bal = new BigNumber(bal)
-    const difference = bal.minus(found.currentEther)
-    found.currentEther = found.currentEther.plus(difference)
+    found.costs += cost
+
     this.stats.update(found)
   }
 
   // / Takes the account which has executed a transaction.
-  async updateExecuted(account) {
+  async updateExecuted(account, bounty, cost) {
     const found = this.stats.find({ account })[0]
     found.executed += 1
     found.executedTransactions.push({ timestamp: Date.now() })
-    let bal = await this.eac.Util.getBalance(account)
-    bal = new BigNumber(bal)
-    const difference = bal.minus(found.currentEther)
-    found.currentEther = found.currentEther.plus(difference)
+
+    found.bounties += bounty
+    found.costs += cost
+
     this.stats.update(found)
   }
 
