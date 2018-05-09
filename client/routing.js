@@ -355,7 +355,7 @@ const txRequestState = {}
  * or returns if no action can be taken.
  * @param {Config} conf
  * @param {TxRequest} txRequest
- * @returns {Number} Magic number for what happened during routing. (Only used in tests.)
+ * @returns {STATE} nextState
  */
 const routeTxRequest = async (conf, txRequest) => {
   let currentState = txRequestState[txRequest.address] || STATE.PRE_CLAIMING
