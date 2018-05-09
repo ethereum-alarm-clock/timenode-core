@@ -1,4 +1,3 @@
-const { Cache, CACHE_STATE } = require('../client/cache')
 const { Config } = require('../index')
 const { routeTxRequest, STATE } = require('../client/routing')
 
@@ -60,7 +59,7 @@ describe('Routing', () => {
 			factory: new RequestFactoryMock(),
 			tracker: new RequestTrackerMock(tx),
 			eac,
-			cache: new Cache(logger),
+			cache: {},
 			web3: {
 				exists: true,
 				eth: {
@@ -90,17 +89,17 @@ describe('Routing', () => {
 
 		it('routes `inClaimWindow()`', async() => {
 			const TR_3 = new TxRequest(tx[2])
-			config.cache.set(tx[2], CACHE_STATE.ATTEMPTED_CLAIM)
 			TR_3.claimWindowStart = new BigNumber(5)
 			TR_3.inClaimWindow = () => true
+			TR_3.inFreezePeriod = () => true
+			TR_3.isClaimed = false
 			const res = await routeTxRequest(config, TR_3)
 
-			expect(res).to.equal(STATE.CLAIMING)
+			expect(res).to.equal(STATE.PRE_EXECUTION)
 		})
 
 		it('routes `isClaimed`', async() => {
 			const TR_4 = new TxRequest(tx[3])
-			config.cache.set(tx[3], 3000)
 			TR_4.claimWindowStart = new BigNumber(5)
 			TR_4.inClaimWindow = () => true
 			TR_4.inFreezePeriod = () => true
@@ -108,12 +107,10 @@ describe('Routing', () => {
 			const res = await routeTxRequest(config, TR_4)
 
 			expect(res).to.equal(STATE.PRE_EXECUTION)
-			expect(config.cache.get(tx[3])).to.equal(CACHE_STATE.CLAIMED)
 		})
 
 		it('routes `claim()`', async() => {
 			const TR_5 = new TxRequest(tx[4])
-			config.cache.set(tx[4], 3000)
 			TR_5.claimWindowStart = new BigNumber(5)
 			TR_5.inClaimWindow = () => true
 			TR_5.inFreezePeriod = () => false
@@ -125,7 +122,6 @@ describe('Routing', () => {
 
 		it('routes `inFreezePeriod()`', async() => {
 			const TR_6 = new TxRequest(tx[5])
-			config.cache.set(tx[5], CACHE_STATE.CLAIMED)
 			TR_6.claimWindowStart = new BigNumber(5)
 			TR_6.inClaimWindow = () => false
 			TR_6.inFreezePeriod = () => true
@@ -136,7 +132,6 @@ describe('Routing', () => {
 
 		it('routes `inExecutionWindow()`', async() => {
 			const TR_7 = new TxRequest(tx[6])
-			config.cache.set(tx[6], 3000)
 			TR_7.claimWindowStart = new BigNumber(5)
 			TR_7.inClaimWindow = () => false
 			TR_7.inFreezePeriod = () => false
@@ -150,7 +145,6 @@ describe('Routing', () => {
 
 		it('routes `execute()`', async() => {
 			const TR_8 = new TxRequest(tx[7])
-			config.cache.set(tx[7], 3000)
 			TR_8.claimWindowStart = new BigNumber(5)
 			TR_8.inClaimWindow = () => false
 			TR_8.inFreezePeriod = () => false

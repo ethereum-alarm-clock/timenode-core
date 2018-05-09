@@ -1,7 +1,6 @@
 const BigNumber = require('bignumber.js')
 const hasPending = require('./pending.js')
 const { Util } = require('eac.js-lib')()
-const { CACHE_STATE } = require('./cache.js')
 
 const isClaimedByUs = (conf, txRequest) => {
   const ourClaim = conf.wallet ?
@@ -62,7 +61,6 @@ const claim = async (conf, txRequest) => {
   }
 
   log.info(`[${txRequest.address}] Attempting the claim | Payment: ${paymentWhenClaimed}`)
-  conf.cache.set(txRequest.address, CACHE_STATE.ATTEMPTED_CLAIM)
 
   // FIXME: This is only a temporary check for now until we solve the
   // claiming mechanism problem.
@@ -110,7 +108,6 @@ const execute = async (conf, txRequest) => {
   }
 
   log.info(`[${txRequest.address}] Attempting the execution.`)
-  conf.cache.set(txRequest.address, CACHE_STATE.ATTEMPTED_EXECUTION)
 
   if (conf.wallet) {
     const executeData = txRequest.executeData
@@ -154,8 +151,7 @@ const cleanup = async (conf, txRequest) => {
 
   // If a transaction request has been executed it will route into this option.
   if (txRequestBalance.equals(0)) {
-    // set for removal from cache
-    conf.cache.set(txRequest.address, CACHE_STATE.EXPIRED)
+    conf.cache.del(txRequest.address)
     return
   }
 
@@ -180,7 +176,7 @@ const cleanup = async (conf, txRequest) => {
     if (conf.wallet) {
       const ownerIndex = conf.wallet.getAddresses().indexOf(txRequest.getOwner())
       if (ownerIndex !== -1) {
-          conf.wallet.sendFromIndex(
+          await conf.wallet.sendFromIndex(
               ownerIndex,
               opts
           )
@@ -193,11 +189,11 @@ const cleanup = async (conf, txRequest) => {
               // The transaction request does not have enough money to compensate.
               return
           }
-          conf.wallet.sendFromNext(opts)
+          await conf.wallet.sendFromNext(opts)
       }
     } else {
       if (txRequest.isClaimedBy(web3.eth.defaultAccount)) {
-        txRequest.cancel({
+        await txRequest.cancel({
           from: web3.eth.defaultAccount,
           value: 0,
           gas: gasToCancel + 21000,
@@ -207,7 +203,7 @@ const cleanup = async (conf, txRequest) => {
         if (gasCostToCancel.greaterThan(txRequestBalance)) {
           return
         }
-        txRequest.cancel({
+        await txRequest.cancel({
           from: web3.eth.defaultAccount,
           value: 0,
           gas: gasToCancel + 21000,
@@ -217,7 +213,7 @@ const cleanup = async (conf, txRequest) => {
     }
   }
   // Set all requests that make it here ready for deletion.
-  conf.cache.set(txRequest.address, 99)
+  conf.cache.del(txRequest.address)
 }
 
 const isExecuted = receipt => {
@@ -262,19 +258,10 @@ const doneState = async(conf, txRequest) => {
 
 const claimingState = async(conf, txRequest) => {
   const log = conf.logger
-  const self = STATE.CLAIMING
   const next = STATE.PRE_EXECUTION
 
-  if (conf.cache.get(txRequest.address) == CACHE_STATE.ATTEMPTED_CLAIM) {
-    // Already set in cache as having a claim request.
-    return self
-  }
-
   if (txRequest.isClaimed) {
-    // Already claimed, do not attempt to claim it again.
     log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
-    // Set it to the cache number so it won't do this again.
-    conf.cache.set(txRequest.address, CACHE_STATE.CLAIMED)
     return next
   }
 
@@ -283,7 +270,6 @@ const claimingState = async(conf, txRequest) => {
 
     if (receipt && receipt.status == 1) {
       log.info(`[${txRequest.address}] Claimed!`)
-      conf.cache.set(txRequest.address, CACHE_STATE.CLAIMED)
       conf.statsdb.updateClaimed(from)
     } else if (!receipt && !ignore) {
       log.error(`[${txRequest.address}] Claiming failed.`)
@@ -318,11 +304,6 @@ const executionState = async(conf, txRequest) => {
   const self = STATE.EXECUTION
   const next = STATE.DONE
 
-  if (conf.cache.get(txRequest.address) == CACHE_STATE.ATTEMPTED_EXECUTION) {
-    log.debug(`[${txRequest.address}] Attempted execution.`)
-    return self
-  }
-
   if (txRequest.wasCalled) {
     log.debug(`[${txRequest.address}] Already called.`)
     return next
@@ -338,7 +319,6 @@ const executionState = async(conf, txRequest) => {
     if (receipt && receipt.status == 1) {
       if (isExecuted(receipt)) {
         log.info(`[${txRequest.address}] Executed.`)
-        conf.cache.set(txRequest.address, CACHE_STATE.EXECUTED)
         conf.statsdb.updateExecuted(from)
       } else {
         log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
