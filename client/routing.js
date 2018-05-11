@@ -107,11 +107,19 @@ const execute = async (conf, txRequest) => {
   const log = conf.logger
   const { web3 } = conf
 
+  const getBlock = () => {
+    return new Promise(resolve => {
+      web3.eth.getBlock('latest', (err,res) => {
+        if (!err) resolve(res)
+      })
+    })
+  }
+
   // txRequest.callGas + 180000 is the exact amount of gas needed by the transaction
   // to execute, however delegate call only recieves 63/64 of the total gas sent
   // so we send a bit extra
   const executeGas = txRequest.callGas.add(180000).div(64).times(65).round()
-  const gasLimit = new BigNumber(web3.eth.getBlock('latest').gasLimit)
+  const gasLimit = new BigNumber((await getBlock()).gasLimit)
 
   const { gasPrice } = txRequest
 
@@ -186,7 +194,7 @@ const cleanup = async (conf, txRequest) => {
     }
 
     if (conf.wallet) {
-      const ownerIndex = conf.wallet.getAddresses().indexOf(txRequest.getOwner())
+      const ownerIndex = conf.wallet.getAddresses().indexOf(txRequest.owner)
       if (ownerIndex !== -1) {
           await conf.wallet.sendFromIndex(
               ownerIndex,
