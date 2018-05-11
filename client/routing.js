@@ -2,6 +2,14 @@ const BigNumber = require('bignumber.js')
 const hasPending = require('./pending.js')
 const { Util } = require('eac.js-lib')()
 
+const STATE = {
+  PRE_CLAIMING: 0,
+  CLAIMING: 1,
+  PRE_EXECUTION: 2,
+  EXECUTION: 3,
+  DONE: 4,
+}
+
 const isClaimedByUs = (conf, txRequest) => {
   const ourClaim = conf.wallet ?
                     conf.wallet.getAddresses().indexOf(txRequest.claimedBy) > -1
@@ -349,13 +357,6 @@ const executionState = async(conf, txRequest) => {
   return next
 }
 
-const STATE = {
-  PRE_CLAIMING: 0,
-  CLAIMING: 1,
-  PRE_EXECUTION: 2,
-  EXECUTION: 3,
-  DONE: 4,
-}
 
 let state = {}
 state[STATE.DONE] = doneState
@@ -380,7 +381,7 @@ const routeTxRequest = async (conf, txRequest) => {
 
   let nextState = await state[currentState](conf, txRequest)
 
-  while (nextState != currentState) {
+  while (nextState !== currentState) {
     currentState = nextState
     nextState = await state[currentState](conf, txRequest)
 
