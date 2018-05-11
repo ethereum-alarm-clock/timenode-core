@@ -298,6 +298,7 @@ class Scanner {
 		// Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.cache
       .stored()
+      .filter(address => this.cache.get(address) > 0)
       .map(address => this.eac.transactionRequest(address))
 
 		// Get fresh data on our transaction requests and route them into appropiate action.

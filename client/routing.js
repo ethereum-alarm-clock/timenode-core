@@ -2,6 +2,14 @@ const BigNumber = require('bignumber.js')
 const hasPending = require('./pending.js')
 const { Util } = require('eac.js-lib')()
 
+const STATE = {
+  PRE_CLAIMING: 0,
+  CLAIMING: 1,
+  PRE_EXECUTION: 2,
+  EXECUTION: 3,
+  DONE: 4,
+}
+
 const isClaimedByUs = (conf, txRequest) => {
   const ourClaim = conf.wallet ?
                     conf.wallet.getAddresses().indexOf(txRequest.claimedBy) > -1
@@ -62,7 +70,6 @@ const claim = async (conf, txRequest) => {
   }
 
   log.info(`[${txRequest.address}] Attempting the claim | Payment: ${paymentWhenClaimed}`)
-  conf.cache.set(txRequest.address, 102)
 
   // FIXME: This is only a temporary check for now until we solve the
   // claiming mechanism problem.
@@ -113,7 +120,6 @@ const execute = async (conf, txRequest) => {
   }
 
   log.info(`[${txRequest.address}] Attempting the execution.`)
-  conf.cache.set(txRequest.address, -1)
 
   if (conf.wallet) {
     const executeData = txRequest.executeData
@@ -157,8 +163,7 @@ const cleanup = async (conf, txRequest) => {
 
   // If a transaction request has been executed it will route into this option.
   if (txRequestBalance.equals(0)) {
-    // set for removal from cache
-    conf.cache.set(txRequest.address, 99)
+    conf.cache.set(txRequest.address, 0)
     return
   }
 
@@ -183,7 +188,7 @@ const cleanup = async (conf, txRequest) => {
     if (conf.wallet) {
       const ownerIndex = conf.wallet.getAddresses().indexOf(txRequest.getOwner())
       if (ownerIndex !== -1) {
-          conf.wallet.sendFromIndex(
+          await conf.wallet.sendFromIndex(
               ownerIndex,
               opts
           )
@@ -196,11 +201,11 @@ const cleanup = async (conf, txRequest) => {
               // The transaction request does not have enough money to compensate.
               return
           }
-          conf.wallet.sendFromNext(opts)
+          await conf.wallet.sendFromNext(opts)
       }
     } else {
       if (txRequest.isClaimedBy(web3.eth.defaultAccount)) {
-        txRequest.cancel({
+        await txRequest.cancel({
           from: web3.eth.defaultAccount,
           value: 0,
           gas: gasToCancel + 21000,
@@ -210,7 +215,7 @@ const cleanup = async (conf, txRequest) => {
         if (gasCostToCancel.greaterThan(txRequestBalance)) {
           return
         }
-        txRequest.cancel({
+        await txRequest.cancel({
           from: web3.eth.defaultAccount,
           value: 0,
           gas: gasToCancel + 21000,
@@ -220,7 +225,7 @@ const cleanup = async (conf, txRequest) => {
     }
   }
   // Set all requests that make it here ready for deletion.
-  conf.cache.set(txRequest.address, 99)
+  conf.cache.del(txRequest.address)
 }
 
 const isExecuted = receipt => {
@@ -232,134 +237,160 @@ const isExecuted = receipt => {
   return false
 }
 
-/**
- * Takes in a txRequest object and routes it to the thread that will act on it,
- * or returns if no action can be taken.
- * @param {Config} conf
- * @param {TxRequest} txRequest
- * @returns {Number} Magic number for what happened during routing. (Only used in tests.)
- */
-const routeTxRequest = async (conf, txRequest) => {
+const preClaimingState = async(conf, txRequest) => {
   const log = conf.logger
+  const self = STATE.PRE_CLAIMING
+  const next = STATE.CLAIMING
 
-  // Return early the transaction already has a pending transaction
-  // in the transaction pool
   if (await hasPending(conf, txRequest)) {
     log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
-    return 0
+    return self
   }
 
   // Return early if the transaction request has been cancelled
   if (txRequest.isCancelled) {
     log.debug(`[${txRequest.address}] Ignorning already cancelled txRequest.`)
-    return 1
+    return STATE.DONE
   }
 
   // Return early if the transaction request is before claim window,
   // and therefore not actionable upon
   if (await txRequest.beforeClaimWindow()) {
     log.debug(`[${txRequest.address}] Ignoring txRequest not in claim window.`)
-    return 2
+    return self
   }
 
-  // If the transaction request is in the claim window, we check if
-  // it already claimed and if not, we claim it
-  if (await txRequest.inClaimWindow()) {
-    // The client set the txRequest to `attempted claim` and watch
-    // for the result and either marked successfully `claimed` or not.
-    // Using the cache codes is a primitive way to accomplish this.
-    if (conf.cache.get(txRequest.address) <= 102) {
-      // Already set in cache as having a claim request.
-      return 3
-    }
-    if (txRequest.isClaimed) {
-      // Already claimed, do not attempt to claim it again.
-      log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
-      // Set it to the cache number so it won't do this again.
-      conf.cache.set(txRequest.address, 103)
-      return 4
-    }
+  return next
+}
 
-    claim(conf, txRequest)
-      .then(result => {
-        const { receipt, from, ignore } = result
+const doneState = async(conf, txRequest) => {
+  cleanup(conf, txRequest)
+  return STATE.DONE
+}
 
-        if (receipt && receipt.status == 1) {
-          const gas = receipt.gasUsed * txRequest.data.txData.gasPrice
+const claimingState = async(conf, txRequest) => {
+  const log = conf.logger
+  const next = STATE.PRE_EXECUTION
 
-          log.info(`[${txRequest.address}] Claimed!`)
-          conf.cache.set(txRequest.address, 103)
-          conf.statsdb.updateClaimed(from, gas)
-        } else if (!result && !ignore) {
-          log.error(`[${txRequest.address}] Claiming failed.`)
-        }
-      })
-      .catch(err => log.error(err))
-    return 5
+  if (txRequest.isClaimed) {
+    log.debug(`[${txRequest.address}] TxRequest in claimWindow but is already claimed.`)
+    return next
   }
 
-  // If the transaction request is in the freeze period, it is not
-  // actionable upon and we return early
+  try {
+    const { receipt, from, ignore } = await claim(conf, txRequest)
+
+    if (receipt && receipt.status == 1) {
+      const gas = receipt.gasUsed * txRequest.data.txData.gasPrice
+
+      log.info(`[${txRequest.address}] Claimed!`)
+      conf.statsdb.updateClaimed(from, gas)
+    } else if (!receipt && !ignore) {
+      log.error(`[${txRequest.address}] Claiming failed.`)
+    }
+  } catch (err) {
+    log.error(err)
+  }
+
+  return next
+}
+
+const preExecutionState = async(conf, txRequest) => {
+  const log = conf.logger
+  const self = STATE.PRE_EXECUTION
+  const next = STATE.EXECUTION
+
   if (await txRequest.inFreezePeriod()) {
     log.debug(`[${txRequest.address}] Ignoring frozen txRequest. Now ${await txRequest.now()} | Window start: ${
       txRequest.windowStart
     }`)
-    return 6
+    return self
+  }
+  if (!(await txRequest.inExecutionWindow())) {
+    return self
   }
 
-  // If the transaction request is in the execution window, we can
-  // attempt an execution of it
-  if (await txRequest.inExecutionWindow()) {
-    if (conf.cache.get(txRequest.address) <= 99) return // waiting to be cleaned
-    if (txRequest.wasCalled) {
-      log.debug(`[${txRequest.address}] Already called.`)
-      cleanup(conf, txRequest)
-      return 7
-    }
-    if ((await txRequest.inReservedWindow()) && txRequest.isClaimed && !isClaimedByUs(conf, txRequest)) {
-      return 8
-    }
-    // This hacks the cache to set all executed requests to store the value
-    // of -1 if it has been executed.
-    if (conf.cache.get(txRequest.address) <= 101) {
-      log.debug(`[${txRequest.address}] Already executed.`)
-      return 9
-    }
-    execute(conf, txRequest)
-      .then(result => {
-        const { web3 } = conf
-        const { receipt, from } = result
-
-        if (receipt && receipt.status == 1) {
-          if (isExecuted(receipt)) {
-              const data = receipt.logs[0].data
-              const timeBounty = web3.toDecimal(data.slice(0, 66))
-
-              log.info(`[${txRequest.address}] Executed.`)
-              conf.cache.set(txRequest.address, 100)
-              conf.statsdb.updateExecuted(from, timeBounty, 0)
-              
-              return
-            } else {
-              log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
-            }
-        } else {
-          log.error(`[${txRequest.address}] Execution failed.`)
-        }
-
-        const txCost = receipt.gasUsed * txRequest.data.txData.gasPrice
-        conf.statsdb.updateExecuted(from, 0, txCost)
-      })
-      .catch(err => log.error(err))
-    return 10
-  }
-
-  // If the transaction request is expired, we try to clean it
-  if (await txRequest.afterExecutionWindow()) {
-    log.debug(`[${txRequest.address}] Cleaning up expired txRequest and removing from cache.`)
-    cleanup(conf, txRequest)
-    return 11
-  }
+  return next
 }
 
-module.exports.routeTxRequest = routeTxRequest
+const executionState = async(conf, txRequest) => {
+  const log = conf.logger
+  const { web3 } = conf
+  const self = STATE.EXECUTION
+  const next = STATE.DONE
+
+  if (txRequest.wasCalled) {
+    log.debug(`[${txRequest.address}] Already called.`)
+    return next
+  }
+
+  if ((await txRequest.inReservedWindow()) && !isClaimedByUs(conf, txRequest)) {
+    return self
+  }
+
+  try {
+    const { receipt, from } = await execute(conf, txRequest)
+
+    if (receipt && receipt.status == 1) {
+      if (isExecuted(receipt)) {
+        const data = receipt.logs[0].data
+        const timeBounty = web3.toDecimal(data.slice(0, 66))
+
+        log.info(`[${txRequest.address}] Executed.`)
+
+        conf.statsdb.updateExecuted(from, timeBounty, 0)
+
+        return next
+      } else {
+        log.info(`[${txRequest.address}] Execution failed. Transaction already executed.`)
+      }
+    } else {
+      log.error(`[${txRequest.address}] Execution failed.`)
+    }
+
+    const txCost = receipt.gasUsed * txRequest.data.txData.gasPrice
+    conf.statsdb.updateExecuted(from, 0, txCost)
+  } catch (err) {
+    log.error(err)
+  }
+
+  return next
+}
+
+
+let state = {}
+state[STATE.DONE] = doneState
+state[STATE.PRE_CLAIMING] = preClaimingState
+state[STATE.CLAIMING] = claimingState
+state[STATE.PRE_EXECUTION] = preExecutionState
+state[STATE.EXECUTION] = executionState
+
+const txRequestState = {}
+
+/**
+ * Takes in a txRequest object and routes it to the thread that will act on it,
+ * or returns if no action can be taken.
+ * @param {Config} conf
+ * @param {TxRequest} txRequest
+ * @returns {STATE} nextState
+ */
+const routeTxRequest = async (conf, txRequest) => {
+  const log = conf.logger
+  let currentState = txRequestState[txRequest.address] || STATE.PRE_CLAIMING
+  log.debug(`[${txRequest.address}] Start state ${currentState}`)
+
+  let nextState = await state[currentState](conf, txRequest)
+
+  while (nextState !== currentState) {
+    currentState = nextState
+    nextState = await state[currentState](conf, txRequest)
+
+    log.debug(`[${txRequest.address}] State transition ${currentState} -> ${nextState}`)
+  }
+
+  log.debug(`[${txRequest.address}] End state ${nextState}`)
+  txRequestState[txRequest.address] = nextState
+  return nextState
+}
+
+module.exports = { routeTxRequest, STATE }
