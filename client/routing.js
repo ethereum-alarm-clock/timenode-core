@@ -33,8 +33,14 @@ const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const currentGasPrice = new BigNumber(await Util.getGasPrice(web3))
   const gasCostToClaim = currentGasPrice.times(gasToClaim)
 
-  if (gasCostToClaim.greaterThan(paymentWhenClaimed)) {
-    conf.logger.debug(`[${txRequest.address}] Not profitable to claim. gasCostToClaim: ${gasCostToClaim} | paymentWhenClaimed: ${paymentWhenClaimed}`)
+  // Based on experimentation, we've found that the bounty
+  // needs to be at least `profitabilityIndex * currentGasPrice`
+  // to be profitable.
+  const profitabilityIndex = 100000
+  const bountyProfitable = txRequest.bounty > (profitabilityIndex * currentGasPrice)
+
+  if (gasCostToClaim.greaterThan(paymentWhenClaimed) || !bountyProfitable) {
+    conf.logger.debug(`[${txRequest.address}] Not profitable to claim. gasCostToClaim: ${gasCostToClaim} | paymentWhenClaimed: ${paymentWhenClaimed} | bountyProfitable: ${bountyProfitable}`)
     return { profitable: false, paymentWhenClaimed: 0 }
   }
 
