@@ -38,7 +38,7 @@ const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const currentGasPrice = new BigNumber(await Util.getGasPrice(web3))
   const gasCostToClaim = currentGasPrice.times(gasToClaim)
 
-  const bountyProfitable = txRequest.bounty > (PROFITABILITY_INDEX * currentGasPrice)
+  const bountyProfitable = txRequest.bounty.greaterThan(PROFITABILITY_INDEX * currentGasPrice)
 
   if (gasCostToClaim.greaterThan(paymentWhenClaimed) || !bountyProfitable) {
     conf.logger.debug(`[${txRequest.address}] Not profitable to claim. gasCostToClaim: ${gasCostToClaim} | paymentWhenClaimed: ${paymentWhenClaimed} | bountyProfitable: ${bountyProfitable}`)
