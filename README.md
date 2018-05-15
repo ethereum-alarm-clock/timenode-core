@@ -5,6 +5,8 @@ _Note: `eac.js` is operational but still considered alpha software, released to 
 [![npm version](https://badge.fury.io/js/eac.js-client.svg)](https://badge.fury.io/js/eac.js-client)
 # eac.js-client
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/ethereum-alarm-clock/eac.js-client.svg)](https://greenkeeper.io/)
+
 This is a part of eac.js family that includes 
 * [eac.js-lib](https://github.com/ethereum-alarm-clock/eac.js-lib)
 * [eac.js-client](https://github.com/ethereum-alarm-clock/eac.js-client)
