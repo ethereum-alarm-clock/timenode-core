@@ -12,8 +12,8 @@ const STATE = {
 
 // Based on experimentation, we've found that the bounty
 // needs to be at least `profitabilityIndex * currentGasPrice`
-// to be profitable.
-const PROFITABILITY_INDEX = 100000;
+// in order for claiming to be profitable.
+const DEFAULT_PROFITABILITY_INDEX = new BigNumber(100000);
 
 const isClaimedByUs = (conf, txRequest) => {
   const ourClaim = conf.wallet ?
@@ -34,11 +34,12 @@ const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const paymentWhenClaimed = txRequest.bounty
     .times(claimPaymentModifier)
     .dividedToIntegerBy(100)
-
+      
   const currentGasPrice = new BigNumber(await Util.getGasPrice(web3))
   const gasCostToClaim = currentGasPrice.times(gasToClaim)
 
-  const bountyProfitable = txRequest.bounty.greaterThan(PROFITABILITY_INDEX * currentGasPrice)
+  const profitabilityIndex = conf.profitabilityIndex ? new BigNumber(conf.profitabilityIndex) : DEFAULT_PROFITABILITY_INDEX
+  const bountyProfitable = txRequest.bounty.greaterThan(profitabilityIndex.times(currentGasPrice))
 
   if (gasCostToClaim.greaterThan(paymentWhenClaimed) || !bountyProfitable) {
     conf.logger.debug(`[${txRequest.address}] Not profitable to claim. gasCostToClaim: ${gasCostToClaim} | paymentWhenClaimed: ${paymentWhenClaimed} | bountyProfitable: ${bountyProfitable}`)
@@ -408,4 +409,4 @@ const routeTxRequest = async (conf, txRequest) => {
   return nextState
 }
 
-module.exports = { routeTxRequest, STATE, PROFITABILITY_INDEX }
+module.exports = { routeTxRequest, STATE, DEFAULT_PROFITABILITY_INDEX }

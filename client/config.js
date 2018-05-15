@@ -17,7 +17,8 @@ class Config {
     // provider,
     // walletStores,
     // password,
-    // autostart
+    // autostart,
+    // profitabilityIndex
   ) {
     this.scanSpread = opts.scanSpread || 50
 
@@ -50,6 +51,8 @@ class Config {
 
     // Set autostart
     this.scanning = opts.autostart
+    
+    this.profitabilityIndex = opts.profitabilityIndex
 
   }
 
@@ -65,7 +68,8 @@ class Config {
     // provider,
     // walletStores,
     // password,
-    // autostart
+    // autostart,
+    // profitabilityIndex
   ) {
     let conf = new Config(opts)
     if (opts.walletStores && typeof opts.walletStores.length !== 'undefined' && opts.walletStores.length > 0) {
