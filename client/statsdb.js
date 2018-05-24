@@ -22,8 +22,11 @@ class StatsDB {
     accounts.forEach(async (account) => {
       const found = this.stats.find({ account })[0]
       if (found) {
-        found.bounties = new BigNumber(found.bounties)
-        found.costs = new BigNumber(found.costs)
+        const bounties = found.bounties ? found.bounties : 0
+        const costs = found.costs ? found.costs : 0
+
+        found.bounties = new BigNumber(bounties)
+        found.costs = new BigNumber(costs)
       } else {
         this.stats.insert({
           account,
