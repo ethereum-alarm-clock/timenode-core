@@ -32,8 +32,8 @@ class StatsDB {
           account,
           claimed: 0,
           executed: 0,
-          bounties: 0,
-          costs: 0,
+          bounties: new BigNumber(0),
+          costs: new BigNumber(0),
           executedTransactions: []
         })
       }
@@ -44,7 +44,7 @@ class StatsDB {
   async updateClaimed(account, cost) {
     const found = this.stats.find({ account })[0]
     found.claimed += 1
-    found.costs += cost
+    found.costs = found.costs.plus(cost)
 
     this.stats.update(found)
   }
@@ -55,8 +55,8 @@ class StatsDB {
     found.executed += 1
     found.executedTransactions.push({ timestamp: Date.now() })
 
-    found.bounties += bounty
-    found.costs += cost
+    found.bounties = found.bounties.plus(bounty)
+    found.costs = found.costs.plus(cost)
 
     this.stats.update(found)
   }
