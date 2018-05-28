@@ -196,6 +196,10 @@ class Wallet {
     getAddresses() {
         return this.getAccounts().map(account => account.getAddressString())
     }
+
+    isKnownAddress(address) {
+        return this.getAccounts().some(account => account.getAddressString() === address)
+    }
 }
 
 module.exports = Wallet

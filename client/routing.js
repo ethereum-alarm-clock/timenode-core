@@ -10,9 +10,16 @@ const STATE = {
   DONE: 4,
 }
 
+let stateName = {}
+stateName[STATE.DONE] = 'DONE'
+stateName[STATE.PRE_CLAIMING] = 'PRE-CLAIMING'
+stateName[STATE.CLAIMING] = 'CLAIMING'
+stateName[STATE.PRE_EXECUTION] = 'PRE-EXECUTION'
+stateName[STATE.EXECUTION] = 'EXECUTION'
+
 const isClaimedByUs = (conf, txRequest) => {
   const ourClaim = conf.wallet ?
-                    conf.wallet.getAddresses().indexOf(txRequest.claimedBy) > -1
+                    conf.wallet.isKnownAddress(txRequest.claimedBy)
                     :
                     txRequest.isClaimedBy(conf.web3.eth.defaultAccount)
 
@@ -41,6 +48,26 @@ const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   return { profitable: true, paymentWhenClaimed }
 }
 
+const sendTransaction = async (conf, txRequest, fn, options) => {
+  const log = conf.logger
+  const { web3 } = conf
+
+  if (await hasPending(conf, txRequest)) {
+    log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
+    return { ignore: true }
+  }
+
+  if (conf.wallet) {
+    return conf.wallet.sendFromNext(options)
+  }
+
+  const ops = Object.assign(options, { from: web3.eth.defaultAccount })
+  return {
+    receipt: await fn(ops),
+    from: web3.eth.defaultAccount
+  }
+}
+
 const claim = async (conf, txRequest) => {
   const log = conf.logger
   const { web3 } = conf
@@ -64,43 +91,24 @@ const claim = async (conf, txRequest) => {
   // for inspiration here.
   const diceRoll = Math.floor(Math.random() * 100)
 
-  if (diceRoll >= txRequest.claimPaymentModifier()) {
+  if (diceRoll >= await txRequest.claimPaymentModifier()) {
     log.debug(`Fate insists you wait until later.`)
     return ignore
   }
 
   log.info(`[${txRequest.address}] Attempting the claim | Payment: ${paymentWhenClaimed}`)
 
-  // FIXME: This is only a temporary check for now until we solve the
-  // claiming mechanism problem.
-  if (await hasPending(conf, txRequest)) {
-    return
-  }
-
   const gas = gasToClaim + 21000
   const gasPrice = await Util.getGasPrice(web3)
-
-  if (conf.wallet) {
-    // Wallet is enabled, claim from the next index.
-    return conf.wallet.sendFromNext({
-        to: txRequest.address,
-        value,
-        gas,
-        gasPrice,
-        data
-    })
-  } else {
-      // Wallet disabled, claim from default account
-      return {
-        receipt: await txRequest.claim({
-          from: web3.eth.defaultAccount,
-          value,
-          gas,
-          gasPrice
-      }),
-        from: web3.eth.defaultAccount
-      }
+  const options = {
+    to: txRequest.address,
+    value,
+    gas,
+    gasPrice,
+    data
   }
+
+  return sendTransaction(conf, txRequest, opt => txRequest.claim(opt), options)
 }
 
 const execute = async (conf, txRequest) => {
@@ -124,43 +132,29 @@ const execute = async (conf, txRequest) => {
   const { gasPrice } = txRequest
 
   if (executeGas.greaterThan(gasLimit)) {
-    return Promise.reject(new Error(`[${txRequest.address}] Execution gas exceeds the network gas limit.`))
+    return new Error(`[${txRequest.address}] Execution gas exceeds the network gas limit.`)
   }
 
   log.info(`[${txRequest.address}] Attempting the execution.`)
 
-  if (conf.wallet) {
-    const executeData = txRequest.executeData
-    const walletClaimIndex =  conf.wallet.getAddresses().indexOf(txRequest.claimedBy)
-    const opts = {
-      to: txRequest.address,
-      gas: executeGas,
-      gasPrice,
-      data: executeData,
-      value: 0
-    }
-
-    if (walletClaimIndex !== -1) {
-        // Returns a receipt
-        return conf.wallet.sendFromIndex(
-            walletClaimIndex,
-            opts
-        )
-    } else {
-        // Returns a receipt
-        return conf.wallet.sendFromNext(opts)
-    }
-  } else {
-      return {
-        receipt: await txRequest.execute({
-          from: web3.eth.defaultAccount,
-          value: 0,
-          gas: executeGas,
-          gasPrice: gasPrice
-        }),
-        from: web3.eth.defaultAccount
-      }
+  const executeData = txRequest.executeData
+  const walletClaimIndex =  conf.wallet ? conf.wallet.getAddresses().indexOf(txRequest.claimedBy) : -1
+  const options = {
+    to: txRequest.address,
+    gas: executeGas,
+    gasPrice,
+    data: executeData,
+    value: 0
   }
+
+  if (walletClaimIndex !== -1) {
+    return conf.wallet.sendFromIndex(
+        walletClaimIndex,
+        options
+    )
+  }
+
+  return sendTransaction(conf, txRequest, opt => txRequest.execute(opt), options)
 }
 
 const cleanup = async (conf, txRequest) => {
@@ -250,11 +244,6 @@ const preClaimingState = async(conf, txRequest) => {
   const self = STATE.PRE_CLAIMING
   const next = STATE.CLAIMING
 
-  if (await hasPending(conf, txRequest)) {
-    log.info(`[${txRequest.address}] Ignoring txRequest with pending transaction in the transaction pool.`)
-    return self
-  }
-
   // Return early if the transaction request has been cancelled
   if (txRequest.isCancelled) {
     log.debug(`[${txRequest.address}] Ignorning already cancelled txRequest.`)
@@ -337,7 +326,8 @@ const executionState = async(conf, txRequest) => {
   }
 
   try {
-    const { receipt, from } = await execute(conf, txRequest)
+    const { receipt, from, ignore } = await execute(conf, txRequest)
+    if (ignore) return self
 
     if (receipt && receipt.status == 1) {
       if (isExecuted(receipt)) {
@@ -385,18 +375,19 @@ const txRequestState = {}
 const routeTxRequest = async (conf, txRequest) => {
   const log = conf.logger
   let currentState = txRequestState[txRequest.address] || STATE.PRE_CLAIMING
-  log.debug(`[${txRequest.address}] Start state ${currentState}`)
 
-  let nextState = await state[currentState](conf, txRequest)
+  let transition = true
+  let nextState
 
-  while (nextState !== currentState) {
-    currentState = nextState
+  while (transition) {
     nextState = await state[currentState](conf, txRequest)
+    transition = nextState !== currentState
 
-    log.debug(`[${txRequest.address}] State transition ${currentState} -> ${nextState}`)
+    log.debug(`[${txRequest.address}] State transition ${stateName[currentState]} -> ${stateName[nextState]}`)
+
+    currentState = nextState
   }
 
-  log.debug(`[${txRequest.address}] End state ${nextState}`)
   txRequestState[txRequest.address] = nextState
   return nextState
 }
