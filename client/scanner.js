@@ -40,7 +40,14 @@ class Scanner {
     });
 
     const provider = this.web3.currentProvider;
-    const providerUrl = provider.host ? provider.host : provider.connection.url;
+
+    let providerUrl;
+    if (provider) {
+      providerUrl = provider.host ? provider.host : provider.connection.url;
+    } else {
+      providerUrl = 'Unknown';
+    }
+    
     this.log.info(`Web3 provider : ${providerUrl}`)
   }
 
