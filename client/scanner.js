@@ -38,6 +38,17 @@ class Scanner {
       }
       this.log.info(`Network : ${Networks[res || 0]} Network`)
     });
+
+    const provider = this.web3.currentProvider;
+
+    let providerUrl;
+    if (provider) {
+      providerUrl = provider.host ? provider.host : provider.connection.url;
+    } else {
+      providerUrl = 'Unknown';
+    }
+    
+    this.log.info(`Web3 provider : ${providerUrl}`)
   }
 
   async start() {
