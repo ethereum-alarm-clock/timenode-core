@@ -222,6 +222,16 @@ export default class Scanner {
     }
   }
 
+  // TODO shouldn't return void
+  handleRequest(request: any): void {
+    if (!this.isCorrect(request.address)) return;
+
+    this.config.logger.debug(`[${request.address}] Discovered`);
+    if (!this.config.cache.has(request.address)) {
+      this.store(request);
+    }
+  }
+
   async backupScanBlockchain(): Promise<IntervalID> {
     // TODO only init reqFactory once, so check here with a function before calling again
     const reqFactory = await this.config.eac.requestFactory();
@@ -231,23 +241,13 @@ export default class Scanner {
       nextBuckets,
     } = await this.getBuckets(reqFactory);
 
-    // TODO extract this
-    const handleRequests = (request): void => {
-      if (!this.isCorrect(request.address)) return;
-      this.config.logger.debug(`[${request.address}] Discovered.`);
-      if (!this.config.cache.has(request.address)) {
-        // If it's not already in cache, find windowStart.
-        this.store(request);
-      }
-    };
-
     // TODO: extract this out
-    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(handleRequests);
-    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(this.handleRequests);
+    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(this.handleRequests);
     (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(
-      handleRequests
+      this.handleRequests
     );
-    (await reqFactory.getRequestsByBucket(nextBuckets.tsBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(this.handleRequests);
     //
 
     // Set a recursive interval to continue this "scan" every ms/1000 seconds.
@@ -259,52 +259,25 @@ export default class Scanner {
   async watchBlockchain(): Promise<IntervalID> {
     const reqFactory = await this.config.eac.requestFactory();
 
-    const latestBlock: Block = await this.getBlock('latest');
-
-    const blockBucket = reqFactory.calcBucket(latestBlock.number, 1);
-    const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2);
-
-    const handleRequests = (request) => {
-      if (!this.isCorrect(request.address)) return;
-      this.config.logger.debug(`[${request.address}] Discovered.`);
-      if (!this.config.cache.has(request.address)) {
-        // If it's not already in cache, find windowStart.
-        this.store(request);
-      }
-    };
+    const {
+      currentBuckets,
+      nextBuckets,
+    } = await this.getBuckets(reqFactory);
 
     // Start watching the current buckets right away.
-    reqFactory.watchRequestsByBucket(blockBucket, handleRequests);
-    reqFactory.watchRequestsByBucket(tsBucket, handleRequests);
-    // Also start watching the next one now.
-    this.watchNextBuckets(latestBlock);
+    reqFactory.watchRequestsByBucket(currentBuckets.blockBucket, this.handleRequest);
+    reqFactory.watchRequestsByBucket(currentBuckets.timestampBucket, this.handleRequest);
+    reqFactory.watchRequestsByBucket(nextBuckets.blockBucket, this.handleRequest);
+    reqFactory.watchRequestsByBucket(nextBuckets.timestampBucket, this.handleRequest);
 
+    // Needed?
     this.config.logger.info(`Watching STARTED`);
-    this.config.logger.debug(`Watching for new Requests from current bucket `);
 
     // Set an timeout for every hour
-    return setInterval(async () => {
-      const curBlock = await this.getBlock('latest');
-      this.watchNextBuckets(curBlock);
+    return setInterval(() => {
+      // We only really need to watch the next buckets, but this is convienence & clarity.
+      this.watchBlockchain();
     }, 60 * 60 * 1000);
-  }
-
-  async watchNextBuckets(block) {
-    const reqFactory = await this.config.eac.requestFactory();
-
-    const next = await this.getNextBuckets(block);
-
-    const handleRequests = (request) => {
-      if (!this.isCorrect(request.address)) return;
-      this.config.logger.debug(`[${request.address}] Discovered.`);
-      if (!this.config.cache.has(request.address)) {
-        // If it's not already in cache, find windowStart.
-        this.store(request);
-      }
-    };
-
-    reqFactory.watchRequestsByBucket(next.blockBucket, handleRequests);
-    reqFactory.watchRequestsByBucket(next.tsBucket, handleRequests);
   }
 
   /**
