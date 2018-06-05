@@ -15,6 +15,11 @@ interface Block {
   timestamp: number;
 }
 
+// TODO this is only temporary
+interface TxRequest {
+  refreshData: Function,
+}
+
 export default class Scanner {
   config: Config;
   ms: number;
@@ -201,7 +206,7 @@ export default class Scanner {
 
     const handleRequests = (request): void => {
       if (!this.isCorrect(request.address)) return;
-      this.log.debug(`[${request.address}] Discovered.`);
+      this.config.logger.debug(`[${request.address}] Discovered.`);
       if (!this.config.cache.has(request.address)) {
         // If it's not already in cache, find windowStart.
         this.store(request);
@@ -394,7 +399,7 @@ export default class Scanner {
 
     // Get fresh data on our transaction requests and route them into appropiate action.
     Promise.all(allTxRequests).then((txRequests) => {
-      txRequests.forEach((txRequest) => {
+      txRequests.forEach((txRequest: TxRequest) => {
         txRequest
           .refreshData()
           .then(() => routeTxRequest(this.config, txRequest));

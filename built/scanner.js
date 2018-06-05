@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -33,8 +34,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-/* eslint no-await-in-loop: 'off' */
-var routeTxRequest = require('./routing.js').routeTxRequest;
+Object.defineProperty(exports, "__esModule", { value: true });
+var routing_js_1 = require("./routing.js");
 var clientVersion = require('../package.json').version;
 var SCAN_DELAY = 1;
 var Scanner = /** @class */ (function () {
@@ -47,16 +48,12 @@ var Scanner = /** @class */ (function () {
     function Scanner(ms, config) {
         this.ms = ms;
         this.config = config;
-        this.log = config.logger;
-        this.cache = config.cache;
-        this.web3 = config.web3;
-        this.eac = config.eac;
         this.logNetwork();
-        this.requestFactory = this.config.factory;
-        this.log.info("eac.js-client : version " + clientVersion);
-        this.log.info("Validating results with factory at " + this.config.factory.address);
-        this.log.info("Scanning every " + (this.ms * SCAN_DELAY) / 1000 + " seconds.");
-        this.started = false;
+        // TODO: extract this out to function `this.startupMessage()`
+        config.logger.info("eac.js-client : version " + clientVersion);
+        config.logger.info("Validating results with factory at " + this.config.factory.address);
+        config.logger.info("Scanning every " + (this.ms * SCAN_DELAY) / 1000 + " seconds.");
+        this.running = false;
     }
     Scanner.prototype.logNetwork = function () {
         var _this = this;
@@ -68,13 +65,13 @@ var Scanner = /** @class */ (function () {
             4: 'Rinkeby',
             42: 'Kovan',
         };
-        this.web3.version.getNetwork(function (err, res) {
+        this.config.web3.version.getNetwork(function (err, res) {
             if (err) {
-                _this.log.error("Unable to connect to a Network");
+                _this.config.logger.error("Unable to connect to a Network");
             }
-            _this.log.info("Network : " + Networks[res || 0] + " Network");
+            _this.config.logger.info("Network : " + Networks[res || 0] + " Network");
         });
-        var provider = this.web3.currentProvider;
+        var provider = this.config.web3.currentProvider;
         var providerUrl;
         if (provider) {
             providerUrl = provider.host ? provider.host : provider.connection.url;
@@ -82,7 +79,7 @@ var Scanner = /** @class */ (function () {
         else {
             providerUrl = 'Unknown';
         }
-        this.log.info("Web3 provider : " + providerUrl);
+        this.config.logger.info("Web3 provider : " + providerUrl);
     };
     Scanner.prototype.start = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -92,14 +89,14 @@ var Scanner = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         // Reset the intervals if already started.
-                        if (this.started)
+                        if (this.running)
                             this.stop();
                         // Set interval for scanning for actionable transaction requests in the cache.
-                        this.cacheScanning = setInterval(function () {
-                            _this.scanCache().catch(function (err) { return _this.log.error(err); });
+                        this.cacheScanner = setInterval(function () {
+                            _this.scanCache().catch(function (err) { return _this.config.logger.error(err); });
                         }, this.ms);
                         return [4 /*yield*/, new Promise(function (resolve) {
-                                _this.web3.currentProvider.sendAsync({
+                                _this.config.web3.currentProvider.sendAsync({
                                     jsonrpc: '2.0',
                                     id: 1,
                                     method: 'eth_getFilterLogs',
@@ -107,9 +104,10 @@ var Scanner = /** @class */ (function () {
                                 }, function (e) { return __awaiter(_this, void 0, void 0, function () {
                                     return __generator(this, function (_a) {
                                         if (e !== null) {
-                                            this.log.info("Watching DISABLED");
+                                            this.config.logger.info('Watching DISABLED');
                                             resolve(false);
                                         }
+                                        this.config.logger.info('Watching ENABLED');
                                         resolve(true);
                                         return [2 /*return*/];
                                     });
@@ -118,17 +116,17 @@ var Scanner = /** @class */ (function () {
                     case 1:
                         watchingEnabled = _a.sent();
                         if (watchingEnabled) {
-                            this.blockchainScanning = this.watchBlockchain();
+                            this.chainScanner = this.watchBlockchain();
                         }
                         else {
-                            this.log.info('-Initiating Backup Scanner-');
+                            this.config.logger.info('-Initiating Backup Scanner-');
                             // backup scan
-                            this.blockchainScanning = this.backupScanBlockchain();
+                            this.chainScanner = this.backupScanBlockchain();
                         }
-                        this.scanCache().catch(function (err) { return _this.log.error(err); });
+                        this.scanCache().catch(function (err) { return _this.config.logger.error(err); });
                         // Mark that we've started.
-                        this.started = true;
-                        this.log.info('Scanning STARTED');
+                        this.running = true;
+                        this.config.logger.info('Scanner STARTED');
                         return [2 /*return*/];
                 }
             });
@@ -137,33 +135,37 @@ var Scanner = /** @class */ (function () {
     Scanner.prototype.stop = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        // Clear scanning intervasls.
-                        clearInterval(this.blockchainScanning);
-                        clearInterval(this.cacheScanning);
-                        if (!this.requestWatcher) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.requestFactory.stopWatch(this.requestWatcher)];
-                    case 1:
-                        _a.sent();
-                        this.log.info('Watching STOPPED');
-                        _a.label = 2;
-                    case 2:
-                        // Mark that we've stopped.
-                        this.started = false;
-                        this.log.info('Scanning STOPPED');
-                        return [2 /*return*/];
-                }
+                // Clear scanning intervasls.
+                clearInterval(this.cacheScanner);
+                clearInterval(this.chainScanner);
+                // if (this.requestWatcher) {
+                //   await this.requestFactory.stopWatch(this.requestWatcher);
+                //   this.log.info('Watching STOPPED');
+                // }
+                // Mark that we've stopped.
+                this.running = false;
+                this.config.logger.info('Scanner STOPPED');
+                return [2 /*return*/];
             });
         });
     };
-    Scanner.prototype.isValidBlock = function (block) {
-        if (!block) {
-            return false;
-        }
-        return true;
-    };
-    Scanner.prototype.isExecutable = function (txRequest) {
+    // isValidBlock(block) {
+    //   if (!block) {
+    //     return false;
+    //   }
+    //   return true;
+    // }
+    /**
+     * Performs four checks:
+     *  - The TxRequest is before claim window.
+     *  - The TxRequest is in claim window.
+     *  - The TxRequest is in freeze period.
+     *  - The TxRequest is in execution window.
+     * These are the four conditions in which the TxRequest is upcoming,
+     * and should be stored in a TimeNodes cache.
+     * @param txRequest Transaction Request Object
+     */
+    Scanner.prototype.isUpcoming = function (txRequest) {
         return __awaiter(this, void 0, void 0, function () {
             var _a, _b, _c;
             return __generator(this, function (_d) {
@@ -222,7 +224,7 @@ var Scanner = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.eac.requestFactory()];
+                    case 0: return [4 /*yield*/, this.config.eac.requestFactory()];
                     case 1:
                         reqFactory = _a.sent();
                         return [4 /*yield*/, this.getBlock('latest')];
@@ -236,15 +238,15 @@ var Scanner = /** @class */ (function () {
                         handleRequests = function (request) {
                             if (!_this.isCorrect(request.address))
                                 return;
-                            _this.log.debug("[" + request.address + "] Discovered.");
-                            if (!_this.cache.has(request.address)) {
+                            _this.config.logger.debug("[" + request.address + "] Discovered.");
+                            if (!_this.config.cache.has(request.address)) {
                                 // If it's not already in cache, find windowStart.
                                 _this.store(request);
                             }
                         };
                         return [4 /*yield*/, reqFactory.getRequestsByBucket(blockBucket)];
                     case 4:
-                        // console.log(next);
+                        // TODO: extract this out
                         (_a.sent()).map(handleRequests);
                         return [4 /*yield*/, reqFactory.getRequestsByBucket(tsBucket)];
                     case 5:
@@ -256,7 +258,7 @@ var Scanner = /** @class */ (function () {
                     case 7:
                         (_a.sent()).map(handleRequests);
                         return [2 /*return*/, setInterval(function () {
-                                _this.backupScanBlockchain().catch(function (err) { return _this.log.error(err); });
+                                _this.backupScanBlockchain().catch(function (err) { return _this.config.logger.error(err); });
                             }, this.ms)];
                 }
             });
@@ -267,7 +269,7 @@ var Scanner = /** @class */ (function () {
             var reqFactory, blockBucketSize, tsBucketSize, nextBlockInterval, nextTsInterval, blockBucket, tsBucket;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.eac.requestFactory()];
+                    case 0: return [4 /*yield*/, this.config.eac.requestFactory()];
                     case 1:
                         reqFactory = _a.sent();
                         blockBucketSize = 240;
@@ -290,7 +292,7 @@ var Scanner = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.eac.requestFactory()];
+                    case 0: return [4 /*yield*/, this.config.eac.requestFactory()];
                     case 1:
                         reqFactory = _a.sent();
                         return [4 /*yield*/, this.getBlock('latest')];
@@ -301,8 +303,8 @@ var Scanner = /** @class */ (function () {
                         handleRequests = function (request) {
                             if (!_this.isCorrect(request.address))
                                 return;
-                            _this.log.debug("[" + request.address + "] Discovered.");
-                            if (!_this.cache.has(request.address)) {
+                            _this.config.logger.debug("[" + request.address + "] Discovered.");
+                            if (!_this.config.cache.has(request.address)) {
                                 // If it's not already in cache, find windowStart.
                                 _this.store(request);
                             }
@@ -312,8 +314,8 @@ var Scanner = /** @class */ (function () {
                         reqFactory.watchRequestsByBucket(tsBucket, handleRequests);
                         // Also start watching the next one now.
                         this.watchNextBuckets(latestBlock);
-                        this.log.info("Watching STARTED");
-                        this.log.debug("Watching for new Requests from current bucket ");
+                        this.config.logger.info("Watching STARTED");
+                        this.config.logger.debug("Watching for new Requests from current bucket ");
                         // Set an timeout for every hour
                         return [2 /*return*/, setInterval(function () { return __awaiter(_this, void 0, void 0, function () {
                                 var curBlock;
@@ -337,7 +339,7 @@ var Scanner = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.eac.requestFactory()];
+                    case 0: return [4 /*yield*/, this.config.eac.requestFactory()];
                     case 1:
                         reqFactory = _a.sent();
                         return [4 /*yield*/, this.getNextBuckets(block)];
@@ -346,8 +348,8 @@ var Scanner = /** @class */ (function () {
                         handleRequests = function (request) {
                             if (!_this.isCorrect(request.address))
                                 return;
-                            _this.log.debug("[" + request.address + "] Discovered.");
-                            if (!_this.cache.has(request.address)) {
+                            _this.config.logger.debug("[" + request.address + "] Discovered.");
+                            if (!_this.config.cache.has(request.address)) {
                                 // If it's not already in cache, find windowStart.
                                 _this.store(request);
                             }
@@ -365,11 +367,12 @@ var Scanner = /** @class */ (function () {
      */
     Scanner.prototype.isCorrect = function (requestAddress) {
         // We hit the NULL_ADDRESS so there are no more transaction requests in the tracker.
-        if (requestAddress === this.eac.Constants.NULL_ADDRESS) {
-            this.log.debug('No new request discovered.');
+        if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
+            // TODO: change this error message, it's old
+            this.config.logger.debug('No new request discovered.');
             return false;
         }
-        else if (!this.eac.Util.checkValidAddress(requestAddress)) {
+        else if (!this.config.eac.Util.checkValidAddress(requestAddress)) {
             // This should, conceivably, never happen unless there is a bug in eac.js-lib.
             throw new Error("[" + requestAddress + "] Received invalid response from Request Tracker");
         }
@@ -381,7 +384,7 @@ var Scanner = /** @class */ (function () {
             var txRequest;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.eac.transactionRequest(request.address)];
+                    case 0: return [4 /*yield*/, this.config.eac.transactionRequest(request.address)];
                     case 1:
                         txRequest = _a.sent();
                         txRequest.fillWithParams(request.uintArgs);
@@ -413,9 +416,9 @@ var Scanner = /** @class */ (function () {
                             return [2 /*return*/];
                         _a.label = 1;
                     case 1:
-                        if (!(currentRequestAddress !== this.eac.Constants.NULL_ADDRESS)) return [3 /*break*/, 5];
-                        this.log.debug("[" + currentRequestAddress + "] Discovered.");
-                        windowStart = parseInt(this.cache.get(currentRequestAddress, -1));
+                        if (!(currentRequestAddress !== this.config.eac.Constants.NULL_ADDRESS)) return [3 /*break*/, 5];
+                        this.config.logger.debug("[" + currentRequestAddress + "] Discovered.");
+                        windowStart = parseInt(this.config.cache.get(currentRequestAddress, -1));
                         if (!(windowStart === -1)) return [3 /*break*/, 3];
                         return [4 /*yield*/, this.fill(currentRequestAddress)];
                     case 2:
@@ -423,13 +426,14 @@ var Scanner = /** @class */ (function () {
                         windowStart = txRequest.windowStart;
                         if (txRequest &&
                             shouldStore(windowStart) &&
-                            this.isExecutable(txRequest)) {
+                            this.isUpcoming(txRequest)) {
                             // If the windowStart returns True to `shouldStore(...)`, store it.
                             this.store(txRequest);
                         }
                         _a.label = 3;
                     case 3:
                         // always check if we already hit bounds
+                        // TODO remove bounds -- no longer needed with the buckets
                         if (atBound(windowStart)) {
                             // Stop looping if we hit the bounds.
                             return [3 /*break*/, 5];
@@ -439,8 +443,8 @@ var Scanner = /** @class */ (function () {
                         // Get the next transaction request.
                         currentRequestAddress = _a.sent();
                         // Hearbeat
-                        if (currentRequestAddress === this.eac.Constants.NULL_ADDRESS) {
-                            this.log.debug('No new requests discovered.');
+                        if (currentRequestAddress === this.config.eac.Constants.NULL_ADDRESS) {
+                            this.config.logger.debug('No new requests discovered.');
                             return [3 /*break*/, 5];
                         }
                         return [3 /*break*/, 1];
@@ -454,18 +458,18 @@ var Scanner = /** @class */ (function () {
             var allTxRequests;
             var _this = this;
             return __generator(this, function (_a) {
-                if (this.cache.len() === 0)
+                if (this.config.cache.len() === 0)
                     return [2 /*return*/]; // nothing stored in cache
-                allTxRequests = this.cache
+                allTxRequests = this.config.cache
                     .stored()
-                    .filter(function (address) { return _this.cache.get(address) > 0; })
-                    .map(function (address) { return _this.eac.transactionRequest(address); });
+                    .filter(function (address) { return _this.config.cache.get(address) > 0; })
+                    .map(function (address) { return _this.config.eac.transactionRequest(address); });
                 // Get fresh data on our transaction requests and route them into appropiate action.
                 Promise.all(allTxRequests).then(function (txRequests) {
                     txRequests.forEach(function (txRequest) {
                         txRequest
                             .refreshData()
-                            .then(function () { return routeTxRequest(_this.config, txRequest); });
+                            .then(function () { return routing_js_1.routeTxRequest(_this.config, txRequest); });
                     });
                 });
                 return [2 /*return*/];
@@ -476,7 +480,7 @@ var Scanner = /** @class */ (function () {
         var _this = this;
         if (number === void 0) { number = 'latest'; }
         return new Promise(function (resolve, reject) {
-            _this.web3.eth.getBlock(number, function (err, block) {
+            _this.config.web3.eth.getBlock(number, function (err, block) {
                 if (!err)
                     if (block)
                         resolve(block);
@@ -488,9 +492,9 @@ var Scanner = /** @class */ (function () {
         });
     };
     Scanner.prototype.store = function (request) {
-        this.log.info("[" + request.address + "] Storing.");
-        this.cache.set(request.address, request.params[7]);
+        this.config.logger.info("[" + request.address + "] Storing.");
+        this.config.cache.set(request.address, request.params[7]);
     };
     return Scanner;
 }());
-module.exports = { Scanner: Scanner };
+exports.default = Scanner;
