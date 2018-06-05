@@ -4,7 +4,7 @@
 const fs = require('fs');
 const prettier = require('prettier');
 
-const sourceDir = 'client';
+const sourceDir = 'src';
 
 const pOpts = {
     arrowParens: 'always',
