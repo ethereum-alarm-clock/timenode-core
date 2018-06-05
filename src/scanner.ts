@@ -123,35 +123,23 @@ export default class Scanner {
       this.chainScanner = await this.backupScanBlockchain();
     }
 
+    // TODO: Do we need to immediately scan the cache?
     this.scanCache().catch((err) => this.config.logger.error(err));
 
     // Mark that we've started.
-    this.running = true;
     this.config.logger.info('Scanner STARTED');
+    this.running = true;
   }
 
   async stop() {
-    // Clear scanning intervasls.
+    // Clear scanning intervals.
     clearInterval(this.cacheScanner);
     clearInterval(this.chainScanner);
 
-    // if (this.requestWatcher) {
-    //   await this.requestFactory.stopWatch(this.requestWatcher);
-    //   this.log.info('Watching STOPPED');
-    // }
-
     // Mark that we've stopped.
-    this.running = false;
     this.config.logger.info('Scanner STOPPED');
+    this.running = false;
   }
-
-  // isValidBlock(block) {
-  //   if (!block) {
-  //     return false;
-  //   }
-
-  //   return true;
-  // }
 
   /**
    * Performs four checks:
@@ -172,31 +160,24 @@ export default class Scanner {
     );
   }
 
-  getWindowForBlock(latest) {
-    const leftBlock = this.getLeftBlock(latest);
-    const rightBlock = leftBlock + this.config.scanSpread * 2;
+  //TODO correctness?
+  getWindowForBlock(block: Block) {
+    const leftBlockNumber = this.getLeftBlockNumber(block);
+    const rightBlockNumber = leftBlockNumber + this.config.scanSpread * 2;
 
-    return { leftBlock, rightBlock };
+    return { leftBlockNumber, rightBlockNumber };
   }
 
-  getLeftBlock(latest) {
-    const leftBlock = latest - this.config.scanSpread;
+  //TODO correctness?
+  getLeftBlockNumber(block: Block): number {
+    const leftBlock = block.number - this.config.scanSpread;
     return leftBlock < 0 ? 0 : leftBlock;
   }
 
-  getRightTimestamp(leftTimestamp, latestTimestamp) {
+  //TODO correctness?
+  getRightTimestamp(leftTimestamp, latestTimestamp): number {
     return 2 * latestTimestamp - leftTimestamp;
   }
-
-  // @param request {Object} of form {address: 0xAF...34, uintArgs: uint[12]}
-  // async handleRequests (request) {
-  //   if (!this.isCorrect(request.address)) return;
-  //   this.log.debug(`[${request.address}] Discovered.`)
-  //   if (!this.cache.has(request.address)) {
-  //     // If it's not already in cache, find windowStart.
-  //     this.store(request)
-  //   }
-  // }
 
   async backupScanBlockchain(): Promise<IntervalID> {
     const reqFactory = await this.config.eac.requestFactory();
