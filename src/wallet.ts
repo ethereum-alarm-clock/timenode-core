@@ -4,7 +4,6 @@ import ethWallet = require('ethereumjs-wallet');
 declare const Buffer;
 declare const setTimeout;
 
-
 export default class Wallet {
   length: number;
   nonce: number;
@@ -16,7 +15,7 @@ export default class Wallet {
     this.web3 = web3;
   }
 
-  _findSafeIndex(pointer=0) {
+  _findSafeIndex(pointer = 0) {
     pointer = pointer;
     if (this.hasOwnProperty(pointer)) {
       return this._findSafeIndex(pointer + 1);

@@ -17,6 +17,11 @@ const pOpts = {
 const main = () => {
     const files = fs.readdirSync(sourceDir);
     files.map((file) => {
+        // Set the Typescript parser for Typescript files
+        if (file.slice(-2) === 'ts') {
+            pOpts.parser = 'typescript';
+        }
+        
         const filePath = sourceDir + '/' + file;
         const raw = fs.readFileSync(filePath, 'utf8');
 

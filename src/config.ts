@@ -37,9 +37,9 @@ export default class Config {
     this.scanSpread = params.scanSpread || 50;
 
     this.logger = params.logger || DummyLogger;
-    
+
     this.cache = new Cache(this.logger);
-  
+
     if (params.eac && params.factory && params.provider && params.web3) {
       this.eac = params.eac;
       this.factory = params.factory;
