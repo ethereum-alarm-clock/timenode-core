@@ -15,7 +15,7 @@ interface Block {
   timestamp: number;
 }
 
-type Bucket= number;
+type Bucket = number;
 
 interface BucketPair {
   blockBucket: Bucket;
@@ -29,7 +29,7 @@ interface Buckets {
 
 // TODO this is only temporary
 interface TxRequest {
-  refreshData: Function,
+  refreshData: Function;
 }
 
 type IntervalID = number;
@@ -45,7 +45,7 @@ export default class Scanner {
 
   /**
    * Creates a new Scanner instance. The scanner serves as the top level
-   * entry point for the EAC-JS TimeNode. You still need to call the 
+   * entry point for the EAC-JS TimeNode. You still need to call the
    * `start()` function before the TimeNode becomes active.
    * @param {number} ms Milliseconds of the scan interval.
    * @param {Config} config The TimeNode Config object.
@@ -60,8 +60,10 @@ export default class Scanner {
   startupMessage() {
     this.logNetwork();
     this.config.logger.info(`EAC.JS-client version.. ${clientVersion}`);
-    this.config.logger.info(`Using request factory at ${this.config.factory.address}`);
-    this.config.logger.info(`Scanning every ${this.ms/1000} seconds`);
+    this.config.logger.info(
+      `Using request factory at ${this.config.factory.address}`
+    );
+    this.config.logger.info(`Scanning every ${this.ms / 1000} seconds`);
   }
 
   logNetwork() {
@@ -173,30 +175,30 @@ export default class Scanner {
   }
 
   //TODO correctness?
-  getWindowForBlock(block: Block) {
-    const leftBlockNumber = this.getLeftBlockNumber(block);
-    const rightBlockNumber = leftBlockNumber + this.config.scanSpread * 2;
+  // getWindowForBlockNumber(blockNumber: number) {
+  //   const leftBlockNumber = this.getLeftBlockNumber(blockNumber);
+  //   const rightBlockNumber = leftBlockNumber + this.config.scanSpread * 2;
 
-    return { leftBlockNumber, rightBlockNumber };
-  }
+  //   return { leftBlockNumber, rightBlockNumber };
+  // }
 
-  //TODO correctness?
-  getLeftBlockNumber(block: Block): number {
-    const leftBlock = block.number - this.config.scanSpread;
-    return leftBlock < 0 ? 0 : leftBlock;
-  }
+  // //TODO correctness?
+  // getLeftBlockNumber(blockNumber: number): number {
+  //   const leftBlock = blockNumber - this.config.scanSpread;
+  //   return leftBlock < 0 ? 0 : leftBlock;
+  // }
 
-  //TODO correctness?
-  getRightTimestamp(leftTimestamp, latestTimestamp): number {
-    return 2 * latestTimestamp - leftTimestamp;
-  }
+  // //TODO correctness?
+  // getRightTimestamp(leftTimestamp, latestTimestamp): number {
+  //   return 2 * latestTimestamp - leftTimestamp;
+  // }
 
   //TODO move this to requestFactory instance
   getCurrentBuckets(reqFactory: any, latest: Block): BucketPair {
     return {
       blockBucket: reqFactory.calcBucket(latest),
       timestampBucket: reqFactory.calcBucket(latest),
-    }
+    };
   }
 
   getNextBuckets(reqFactory: any, latest: Block): BucketPair {
@@ -219,12 +221,12 @@ export default class Scanner {
     return {
       currentBuckets: this.getCurrentBuckets(reqFactory, latest),
       nextBuckets: this.getNextBuckets(reqFactory, latest),
-    }
+    };
   }
 
   // TODO shouldn't return void
   handleRequest(request: any): void {
-    if (!this.isCorrect(request.address)) return;
+    if (!this.isValid(request.address)) return;
 
     this.config.logger.debug(`[${request.address}] Discovered`);
     if (!this.config.cache.has(request.address)) {
@@ -236,18 +238,21 @@ export default class Scanner {
     // TODO only init reqFactory once, so check here with a function before calling again
     const reqFactory = await this.config.eac.requestFactory();
 
-    const {
-      currentBuckets,
-      nextBuckets,
-    } = await this.getBuckets(reqFactory);
+    const { currentBuckets, nextBuckets } = await this.getBuckets(reqFactory);
 
     // TODO: extract this out
-    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(this.handleRequests);
-    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(this.handleRequests);
-    (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(
-      this.handleRequests
+    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(
+      this.handleRequest
     );
-    (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(this.handleRequests);
+    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(
+      this.handleRequest
+    );
+    (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(
+      this.handleRequest
+    );
+    (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(
+      this.handleRequest
+    );
     //
 
     // Set a recursive interval to continue this "scan" every ms/1000 seconds.
@@ -259,16 +264,25 @@ export default class Scanner {
   async watchBlockchain(): Promise<IntervalID> {
     const reqFactory = await this.config.eac.requestFactory();
 
-    const {
-      currentBuckets,
-      nextBuckets,
-    } = await this.getBuckets(reqFactory);
+    const { currentBuckets, nextBuckets } = await this.getBuckets(reqFactory);
 
     // Start watching the current buckets right away.
-    reqFactory.watchRequestsByBucket(currentBuckets.blockBucket, this.handleRequest);
-    reqFactory.watchRequestsByBucket(currentBuckets.timestampBucket, this.handleRequest);
-    reqFactory.watchRequestsByBucket(nextBuckets.blockBucket, this.handleRequest);
-    reqFactory.watchRequestsByBucket(nextBuckets.timestampBucket, this.handleRequest);
+    reqFactory.watchRequestsByBucket(
+      currentBuckets.blockBucket,
+      this.handleRequest
+    );
+    reqFactory.watchRequestsByBucket(
+      currentBuckets.timestampBucket,
+      this.handleRequest
+    );
+    reqFactory.watchRequestsByBucket(
+      nextBuckets.blockBucket,
+      this.handleRequest
+    );
+    reqFactory.watchRequestsByBucket(
+      nextBuckets.timestampBucket,
+      this.handleRequest
+    );
 
     // Needed?
     this.config.logger.info(`Watching STARTED`);
@@ -280,101 +294,85 @@ export default class Scanner {
     }, 60 * 60 * 1000);
   }
 
-  /**
-   * Verifies that a transaction request is valid.
-   * @param {String} requestAddress Address of the transaction request.
-   */
-  isCorrect(requestAddress: String): boolean {
-    // We hit the NULL_ADDRESS so there are no more transaction requests in the tracker.
+  isValid(requestAddress: String): boolean {
     if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
-      // TODO: change this error message, it's old
-      this.config.logger.debug('No new request discovered.');
+      this.config.logger.debug(
+        'Warning.. Transaction Request with NULL_ADDRESS found.'
+      );
       return false;
     } else if (!this.config.eac.Util.checkValidAddress(requestAddress)) {
       // This should, conceivably, never happen unless there is a bug in eac.js-lib.
       throw new Error(
-        `[${requestAddress}] Received invalid response from Request Tracker`
+        `[${requestAddress}] Received invalid response from Request Tracker - CRITICAL BUG`
       );
     }
-
     return true;
   }
 
-  // @param request {Object} of form {address: 0xAF...34, uintArgs: uint[12]}
-  async fill(request) {
-    const txRequest = await this.config.eac.transactionRequest(request.address);
-    txRequest.fillWithParams(request.uintArgs);
-    // await txRequest.fillData()
+  // async fill(request) {
+  //   const txRequest = await this.config.eac.transactionRequest(request.address);
+  //   txRequest.fillWithParams(request.uintArgs);
+  //   return txRequest;
+  // }
 
-    return txRequest;
-  }
+  // async scan(
+  //   left: number,
+  //   right: number,
+  //   firstRequest: String,
+  //   shouldStore: Function,
+  //   atBound: Function,
+  //   getNext: Function
+  // ): Promise<any> {
+  //   let currentRequestAddress = firstRequest;
 
-  /**
-   * Scan is the main driver function of the Scanner class.
-   * @param {Number} left The left bound to scan.
-   * @param {Number} right The right bound to scan.
-   * @param {String} firstRequest Address of a transaction request to start scanning from.
-   * @param {Function} shouldStore A function taking windowStart and returning True is the transaction request should be stored.
-   * @param {Function} atBound A function taking windowStart and returning True if scanning should continue and False if at bounds.
-   * @param {Function} getNext A function taking the currentRequestAddress and returning the next request address.
-   * @returns {void}
-   */
-  async scan(
-    left: number,
-    right: number,
-    firstRequest: String,
-    shouldStore: Function,
-    atBound: Function,
-    getNext: Function
-  ): Promise<any> {
-    let currentRequestAddress = firstRequest;
+  //   // Return if NULL_ADDRESS and no new transaction requests found.
+  //   if (!this.isValid(currentRequestAddress)) return;
 
-    // Return if NULL_ADDRESS and no new transaction requests found.
-    if (!this.isCorrect(currentRequestAddress)) return;
+  //   // Loop the cache storage logic while we still get valid transaction requests.
+  //   while (currentRequestAddress !== this.config.eac.Constants.NULL_ADDRESS) {
+  //     this.config.logger.debug(`[${currentRequestAddress}] Discovered.`);
+  //     // try get the value from cache, fallback to -1 as default
+  //     let windowStart = parseInt(
+  //       this.config.cache.get(currentRequestAddress, -1)
+  //     );
 
-    // Loop the cache storage logic while we still get valid transaction requests.
-    while (currentRequestAddress !== this.config.eac.Constants.NULL_ADDRESS) {
-      this.config.logger.debug(`[${currentRequestAddress}] Discovered.`);
-      // try get the value from cache, fallback to -1 as default
-      let windowStart = parseInt(
-        this.config.cache.get(currentRequestAddress, -1)
-      );
+  //     if (windowStart === -1) {
+  //       // If it's not already in cache, find windowStart.
+  //       const txRequest = await this.fill(currentRequestAddress);
+  //       windowStart = txRequest.windowStart;
 
-      if (windowStart === -1) {
-        // If it's not already in cache, find windowStart.
-        const txRequest = await this.fill(currentRequestAddress);
-        windowStart = txRequest.windowStart;
+  //       if (
+  //         txRequest &&
+  //         shouldStore(windowStart) &&
+  //         this.isUpcoming(txRequest)
+  //       ) {
+  //         // If the windowStart returns True to `shouldStore(...)`, store it.
+  //         this.store(txRequest);
+  //       }
+  //     }
 
-        if (
-          txRequest &&
-          shouldStore(windowStart) &&
-          this.isUpcoming(txRequest)
-        ) {
-          // If the windowStart returns True to `shouldStore(...)`, store it.
-          this.store(txRequest);
-        }
-      }
+  //     // always check if we already hit bounds
+  //     // TODO remove bounds -- no longer needed with the buckets
+  //     if (atBound(windowStart)) {
+  //       // Stop looping if we hit the bounds.
+  //       break;
+  //     }
 
-      // always check if we already hit bounds
-      // TODO remove bounds -- no longer needed with the buckets
-      if (atBound(windowStart)) {
-        // Stop looping if we hit the bounds.
-        break;
-      }
+  //     // Get the next transaction request.
+  //     currentRequestAddress = await getNext(currentRequestAddress);
 
-      // Get the next transaction request.
-      currentRequestAddress = await getNext(currentRequestAddress);
+  //     // Hearbeat
+  //     if (currentRequestAddress === this.config.eac.Constants.NULL_ADDRESS) {
+  //       this.config.logger.debug('No new requests discovered.');
+  //       break;
+  //     }
+  //   }
+  // }
 
-      // Hearbeat
-      if (currentRequestAddress === this.config.eac.Constants.NULL_ADDRESS) {
-        this.config.logger.debug('No new requests discovered.');
-        break;
-      }
-    }
-  }
-
-  async scanCache() {
-    if (this.config.cache.len() === 0) return; // nothing stored in cache
+  // TODO meaningful return value
+  async scanCache(): Promise<void> {
+    // Check if the cache is empty.
+    if (this.config.cache.len() === 0) return;
 
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.config.cache
@@ -392,6 +390,7 @@ export default class Scanner {
     });
   }
 
+  // TODO extract to a utils?
   getBlock(number = 'latest'): Promise<Block> {
     return new Promise((resolve, reject) => {
       this.config.web3.eth.getBlock(number, (err, block) => {
@@ -404,7 +403,7 @@ export default class Scanner {
   }
 
   store(request) {
-    this.config.logger.info(`[${request.address}] Storing.`);
+    this.config.logger.info(`[${request.address}] Inputting to cache`);
     this.config.cache.set(request.address, request.params[7]);
   }
 }
