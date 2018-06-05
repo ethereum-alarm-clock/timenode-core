@@ -7,6 +7,7 @@ declare const console;
 interface ConfigParams {
   autostart: boolean;
   eac?: any;
+  economicStrategy?: EconomicStrategy,
   factory?: any;
   logger?: any;
   password?: any;
@@ -14,6 +15,10 @@ interface ConfigParams {
   scanSpread?: number | null;
   walletStores?: any;
   web3?: any;
+}
+
+interface EconomicStrategy {
+  // TODO
 }
 
 const DummyLogger = {
@@ -26,6 +31,7 @@ const DummyLogger = {
 export default class Config {
   cache: any;
   eac: any;
+  economicStrategy?: EconomicStrategy,
   factory: any;
   logger: any;
   provider: any;
