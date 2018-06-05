@@ -10,6 +10,11 @@ import Config from './config';
 declare const clearInterval;
 declare const setInterval;
 
+interface Block {
+  number: number;
+  timestamp: number;
+}
+
 class Scanner {
   config: Config;
   ms: number;
@@ -181,19 +186,21 @@ class Scanner {
   //   }
   // }
 
-  async backupScanBlockchain() {
-    const reqFactory = await this.eac.requestFactory();
-    const latestBlock = await this.getBlock('latest');
+  async backupScanBlockchain(): Promise<any> {
+    const reqFactory = await this.config.eac.requestFactory();
+
+    const latestBlock: Block = await this.getBlock('latest');
 
     const blockBucket = reqFactory.calcBucket(latestBlock.number, 1);
     const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2);
 
     const next = await this.getNextBuckets(latestBlock);
 
-    const handleRequests = (request) => {
+    const handleRequests = (request): void => {
       if (!this.isCorrect(request.address)) return;
       this.log.debug(`[${request.address}] Discovered.`);
-      if (!this.cache.has(request.address)) {
+      if (!this.config.cache.has(request.address)) {
+        
         // If it's not already in cache, find windowStart.
         this.store(request);
       }
@@ -233,7 +240,6 @@ class Scanner {
     const reqFactory = await this.eac.requestFactory();
 
     const latestBlock = await this.getBlock('latest');
-    // const startBlock = latestBlock.number - this.config.scanSpread
 
     const blockBucket = reqFactory.calcBucket(latestBlock.number, 1);
     const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2);
@@ -382,9 +388,9 @@ class Scanner {
     });
   }
 
-  getBlock(number = 'latest') {
+  getBlock(number = 'latest'): Promise<Block> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getBlock(number, (err, block) => {
+      this.config.web3.eth.getBlock(number, (err, block) => {
         if (!err)
           if (block) resolve(block);
           else reject(`Returned block ${number} is null`);
