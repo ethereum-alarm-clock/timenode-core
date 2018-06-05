@@ -53,19 +53,20 @@ export default class Scanner {
   }
 
   logNetwork() {
+    // TODO: extract this out to a constants package.
     const Networks = {
       0: 'Private',
       1: 'Mainnet',
-      2: 'Mordern',
+      2: 'Morden',
       3: 'Ropsten',
       4: 'Rinkeby',
       42: 'Kovan',
     };
     this.config.web3.version.getNetwork((err, res) => {
       if (err) {
-        this.config.logger.error(`Unable to connect to a Network`);
+        this.config.logger.error('Unable to determine Ethereum network..');
       }
-      this.config.logger.info(`Network : ${Networks[res || 0]} Network`);
+      this.config.logger.info(`Ethereum network.. ${Networks[res || 0]}`);
     });
 
     const provider = this.config.web3.currentProvider;
@@ -77,22 +78,24 @@ export default class Scanner {
       providerUrl = 'Unknown';
     }
 
-    this.config.logger.info(`Web3 provider : ${providerUrl}`);
+    this.config.logger.info(`Web3 provider.. ${providerUrl}`);
   }
 
   async start() {
-    // Reset the intervals if already started.
+    // Clear the intervals if this Scanner is already started via a hard reboot.
     if (this.running) this.stop();
 
-    // Set interval for scanning for actionable transaction requests in the cache.
+    // Create the interval for processing the transaction requests in cache.
     this.cacheScanner = setInterval(() => {
       this.scanCache().catch((err) => this.config.logger.error(err));
     }, this.ms);
 
+    // TODO: extract this to a utils file perhaps
+    //
     // Helper function to determine if we're on a provider which allows
     // us to use the `eth_getFilerLogs` method, and thereby are allowed
     // to watch events.
-    const watchingEnabled = await new Promise((resolve) => {
+    const watchingEnabled = await new Promise<boolean>((resolve) => {
       this.config.web3.currentProvider.sendAsync(
         {
           jsonrpc: '2.0',
@@ -100,23 +103,24 @@ export default class Scanner {
           method: 'eth_getFilterLogs',
           params: [],
         },
-        async (e) => {
-          if (e !== null) {
-            this.config.logger.info('Watching DISABLED');
+        (err) => {
+          if (err !== null) {
             resolve(false);
           }
-          this.config.logger.info('Watching ENABLED');
           resolve(true);
         }
       );
     });
 
     if (watchingEnabled) {
-      this.chainScanner = this.watchBlockchain();
+      // Watching is enabled! start watching the chain.
+      this.config.logger.info('Watching ENABLED');
+      this.chainScanner = await this.watchBlockchain();
     } else {
+      // Watchin disabled. We use old-school methods.
+      this.config.logger.info('Watching DISABLED');
       this.config.logger.info('-Initiating Backup Scanner-');
-      // backup scan
-      this.chainScanner = this.backupScanBlockchain();
+      this.chainScanner = await this.backupScanBlockchain();
     }
 
     this.scanCache().catch((err) => this.config.logger.error(err));
@@ -194,7 +198,7 @@ export default class Scanner {
   //   }
   // }
 
-  async backupScanBlockchain(): Promise<any> {
+  async backupScanBlockchain(): Promise<IntervalID> {
     const reqFactory = await this.config.eac.requestFactory();
 
     const latestBlock: Block = await this.getBlock('latest');
@@ -244,7 +248,7 @@ export default class Scanner {
     };
   }
 
-  async watchBlockchain() {
+  async watchBlockchain(): Promise<IntervalID> {
     const reqFactory = await this.config.eac.requestFactory();
 
     const latestBlock: Block = await this.getBlock('latest');
