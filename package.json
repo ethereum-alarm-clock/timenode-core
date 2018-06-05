@@ -1,9 +1,11 @@
 {
   "name": "eac.js-client",
   "version": "3.0.2",
-  "description": "JavaScript library for running an Ethereum Alarm Clock client",
+  "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
+    "clean": "rm client/*.b",
+    "fmt": "node scripts/fmt.js",
     "test": "mocha"
   },
   "repository": {
@@ -34,6 +36,7 @@
     "chai": "4.1.2",
     "ganache-core": "2.1.0",
     "mocha": "5.1.1",
+    "prettier": "1.13.4",
     "web3": "0.20.6"
   }
 }
