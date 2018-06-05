@@ -3,6 +3,7 @@ import Wallet from './wallet';
 
 declare const console;
 
+//TODO remove factory
 interface ConfigParams {
   autostart: boolean;
   eac?: any;

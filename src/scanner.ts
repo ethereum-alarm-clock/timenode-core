@@ -15,6 +15,18 @@ interface Block {
   timestamp: number;
 }
 
+type Bucket= number;
+
+interface BucketPair {
+  blockBucket: Bucket;
+  timestampBucket: Bucket;
+}
+
+interface Buckets {
+  currentBuckets: BucketPair;
+  nextBuckets: BucketPair;
+}
+
 // TODO this is only temporary
 interface TxRequest {
   refreshData: Function,
@@ -179,16 +191,47 @@ export default class Scanner {
     return 2 * latestTimestamp - leftTimestamp;
   }
 
+  //TODO move this to requestFactory instance
+  getCurrentBuckets(reqFactory: any, latest: Block): BucketPair {
+    return {
+      blockBucket: reqFactory.calcBucket(latest),
+      timestampBucket: reqFactory.calcBucket(latest),
+    }
+  }
+
+  getNextBuckets(reqFactory: any, latest: Block): BucketPair {
+    // TODO extract to Constants
+    const blockBucketSize = 240;
+    const tsBucketSize = 3600;
+    //
+
+    const nextBlockInterval = latest.number + blockBucketSize;
+    const nextTsInterval = latest.timestamp + tsBucketSize;
+
+    return {
+      blockBucket: reqFactory.calcBucket(nextBlockInterval, 1),
+      timestampBucket: reqFactory.calcBucket(nextTsInterval, 2),
+    };
+  }
+
+  async getBuckets(reqFactory: any): Promise<Buckets> {
+    const latest: Block = await this.getBlock('latest');
+    return {
+      currentBuckets: this.getCurrentBuckets(reqFactory, latest),
+      nextBuckets: this.getNextBuckets(reqFactory, latest),
+    }
+  }
+
   async backupScanBlockchain(): Promise<IntervalID> {
+    // TODO only init reqFactory once, so check here with a function before calling again
     const reqFactory = await this.config.eac.requestFactory();
 
-    const latestBlock: Block = await this.getBlock('latest');
+    const {
+      currentBuckets,
+      nextBuckets,
+    } = await this.getBuckets(reqFactory);
 
-    const blockBucket = reqFactory.calcBucket(latestBlock.number, 1);
-    const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2);
-
-    const next = await this.getNextBuckets(latestBlock);
-
+    // TODO extract this
     const handleRequests = (request): void => {
       if (!this.isCorrect(request.address)) return;
       this.config.logger.debug(`[${request.address}] Discovered.`);
@@ -199,34 +242,18 @@ export default class Scanner {
     };
 
     // TODO: extract this out
-    (await reqFactory.getRequestsByBucket(blockBucket)).map(handleRequests);
-    (await reqFactory.getRequestsByBucket(tsBucket)).map(handleRequests);
-    (await reqFactory.getRequestsByBucket(next.blockBucket)).map(
+    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(
       handleRequests
     );
-    (await reqFactory.getRequestsByBucket(next.tsBucket)).map(handleRequests);
+    (await reqFactory.getRequestsByBucket(nextBuckets.tsBucket)).map(handleRequests);
+    //
 
+    // Set a recursive interval to continue this "scan" every ms/1000 seconds.
     return setInterval(() => {
       this.backupScanBlockchain().catch((err) => this.config.logger.error(err));
     }, this.ms);
-  }
-
-  async getNextBuckets(block: Block) {
-    const reqFactory = await this.config.eac.requestFactory();
-
-    const blockBucketSize = 240;
-    const tsBucketSize = 3600;
-
-    const nextBlockInterval = block.number + blockBucketSize;
-    const nextTsInterval = block.timestamp + tsBucketSize;
-
-    const blockBucket = reqFactory.calcBucket(nextBlockInterval, 1);
-    const tsBucket = reqFactory.calcBucket(nextTsInterval, 2);
-
-    return {
-      blockBucket,
-      tsBucket,
-    };
   }
 
   async watchBlockchain(): Promise<IntervalID> {
