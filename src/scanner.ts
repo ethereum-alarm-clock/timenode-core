@@ -20,36 +20,36 @@ interface TxRequest {
   refreshData: Function,
 }
 
+type IntervalID = number;
+
 export default class Scanner {
   config: Config;
   ms: number;
   running: boolean;
 
-  // Scanners
-  cacheScanner: any;
-  chainScanner: any;
+  // Child Scanners, tracked by the ID of their interval
+  cacheScanner: IntervalID;
+  chainScanner: IntervalID;
 
   /**
    * Creates a new Scanner instance. The scanner serves as the top level
-   * entry point for the EAC-JS TimeNode.
-   * @param {Number} ms Milliseconds of the scan interval.
+   * entry point for the EAC-JS TimeNode. You still need to call the 
+   * `start()` function before the TimeNode becomes active.
+   * @param {number} ms Milliseconds of the scan interval.
    * @param {Config} config The TimeNode Config object.
    */
   constructor(ms: number, config: Config) {
-    this.ms = ms;
     this.config = config;
-    this.logNetwork();
-
-    // TODO: extract this out to function `this.startupMessage()`
-    config.logger.info(`eac.js-client : version ${clientVersion}`);
-    config.logger.info(
-      `Validating results with factory at ${this.config.factory.address}`
-    );
-    config.logger.info(
-      `Scanning every ${(this.ms * SCAN_DELAY) / 1000} seconds.`
-    );
-
+    this.ms = ms;
     this.running = false;
+    this.startupMessage();
+  }
+
+  startupMessage() {
+    this.logNetwork();
+    this.config.logger.info(`EAC.JS-client version.. ${clientVersion}`);
+    this.config.logger.info(`Using request factory at ${this.config.factory.address}`);
+    this.config.logger.info(`Scanning every ${this.ms/1000} seconds`);
   }
 
   logNetwork() {
