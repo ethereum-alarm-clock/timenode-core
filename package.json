@@ -4,7 +4,10 @@
   "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
-    "clean": "rm src/*.b",
+    "build": "tsc",
+    "clean-backups": "rm src/*.b",
+    "clean-built": "rm built -r",
+    "clean": "yarn clean-backups && yarn clean-built",
     "fmt": "node scripts/fmt.js",
     "test": "mocha"
   },

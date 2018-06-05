@@ -1,5 +1,5 @@
-import Cache from './cache';
-import Wallet from './wallet';
+import Cache = require('./cache');
+import Wallet = require('./wallet');
 
 interface ConfigParams {
   autostart: boolean;
