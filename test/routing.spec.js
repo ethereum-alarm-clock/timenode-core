@@ -1,5 +1,5 @@
 const { Config } = require('../index')
-const { routeTxRequest, STATE } = require('../client/routing')
+const { routeTxRequest, STATE } = require('../src/routing')
 
 const RequestFactoryMock = require('./helpers/RequestFactoryMock')
 const RequestTrackerMock = require('./helpers/RequestTrackerMock')
