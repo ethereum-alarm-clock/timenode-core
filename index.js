@@ -1,10 +1,12 @@
-const Config = require('./src/config')
-const { Scanner } = require('./src/scanner')
-const StatsDB = require('./src/statsdb')
-const Wallet = require('./src/wallet')
+const Cache = require('./built/cache').default;
+const Config = require('./built/config').default;
+const { Scanner } = require('./built/scanner');
+const StatsDB = require('./built/statsdb');
+const Wallet = require('./built/wallet').default;
 const version = require('./package.json').version;
 
 module.exports = {
+    Cache,
     Config,
     Scanner,
     StatsDB,

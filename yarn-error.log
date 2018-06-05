@@ -1,5 +1,5 @@
 Arguments: 
-  /home/logan/.nvm/versions/node/v9.3.0/bin/node /home/logan/.nvm/versions/node/v9.3.0/bin/yarn build
+  /home/logan/.nvm/versions/node/v9.3.0/bin/node /home/logan/.nvm/versions/node/v9.3.0/bin/yarn test
 
 PATH: 
   /home/logan/.rvm/gems/ruby-2.4.1/bin:/home/logan/.rvm/gems/ruby-2.4.1@global/bin:/home/logan/.rvm/rubies/ruby-2.4.1/bin:/home/logan/.nix-profile/bin:/home/logan/.nix-profile/sbin:/home/logan/.nix-profile/bin:/home/logan/.nix-profile/sbin:/home/logan/.nvm/versions/node/v9.3.0/bin:/home/logan/.cargo/bin:/home/logan/bin:/home/logan/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/go/bin:/home/logan/go/bin:/home/logan/Android/Sdk/tools:/home/logan/Android/Sdk/platform-tools:/home/logan/.rvm/bin:/home/logan/.antigen/bundles/robbyrussell/oh-my-zsh/lib:/home/logan/.antigen/bundles/robbyrussell/oh-my-zsh/plugins/git:/home/logan/.antigen/bundles/robbyrussell/oh-my-zsh/plugins/heroku:/home/logan/.antigen/bundles/robbyrussell/oh-my-zsh/plugins/pip:/home/logan/.antigen/bundles/robbyrussell/oh-my-zsh/plugins/lein:/home/logan/.antigen/bundles/robbyrussell/oh-my-zsh/plugins/autojump:/home/logan/.antigen/bundles/robbyrussell/oh-my-zsh/plugins/command-not-found:/home/logan/.antigen/bundles/lukechilds/zsh-nvm:/home/logan/.antigen/bundles/zsh-users/zsh-syntax-highlighting
@@ -43,6 +43,7 @@ npm manifest:
     },
     "homepage": "https://github.com/ethereum-alarm-clock/eac.js-client#readme",
     "dependencies": {
+      "@types/es6-promise": "3.3.0",
       "bignumber.js": "5.0.0",
       "eac.js-lib": "2.0.2",
       "ethereumjs-tx": "1.3.4",
@@ -4176,9 +4177,9 @@ Lockfile:
 
 Trace: 
   Error: Command failed.
-  Exit code: 2
+  Exit code: 1
   Command: sh
-  Arguments: -c tsc
+  Arguments: -c mocha
   Directory: /home/logan/Work/eac.js/eac.js-client
   Output:
   

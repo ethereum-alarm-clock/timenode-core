@@ -1,19 +1,28 @@
-import Cache = require('./cache');
-import Wallet = require('./wallet');
+import Cache from './cache';
+import Wallet from './wallet';
+
+declare const console;
 
 interface ConfigParams {
   autostart: boolean;
-  eac: any;
-  factory: any;
-  logger: any;
-  password: any;
-  provider: any;
-  scanSpread: number | null;
-  walletStores: any;
-  web3: any;
+  eac?: any;
+  factory?: any;
+  logger?: any;
+  password?: any;
+  provider?: any;
+  scanSpread?: number | null;
+  walletStores?: any;
+  web3?: any;
 }
 
-class Config {
+const DummyLogger = {
+  debug: (msg) => console.log(msg),
+  cache: (msg) => console.log(msg),
+  info: (msg) => console.log(msg),
+  error: (msg) => console.log(msg),
+};
+
+export default class Config {
   cache: any;
   eac: any;
   factory: any;
@@ -24,64 +33,48 @@ class Config {
   wallet: any;
   web3: any;
 
-  /**
-   * Creates a new Config object.
-   * @param {ConfigParams} params The parameters to create a new Config object.
-   */
   constructor(params: ConfigParams) {
     this.scanSpread = params.scanSpread || 50;
 
-    // If logfile and loglevel are provided (in a node environment)
-    if (params.logger) {
-      this.logger = params.logger;
-    } else {
-      // Otherwise just log everything to the console.
-      this.logger = {
-        debug: (msg) => console.log(msg),
-        cache: (msg) => console.log(msg),
-        info: (msg) => console.log(msg),
-        error: (msg) => console.log(msg),
-      };
-    }
-
+    this.logger = params.logger || DummyLogger;
+    
     this.cache = new Cache(this.logger);
-
-    // These are all required options
-    this.factory = params.factory;
-    this.web3 = params.web3;
-    this.eac = params.eac;
-    this.provider = params.provider;
-    if (!this.factory || !this.web3 || !this.eac || !this.provider) {
+  
+    if (params.eac && params.factory && params.provider && params.web3) {
+      this.eac = params.eac;
+      this.factory = params.factory;
+      this.provider = params.provider;
+      this.web3 = params.web3;
+    } else {
       throw new Error(
-        'Missing a required variable to the Config constructor. Please make sure you are passing in the correct object.'
+        'Passed in Config params are incomplete! Unable to start TimeNode. Quitting..'
       );
     }
 
-    // Set autostart
     this.scanning = params.autostart || false;
-  }
-
-  static create(params: ConfigParams): Config {
-    // Use the constructor to create the initial Config object.
-    let conf: Config = new Config(params);
 
     if (
       params.walletStores &&
-      typeof params.walletStores.length !== 'undefined' &&
+      params.walletStores.length &&
       params.walletStores.length > 0
     ) {
-      params.walletStores.forEach((store, index) => {
+      params.walletStores = params.walletStores.map((store, idx) => {
         if (typeof store === 'object') {
-          params.walletStores[index] = JSON.stringify(store);
+          return JSON.stringify(store);
         }
       });
-      conf.wallet = new Wallet(params.web3);
-      conf.wallet.decrypt(params.walletStores, params.password);
+
+      this.wallet = new Wallet(this.web3);
+      this.wallet.decrypt(params.walletStores, params.password);
     } else {
-      conf.wallet = false;
+      this.wallet = false;
     }
-    return conf;
   }
 }
 
-export default Config;
+// const c = new Config({
+//   autostart: false,
+//   eac: 'as',
+// })
+
+// console.log(c)

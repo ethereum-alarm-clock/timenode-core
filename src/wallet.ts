@@ -1,15 +1,23 @@
-const ethTx = require('ethereumjs-tx');
-const ethWallet = require('ethereumjs-wallet');
+import ethTx = require('ethereumjs-tx');
+import ethWallet = require('ethereumjs-wallet');
 
-class Wallet {
-  constructor(web3) {
-    this.web3 = web3;
+declare const Buffer;
+declare const setTimeout;
+
+
+export default class Wallet {
+  length: number;
+  nonce: number;
+  web3: any;
+
+  constructor(web3: any) {
     this.length = 0;
     this.nonce = 0;
+    this.web3 = web3;
   }
 
-  _findSafeIndex(pointer) {
-    pointer = pointer || 0;
+  _findSafeIndex(pointer=0) {
+    pointer = pointer;
     if (this.hasOwnProperty(pointer)) {
       return this._findSafeIndex(pointer + 1);
     } else {
@@ -110,7 +118,7 @@ class Wallet {
   }
 
   getNonce(account) {
-    return new Promise((resolve) => {
+    return new Promise<string>((resolve) => {
       this.web3.eth.getTransactionCount(account, (err, res) => {
         resolve(res);
       });
@@ -209,5 +217,3 @@ class Wallet {
     );
   }
 }
-
-module.exports = Wallet;

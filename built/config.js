@@ -1,58 +1,48 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Cache = require("./cache");
-var Wallet = require("./wallet");
+var cache_1 = require("./cache");
+var wallet_1 = require("./wallet");
+var DummyLogger = {
+    debug: function (msg) { return console.log(msg); },
+    cache: function (msg) { return console.log(msg); },
+    info: function (msg) { return console.log(msg); },
+    error: function (msg) { return console.log(msg); },
+};
 var Config = /** @class */ (function () {
-    /**
-     * Creates a new Config object.
-     * @param {ConfigParams} params The parameters to create a new Config object.
-     */
     function Config(params) {
         this.scanSpread = params.scanSpread || 50;
-        // If logfile and loglevel are provided (in a node environment)
-        if (params.logger) {
-            this.logger = params.logger;
+        this.logger = params.logger || DummyLogger;
+        this.cache = new cache_1.default(this.logger);
+        if (params.eac && params.factory && params.provider && params.web3) {
+            this.eac = params.eac;
+            this.factory = params.factory;
+            this.provider = params.provider;
+            this.web3 = params.web3;
         }
         else {
-            // Otherwise just log everything to the console.
-            this.logger = {
-                debug: function (msg) { return console.log(msg); },
-                cache: function (msg) { return console.log(msg); },
-                info: function (msg) { return console.log(msg); },
-                error: function (msg) { return console.log(msg); },
-            };
+            throw new Error('Passed in Config params are incomplete! Unable to start TimeNode. Quitting..');
         }
-        this.cache = new Cache(this.logger);
-        // These are all required options
-        this.factory = params.factory;
-        this.web3 = params.web3;
-        this.eac = params.eac;
-        this.provider = params.provider;
-        if (!this.factory || !this.web3 || !this.eac || !this.provider) {
-            throw new Error('Missing a required variable to the Config constructor. Please make sure you are passing in the correct object.');
-        }
-        // Set autostart
         this.scanning = params.autostart || false;
-    }
-    Config.create = function (params) {
-        // Use the constructor to create the initial Config object.
-        var conf = new Config(params);
         if (params.walletStores &&
-            typeof params.walletStores.length !== 'undefined' &&
+            params.walletStores.length &&
             params.walletStores.length > 0) {
-            params.walletStores.forEach(function (store, index) {
+            params.walletStores = params.walletStores.map(function (store, idx) {
                 if (typeof store === 'object') {
-                    params.walletStores[index] = JSON.stringify(store);
+                    return JSON.stringify(store);
                 }
             });
-            conf.wallet = new Wallet(params.web3);
-            conf.wallet.decrypt(params.walletStores, params.password);
+            this.wallet = new wallet_1.default(this.web3);
+            this.wallet.decrypt(params.walletStores, params.password);
         }
         else {
-            conf.wallet = false;
+            this.wallet = false;
         }
-        return conf;
-    };
+    }
     return Config;
 }());
 exports.default = Config;
+// const c = new Config({
+//   autostart: false,
+//   eac: 'as',
+// })
+// console.log(c)

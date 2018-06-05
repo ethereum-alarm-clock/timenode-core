@@ -1,5 +1,5 @@
 const { Config } = require('../index')
-const { routeTxRequest, STATE } = require('../src/routing')
+const { routeTxRequest, STATE } = require('../built/routing')
 
 const RequestFactoryMock = require('./helpers/RequestFactoryMock')
 const RequestTrackerMock = require('./helpers/RequestTrackerMock')
@@ -54,7 +54,7 @@ class TxRequest {
 
 describe('Routing', () => {
 	describe('#routeTxRequest', () => {
-		const config = Config.create({
+		const config = new Config({
 			logger,
 			factory: new RequestFactoryMock(),
 			tracker: new RequestTrackerMock(tx),

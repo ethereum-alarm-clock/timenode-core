@@ -1,11 +1,14 @@
-const mem_cache = require('memory-cache');
-const _ = require('lodash');
+import mem_cache = require('memory-cache');
+import _ = require('lodash');
 
-// wrapper over memory-cache
-class Cache {
-  constructor(logger) {
-    this.log = logger;
+export default class Cache {
+  cache: any;
+  logger: any;
+  mem: any;
+
+  constructor(logger: any) {
     this.cache = new mem_cache.Cache();
+    this.logger = logger;
     this.mem = [];
   }
 
@@ -14,7 +17,7 @@ class Cache {
       this.mem.push(k);
     }
     this.cache.put(k, v); // , timeout, this.del(k))
-    this.log.cache(`stored ${k} with value ${v}`);
+    this.logger.cache(`stored ${k} with value ${v}`);
   }
 
   get(k, d) {
@@ -25,16 +28,16 @@ class Cache {
       } else return d;
     }
 
-    this.log.cache(`accessed ${k}`);
+    this.logger.cache(`accessed ${k}`);
     return this.cache.get(k);
   }
 
   has(k) {
     if (this.cache.get(k) === null) {
-      this.log.cache(`miss ${k}`);
+      this.logger.cache(`miss ${k}`);
       return false;
     }
-    this.log.cache(`hit ${k}`);
+    this.logger.cache(`hit ${k}`);
     return true;
   }
 
@@ -42,7 +45,7 @@ class Cache {
     // mutates the this.mem array to remove the value
     _.remove(this.mem, (addr) => addr === k);
     this.cache.del(k);
-    this.log.cache(`deleted ${k}`);
+    this.logger.cache(`deleted ${k}`);
   }
 
   len() {
@@ -60,15 +63,13 @@ class Cache {
 
   sweepExpired() {
     this.mem.forEach((txRequestAddress) => {
-      if (this.get(txRequestAddress) === 99) {
+      if (this.get(txRequestAddress, 0) === 99) {
         // expired
         this.del(txRequestAddress);
       }
     });
   }
 }
-
-module.exports = Cache;
 
 // The cache assigns each key (txRequestAddress) the original value of its WindowStart
 // During certain conditions it will change the value

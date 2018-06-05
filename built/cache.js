@@ -1,10 +1,11 @@
-var mem_cache = require('memory-cache');
-var _ = require('lodash');
-// wrapper over memory-cache
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var mem_cache = require("memory-cache");
+var _ = require("lodash");
 var Cache = /** @class */ (function () {
     function Cache(logger) {
-        this.log = logger;
         this.cache = new mem_cache.Cache();
+        this.logger = logger;
         this.mem = [];
     }
     Cache.prototype.set = function (k, v) {
@@ -12,7 +13,7 @@ var Cache = /** @class */ (function () {
             this.mem.push(k);
         }
         this.cache.put(k, v); // , timeout, this.del(k))
-        this.log.cache("stored " + k + " with value " + v);
+        this.logger.cache("stored " + k + " with value " + v);
     };
     Cache.prototype.get = function (k, d) {
         // / FIXME more elegant error handling for this...
@@ -23,22 +24,22 @@ var Cache = /** @class */ (function () {
             else
                 return d;
         }
-        this.log.cache("accessed " + k);
+        this.logger.cache("accessed " + k);
         return this.cache.get(k);
     };
     Cache.prototype.has = function (k) {
         if (this.cache.get(k) === null) {
-            this.log.cache("miss " + k);
+            this.logger.cache("miss " + k);
             return false;
         }
-        this.log.cache("hit " + k);
+        this.logger.cache("hit " + k);
         return true;
     };
     Cache.prototype.del = function (k) {
         // mutates the this.mem array to remove the value
         _.remove(this.mem, function (addr) { return addr === k; });
         this.cache.del(k);
-        this.log.cache("deleted " + k);
+        this.logger.cache("deleted " + k);
     };
     Cache.prototype.len = function () {
         return this.cache.size();
@@ -54,7 +55,7 @@ var Cache = /** @class */ (function () {
     Cache.prototype.sweepExpired = function () {
         var _this = this;
         this.mem.forEach(function (txRequestAddress) {
-            if (_this.get(txRequestAddress) === 99) {
+            if (_this.get(txRequestAddress, 0) === 99) {
                 // expired
                 _this.del(txRequestAddress);
             }
@@ -62,7 +63,7 @@ var Cache = /** @class */ (function () {
     };
     return Cache;
 }());
-module.exports = Cache;
+exports.default = Cache;
 // The cache assigns each key (txRequestAddress) the original value of its WindowStart
 // During certain conditions it will change the value
 // 105 - Failed Execution call (Attempt again)

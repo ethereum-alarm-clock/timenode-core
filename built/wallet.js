@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -33,16 +34,18 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var ethTx = require('ethereumjs-tx');
-var ethWallet = require('ethereumjs-wallet');
+Object.defineProperty(exports, "__esModule", { value: true });
+var ethTx = require("ethereumjs-tx");
+var ethWallet = require("ethereumjs-wallet");
 var Wallet = /** @class */ (function () {
     function Wallet(web3) {
-        this.web3 = web3;
         this.length = 0;
         this.nonce = 0;
+        this.web3 = web3;
     }
     Wallet.prototype._findSafeIndex = function (pointer) {
-        pointer = pointer || 0;
+        if (pointer === void 0) { pointer = 0; }
+        pointer = pointer;
         if (this.hasOwnProperty(pointer)) {
             return this._findSafeIndex(pointer + 1);
         }
@@ -249,4 +252,4 @@ var Wallet = /** @class */ (function () {
     };
     return Wallet;
 }());
-module.exports = Wallet;
+exports.default = Wallet;
