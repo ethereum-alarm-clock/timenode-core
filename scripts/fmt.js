@@ -7,7 +7,10 @@ const prettier = require('prettier');
 const sourceDir = 'client';
 
 const pOpts = {
+    arrowParens: 'always',
     semi: true,
+    singleQuote: true,
+    trailingComma: 'es5',
     parser: 'babylon',
 }
 

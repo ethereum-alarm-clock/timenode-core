@@ -1,5 +1,5 @@
-import Cache from "./cache";
-import Wallet from "./wallet";
+import Cache from './cache';
+import Wallet from './wallet';
 
 interface ConfigParams {
   autostart: boolean;
@@ -37,10 +37,10 @@ class Config {
     } else {
       // Otherwise just log everything to the console.
       this.logger = {
-        debug: msg => console.log(msg),
-        cache: msg => console.log(msg),
-        info: msg => console.log(msg),
-        error: msg => console.log(msg)
+        debug: (msg) => console.log(msg),
+        cache: (msg) => console.log(msg),
+        info: (msg) => console.log(msg),
+        error: (msg) => console.log(msg),
       };
     }
 
@@ -53,7 +53,7 @@ class Config {
     this.provider = params.provider;
     if (!this.factory || !this.web3 || !this.eac || !this.provider) {
       throw new Error(
-        "Missing a required variable to the Config constructor. Please make sure you are passing in the correct object."
+        'Missing a required variable to the Config constructor. Please make sure you are passing in the correct object.'
       );
     }
 
@@ -67,11 +67,11 @@ class Config {
 
     if (
       params.walletStores &&
-      typeof params.walletStores.length !== "undefined" &&
+      typeof params.walletStores.length !== 'undefined' &&
       params.walletStores.length > 0
     ) {
       params.walletStores.forEach((store, index) => {
-        if (typeof store === "object") {
+        if (typeof store === 'object') {
           params.walletStores[index] = JSON.stringify(store);
         }
       });

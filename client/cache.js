@@ -1,5 +1,5 @@
-const mem_cache = require("memory-cache");
-const _ = require("lodash");
+const mem_cache = require('memory-cache');
+const _ = require('lodash');
 
 // wrapper over memory-cache
 class Cache {
@@ -21,7 +21,7 @@ class Cache {
     // / FIXME more elegant error handling for this...
     if (this.cache.get(k) === null) {
       if (d === undefined) {
-        throw new Error("attempted to access key entry that does not exist");
+        throw new Error('attempted to access key entry that does not exist');
       } else return d;
     }
 
@@ -40,7 +40,7 @@ class Cache {
 
   del(k) {
     // mutates the this.mem array to remove the value
-    _.remove(this.mem, addr => addr === k);
+    _.remove(this.mem, (addr) => addr === k);
     this.cache.del(k);
     this.log.cache(`deleted ${k}`);
   }
@@ -59,7 +59,7 @@ class Cache {
   }
 
   sweepExpired() {
-    this.mem.forEach(txRequestAddress => {
+    this.mem.forEach((txRequestAddress) => {
       if (this.get(txRequestAddress) === 99) {
         // expired
         this.del(txRequestAddress);

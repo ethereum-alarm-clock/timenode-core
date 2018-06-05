@@ -1,5 +1,5 @@
-const ethTx = require("ethereumjs-tx");
-const ethWallet = require("ethereumjs-wallet");
+const ethTx = require('ethereumjs-tx');
+const ethWallet = require('ethereumjs-wallet');
 
 class Wallet {
   constructor(web3) {
@@ -20,8 +20,8 @@ class Wallet {
   _currentIndexes() {
     const keys = Object.keys(this);
     const indexes = keys
-      .map(key => parseInt(key, 10))
-      .filter(n => n < 9e20)
+      .map((key) => parseInt(key, 10))
+      .filter((n) => n < 9e20)
       .slice(0, this.length);
     return indexes;
   }
@@ -67,7 +67,7 @@ class Wallet {
     const _this = this;
     const indexes = this._currentIndexes();
 
-    indexes.forEach(idx => {
+    indexes.forEach((idx) => {
       _this.rm(idx);
     });
 
@@ -78,7 +78,7 @@ class Wallet {
     const _this = this;
     const indexes = this._currentIndexes();
 
-    const wallets = indexes.map(idx => {
+    const wallets = indexes.map((idx) => {
       return _this[idx].toV3(password, opts);
     });
 
@@ -88,7 +88,7 @@ class Wallet {
   decrypt(encryptedKeystores, password) {
     const _this = this;
 
-    encryptedKeystores.forEach(keystore => {
+    encryptedKeystores.forEach((keystore) => {
       const wallet = ethWallet.fromV3(keystore, password, true);
 
       if (wallet) {
@@ -110,7 +110,7 @@ class Wallet {
   }
 
   getNonce(account) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.web3.eth.getTransactionCount(account, (err, res) => {
         resolve(res);
       });
@@ -120,7 +120,7 @@ class Wallet {
   sendRawTransaction(tx) {
     return new Promise((resolve, reject) => {
       this.web3.eth.sendRawTransaction(
-        "0x".concat(tx.serialize().toString("hex")),
+        '0x'.concat(tx.serialize().toString('hex')),
         (err, res) => {
           if (err) reject(err);
           resolve(res);
@@ -134,8 +134,8 @@ class Wallet {
     const _this = this;
     transactionReceiptAsync = async function(hash, resolve, reject) {
       try {
-        const getTransactionReceipt = hash => {
-          return new Promise(resolve => {
+        const getTransactionReceipt = (hash) => {
+          return new Promise((resolve) => {
             _this.web3.eth.getTransactionReceipt(hash, (err, res) => {
               if (!err) resolve(res);
             });
@@ -159,7 +159,7 @@ class Wallet {
   }
 
   signTransaction(from, nonce, opts) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const params = {
         nonce,
         from,
@@ -167,12 +167,12 @@ class Wallet {
         gas: this.web3.toHex(opts.gas),
         gasPrice: this.web3.toHex(opts.gasPrice),
         value: this.web3.toHex(opts.value),
-        data: opts.data
+        data: opts.data,
       };
 
       const tx = new ethTx(params);
       const privKey = this[from].privKey;
-      tx.sign(new Buffer(privKey, "hex"));
+      tx.sign(new Buffer(privKey, 'hex'));
 
       resolve(tx);
     });
@@ -186,26 +186,26 @@ class Wallet {
    */
   sendFromIndex(idx, opts) {
     if (idx > this.length) {
-      throw new Error("Index is outside range of addresses.");
+      throw new Error('Index is outside range of addresses.');
     }
     const from = this.getAccounts()[idx].getAddressString();
     return this.getNonce(from)
-      .then(nonce => this.signTransaction(from, nonce, opts))
-      .then(tx => this.sendRawTransaction(tx))
-      .then(hash => this.getTransactionReceipt(hash, from));
+      .then((nonce) => this.signTransaction(from, nonce, opts))
+      .then((tx) => this.sendRawTransaction(tx))
+      .then((hash) => this.getTransactionReceipt(hash, from));
   }
 
   getAccounts() {
-    return this._currentIndexes().map(idx => this[idx]);
+    return this._currentIndexes().map((idx) => this[idx]);
   }
 
   getAddresses() {
-    return this.getAccounts().map(account => account.getAddressString());
+    return this.getAccounts().map((account) => account.getAddressString());
   }
 
   isKnownAddress(address) {
     return this.getAccounts().some(
-      account => account.getAddressString() === address
+      (account) => account.getAddressString() === address
     );
   }
 }

@@ -1,21 +1,21 @@
-const BigNumber = require("bignumber.js");
-const hasPending = require("./pending.js");
-const { Util } = require("eac.js-lib")();
+const BigNumber = require('bignumber.js');
+const hasPending = require('./pending.js');
+const { Util } = require('eac.js-lib')();
 
 const STATE = {
   PRE_CLAIMING: 0,
   CLAIMING: 1,
   PRE_EXECUTION: 2,
   EXECUTION: 3,
-  DONE: 4
+  DONE: 4,
 };
 
 let stateName = {};
-stateName[STATE.DONE] = "DONE";
-stateName[STATE.PRE_CLAIMING] = "PRE-CLAIMING";
-stateName[STATE.CLAIMING] = "CLAIMING";
-stateName[STATE.PRE_EXECUTION] = "PRE-EXECUTION";
-stateName[STATE.EXECUTION] = "EXECUTION";
+stateName[STATE.DONE] = 'DONE';
+stateName[STATE.PRE_CLAIMING] = 'PRE-CLAIMING';
+stateName[STATE.CLAIMING] = 'CLAIMING';
+stateName[STATE.PRE_EXECUTION] = 'PRE-EXECUTION';
+stateName[STATE.EXECUTION] = 'EXECUTION';
 
 const isClaimedByUs = (conf, txRequest) => {
   const ourClaim = conf.wallet
@@ -30,7 +30,7 @@ const isClaimedByUs = (conf, txRequest) => {
   return ourClaim;
 };
 
-const getSender = conf =>
+const getSender = (conf) =>
   conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount;
 
 const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
@@ -75,7 +75,7 @@ const sendTransaction = async (conf, txRequest, fn, options) => {
   const ops = Object.assign(options, { from: web3.eth.defaultAccount });
   return {
     receipt: await fn(ops),
-    from: web3.eth.defaultAccount
+    from: web3.eth.defaultAccount,
   };
 };
 
@@ -92,7 +92,7 @@ const claim = async (conf, txRequest) => {
     from: sender,
     to: txRequest.address,
     value: value.toString(),
-    data
+    data,
   });
 
   const { profitable, paymentWhenClaimed } = await isProfitableToClaim(
@@ -124,10 +124,15 @@ const claim = async (conf, txRequest) => {
     value,
     gas,
     gasPrice,
-    data
+    data,
   };
 
-  return sendTransaction(conf, txRequest, opt => txRequest.claim(opt), options);
+  return sendTransaction(
+    conf,
+    txRequest,
+    (opt) => txRequest.claim(opt),
+    options
+  );
 };
 
 const execute = async (conf, txRequest) => {
@@ -135,8 +140,8 @@ const execute = async (conf, txRequest) => {
   const { web3 } = conf;
 
   const getBlock = () => {
-    return new Promise(resolve => {
-      web3.eth.getBlock("latest", (err, res) => {
+    return new Promise((resolve) => {
+      web3.eth.getBlock('latest', (err, res) => {
         if (!err) resolve(res);
       });
     });
@@ -171,7 +176,7 @@ const execute = async (conf, txRequest) => {
     gas: executeGas,
     gasPrice,
     data: executeData,
-    value: 0
+    value: 0,
   };
 
   if (walletClaimIndex !== -1) {
@@ -181,7 +186,7 @@ const execute = async (conf, txRequest) => {
   return sendTransaction(
     conf,
     txRequest,
-    opt => txRequest.execute(opt),
+    (opt) => txRequest.execute(opt),
     options
   );
 };
@@ -203,8 +208,8 @@ const cleanup = async (conf, txRequest) => {
     const gasToCancel = await Util.estimateGas(web3, {
       from: sender,
       to: txRequest.address,
-      value: "0",
-      data: txRequest.cancelData
+      value: '0',
+      data: txRequest.cancelData,
     });
     const currentGasPrice = new BigNumber(await Util.getGasPrice(web3));
     const gasCostToCancel = currentGasPrice.times(gasToCancel);
@@ -213,7 +218,7 @@ const cleanup = async (conf, txRequest) => {
       value: 0,
       gas: gasToCancel + 21000,
       gasPrice: await web3.eth.getGasPrice(),
-      data: txRequest.cancelData
+      data: txRequest.cancelData,
     };
 
     if (conf.wallet) {
@@ -237,7 +242,7 @@ const cleanup = async (conf, txRequest) => {
           from: web3.eth.defaultAccount,
           value: 0,
           gas: gasToCancel + 21000,
-          gasPrice: await Util.getGasPrice(web3)
+          gasPrice: await Util.getGasPrice(web3),
         });
       } else {
         if (gasCostToCancel.greaterThan(txRequestBalance)) {
@@ -247,7 +252,7 @@ const cleanup = async (conf, txRequest) => {
           from: web3.eth.defaultAccount,
           value: 0,
           gas: gasToCancel + 21000,
-          gasPrice: await Util.getGasPrice(web3)
+          gasPrice: await Util.getGasPrice(web3),
         });
       }
     }
@@ -256,10 +261,10 @@ const cleanup = async (conf, txRequest) => {
   conf.cache.del(txRequest.address);
 };
 
-const isExecuted = receipt => {
+const isExecuted = (receipt) => {
   if (receipt) {
     const executedEvent =
-      "0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9";
+      '0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9';
     return receipt.logs[0].topics.indexOf(executedEvent) > -1;
   }
 

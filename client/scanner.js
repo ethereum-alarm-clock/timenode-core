@@ -1,6 +1,6 @@
 /* eslint no-await-in-loop: 'off' */
-const { routeTxRequest } = require("./routing.js");
-const clientVersion = require("../package.json").version;
+const { routeTxRequest } = require('./routing.js');
+const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
 
 class Scanner {
@@ -32,12 +32,12 @@ class Scanner {
 
   logNetwork() {
     const Networks = {
-      0: "Private",
-      1: "Mainnet",
-      2: "Mordern",
-      3: "Ropsten",
-      4: "Rinkeby",
-      42: "Kovan"
+      0: 'Private',
+      1: 'Mainnet',
+      2: 'Mordern',
+      3: 'Ropsten',
+      4: 'Rinkeby',
+      42: 'Kovan',
     };
     this.web3.version.getNetwork((err, res) => {
       if (err) {
@@ -52,7 +52,7 @@ class Scanner {
     if (provider) {
       providerUrl = provider.host ? provider.host : provider.connection.url;
     } else {
-      providerUrl = "Unknown";
+      providerUrl = 'Unknown';
     }
 
     this.log.info(`Web3 provider : ${providerUrl}`);
@@ -64,19 +64,19 @@ class Scanner {
 
     // Set interval for scanning for actionable transaction requests in the cache.
     this.cacheScanning = setInterval(() => {
-      this.scanCache().catch(err => this.log.error(err));
+      this.scanCache().catch((err) => this.log.error(err));
     }, this.ms);
 
     // Immediately start.
-    const watchingEnabled = await new Promise(resolve => {
+    const watchingEnabled = await new Promise((resolve) => {
       this.web3.currentProvider.sendAsync(
         {
-          jsonrpc: "2.0",
+          jsonrpc: '2.0',
           id: 1,
-          method: "eth_getFilterLogs",
-          params: []
+          method: 'eth_getFilterLogs',
+          params: [],
         },
-        async e => {
+        async (e) => {
           if (e !== null) {
             this.log.info(`Watching DISABLED`);
             resolve(false);
@@ -89,16 +89,16 @@ class Scanner {
     if (watchingEnabled) {
       this.blockchainScanning = this.watchBlockchain();
     } else {
-      this.log.info("-Initiating Backup Scanner-");
+      this.log.info('-Initiating Backup Scanner-');
       // backup scan
       this.blockchainScanning = this.backupScanBlockchain();
     }
 
-    this.scanCache().catch(err => this.log.error(err));
+    this.scanCache().catch((err) => this.log.error(err));
 
     // Mark that we've started.
     this.started = true;
-    this.log.info("Scanning STARTED");
+    this.log.info('Scanning STARTED');
   }
 
   async stop() {
@@ -107,12 +107,12 @@ class Scanner {
     clearInterval(this.cacheScanning);
     if (this.requestWatcher) {
       await this.requestFactory.stopWatch(this.requestWatcher);
-      this.log.info("Watching STOPPED");
+      this.log.info('Watching STOPPED');
     }
 
     // Mark that we've stopped.
     this.started = false;
-    this.log.info("Scanning STOPPED");
+    this.log.info('Scanning STOPPED');
   }
 
   isValidBlock(block) {
@@ -160,14 +160,14 @@ class Scanner {
 
   async backupScanBlockchain() {
     const reqFactory = await this.eac.requestFactory();
-    const latestBlock = await this.getBlock("latest");
+    const latestBlock = await this.getBlock('latest');
 
     const blockBucket = reqFactory.calcBucket(latestBlock.number, 1);
     const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2);
 
     const next = await this.getNextBuckets(latestBlock);
 
-    const handleRequests = request => {
+    const handleRequests = (request) => {
       if (!this.isCorrect(request.address)) return;
       this.log.debug(`[${request.address}] Discovered.`);
       if (!this.cache.has(request.address)) {
@@ -184,7 +184,7 @@ class Scanner {
     (await reqFactory.getRequestsByBucket(next.tsBucket)).map(handleRequests);
 
     return setInterval(() => {
-      this.backupScanBlockchain().catch(err => this.log.error(err));
+      this.backupScanBlockchain().catch((err) => this.log.error(err));
     }, this.ms);
   }
 
@@ -202,20 +202,20 @@ class Scanner {
 
     return {
       blockBucket,
-      tsBucket
+      tsBucket,
     };
   }
 
   async watchBlockchain() {
     const reqFactory = await this.eac.requestFactory();
 
-    const latestBlock = await this.getBlock("latest");
+    const latestBlock = await this.getBlock('latest');
     // const startBlock = latestBlock.number - this.config.scanSpread
 
     const blockBucket = reqFactory.calcBucket(latestBlock.number, 1);
     const tsBucket = reqFactory.calcBucket(latestBlock.timestamp, 2);
 
-    const handleRequests = request => {
+    const handleRequests = (request) => {
       if (!this.isCorrect(request.address)) return;
       this.log.debug(`[${request.address}] Discovered.`);
       if (!this.cache.has(request.address)) {
@@ -235,7 +235,7 @@ class Scanner {
 
     // Set an timeout for every hour
     return setInterval(async () => {
-      const curBlock = await this.getBlock("latest");
+      const curBlock = await this.getBlock('latest');
       this.watchNextBuckets(curBlock);
     }, 60 * 60 * 1000);
   }
@@ -245,7 +245,7 @@ class Scanner {
 
     const next = await this.getNextBuckets(block);
 
-    const handleRequests = request => {
+    const handleRequests = (request) => {
       if (!this.isCorrect(request.address)) return;
       this.log.debug(`[${request.address}] Discovered.`);
       if (!this.cache.has(request.address)) {
@@ -265,7 +265,7 @@ class Scanner {
   isCorrect(requestAddress) {
     // We hit the NULL_ADDRESS so there are no more transaction requests in the tracker.
     if (requestAddress === this.eac.Constants.NULL_ADDRESS) {
-      this.log.debug("No new request discovered.");
+      this.log.debug('No new request discovered.');
       return false;
     } else if (!this.eac.Util.checkValidAddress(requestAddress)) {
       // This should, conceivably, never happen unless there is a bug in eac.js-lib.
@@ -334,7 +334,7 @@ class Scanner {
 
       // Hearbeat
       if (currentRequestAddress === this.eac.Constants.NULL_ADDRESS) {
-        this.log.debug("No new requests discovered.");
+        this.log.debug('No new requests discovered.');
         break;
       }
     }
@@ -346,12 +346,12 @@ class Scanner {
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.cache
       .stored()
-      .filter(address => this.cache.get(address) > 0)
-      .map(address => this.eac.transactionRequest(address));
+      .filter((address) => this.cache.get(address) > 0)
+      .map((address) => this.eac.transactionRequest(address));
 
     // Get fresh data on our transaction requests and route them into appropiate action.
-    Promise.all(allTxRequests).then(txRequests => {
-      txRequests.forEach(txRequest => {
+    Promise.all(allTxRequests).then((txRequests) => {
+      txRequests.forEach((txRequest) => {
         txRequest
           .refreshData()
           .then(() => routeTxRequest(this.config, txRequest));
@@ -359,7 +359,7 @@ class Scanner {
     });
   }
 
-  getBlock(number = "latest") {
+  getBlock(number = 'latest') {
     return new Promise((resolve, reject) => {
       this.web3.eth.getBlock(number, (err, block) => {
         if (!err)
