@@ -4,6 +4,12 @@ const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
 
 class Scanner {
+  /**
+   * Creates a new Scanner instance. The scanner serves as the top level
+   * entry point for the EAC-JS TimeNode.
+   * @param {Number} ms Milliseconds of the scan interval.
+   * @param {Config} config The TimeNode Config object.
+   */
   constructor(ms, config) {
     this.ms = ms
     this.config = config
