@@ -34,6 +34,12 @@ yarn build
 
 Will build all the TypeScript files into their JavaScript counterparts.
 
+You can clean these files like so
+
+```
+yarn clean-built
+```
+
 ## How to Lint
 
 You can use one of the helper scripts to use [Prettier]() to lint for you. It will create backups of all the files that it changes before changing them, and knows how to handle both JavaScript and TypeScript sources.
