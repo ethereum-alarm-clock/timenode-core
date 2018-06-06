@@ -58,6 +58,7 @@ export default class Config {
       );
     }
 
+    //TODO does this still do something?
     this.scanning = params.autostart || false;
 
     if (

@@ -1,5 +1,6 @@
 import BigNumber = require('bignumber.js');
 
+import Actions from './actions';
 import Config from './config';
 
 enum Status {
@@ -8,11 +9,12 @@ enum Status {
     FreezePeriod,
     ExecutionWindow,
     Executed,
-    CleanUp,
+    Done,
 }
 
 // TODO rename Router -> TimeNode and place the scanner object here
 export default class Router {
+    actions: Actions;
     config: Config;
     txRequestStates: Object;
 
@@ -20,6 +22,7 @@ export default class Router {
     transitions: Object;
 
     constructor(config: Config) {
+        this.actions = new Actions(config);
         this.config = config;
 
         this.transitions[Status.BeforeClaimWindow] = this.beforeClaimWindow;
@@ -49,8 +52,10 @@ export default class Router {
         }
 
         try {
+            // check profitability FIRST
+            // ... here
             //TODO do we care about return value?
-            await this.claim(txRequest)
+            await this.actions.claim(txRequest)
         } catch (e) {
             // TODO handle gracefully?
             throw new Error(e);
@@ -79,39 +84,19 @@ export default class Router {
             return Status.ExecutionWindow;
         }
 
-        
+        try {
+            await this.actions.execute(txRequest);
+        } catch (e) {
+            //TODO handle gracefully?
+            throw new Error(e);
+        }
+
+        return Status.Executed;
     }
 
-    async claim(txRequest): Promise<any> {
-        const requiredDeposit = txRequest.requiredDeposit;
-        // TODO make this a constant
-        const claimData = txRequest.claimData;
-
-        // TODO: estimate gas
-        // const estimateGas = await Util.estimateGas()
-
-        // TODO: check profitability
-        const profitable = await this.isProfitableClaim(txRequest);
-        if (!profitable) {
-            return {
-                profitable,
-            }
-        }
-
-        const opts = {
-            to: txRequest.address,
-            value: requiredDeposit,
-            //TODO estimate gas above
-            gas: 3000000,
-            //TODO estimate gas above
-            gasPrice: 12,
-            data: claimData,
-        }
-
-        const txHash = await this.config.wallet.sendFromNext(opts)
-        //TODO get transaction object from txHash
-
-
+    async executed(txRequest): Promise<Status> {
+        await this.actions.cleanup(txRequest);
+        return Status.Done;
     }
 
     isLocalClaim(txRequest) {
@@ -155,6 +140,5 @@ export default class Router {
         this.txRequestStates[txRequest.address] = nextStatus;
         return
     }
-
 
 }
