@@ -32,8 +32,8 @@ stateName[STATE.EXECUTION] = 'EXECUTION';
 //   return ourClaim;
 // };
 
-const getSender = (conf) =>
-  conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount;
+// const getSender = (conf) =>
+//   conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount;
 
 const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const { web3 } = conf;
