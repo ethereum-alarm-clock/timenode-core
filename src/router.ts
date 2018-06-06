@@ -12,7 +12,6 @@ enum Status {
     Done,
 }
 
-// TODO rename Router -> TimeNode and place the scanner object here
 export default class Router {
     actions: Actions;
     config: Config;
@@ -140,5 +139,4 @@ export default class Router {
         this.txRequestStates[txRequest.address] = nextStatus;
         return
     }
-
 }

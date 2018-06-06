@@ -11,12 +11,16 @@ declare const setInterval;
 
 import {
   Block,
-  Bucket,
-  BucketPair,
-  Buckets,
   IntervalID,
   TxRequest,
 } from './types';
+
+import {
+  Bucket,
+  BucketPair,
+  Buckets,
+  BucketSize,
+} from './buckets';
 
 export default class Scanner {
   config: Config;
@@ -121,25 +125,6 @@ export default class Scanner {
     );
   }
 
-  //TODO correctness?
-  // getWindowForBlockNumber(blockNumber: number) {
-  //   const leftBlockNumber = this.getLeftBlockNumber(blockNumber);
-  //   const rightBlockNumber = leftBlockNumber + this.config.scanSpread * 2;
-
-  //   return { leftBlockNumber, rightBlockNumber };
-  // }
-
-  // //TODO correctness?
-  // getLeftBlockNumber(blockNumber: number): number {
-  //   const leftBlock = blockNumber - this.config.scanSpread;
-  //   return leftBlock < 0 ? 0 : leftBlock;
-  // }
-
-  // //TODO correctness?
-  // getRightTimestamp(leftTimestamp, latestTimestamp): number {
-  //   return 2 * latestTimestamp - leftTimestamp;
-  // }
-
   //TODO move this to requestFactory instance
   getCurrentBuckets(reqFactory: any, latest: Block): BucketPair {
     return {
@@ -149,13 +134,8 @@ export default class Scanner {
   }
 
   getNextBuckets(reqFactory: any, latest: Block): BucketPair {
-    // TODO extract to Constants
-    const blockBucketSize = 240;
-    const tsBucketSize = 3600;
-    //
-
-    const nextBlockInterval = latest.number + blockBucketSize;
-    const nextTsInterval = latest.timestamp + tsBucketSize;
+    const nextBlockInterval = latest.number + BucketSize.block;
+    const nextTsInterval = latest.timestamp + BucketSize.timestamp;
 
     return {
       blockBucket: reqFactory.calcBucket(nextBlockInterval, 1),
@@ -255,66 +235,6 @@ export default class Scanner {
     }
     return true;
   }
-
-  // async fill(request) {
-  //   const txRequest = await this.config.eac.transactionRequest(request.address);
-  //   txRequest.fillWithParams(request.uintArgs);
-  //   return txRequest;
-  // }
-
-  // async scan(
-  //   left: number,
-  //   right: number,
-  //   firstRequest: String,
-  //   shouldStore: Function,
-  //   atBound: Function,
-  //   getNext: Function
-  // ): Promise<any> {
-  //   let currentRequestAddress = firstRequest;
-
-  //   // Return if NULL_ADDRESS and no new transaction requests found.
-  //   if (!this.isValid(currentRequestAddress)) return;
-
-  //   // Loop the cache storage logic while we still get valid transaction requests.
-  //   while (currentRequestAddress !== this.config.eac.Constants.NULL_ADDRESS) {
-  //     this.config.logger.debug(`[${currentRequestAddress}] Discovered.`);
-  //     // try get the value from cache, fallback to -1 as default
-  //     let windowStart = parseInt(
-  //       this.config.cache.get(currentRequestAddress, -1)
-  //     );
-
-  //     if (windowStart === -1) {
-  //       // If it's not already in cache, find windowStart.
-  //       const txRequest = await this.fill(currentRequestAddress);
-  //       windowStart = txRequest.windowStart;
-
-  //       if (
-  //         txRequest &&
-  //         shouldStore(windowStart) &&
-  //         this.isUpcoming(txRequest)
-  //       ) {
-  //         // If the windowStart returns True to `shouldStore(...)`, store it.
-  //         this.store(txRequest);
-  //       }
-  //     }
-
-  //     // always check if we already hit bounds
-  //     // TODO remove bounds -- no longer needed with the buckets
-  //     if (atBound(windowStart)) {
-  //       // Stop looping if we hit the bounds.
-  //       break;
-  //     }
-
-  //     // Get the next transaction request.
-  //     currentRequestAddress = await getNext(currentRequestAddress);
-
-  //     // Hearbeat
-  //     if (currentRequestAddress === this.config.eac.Constants.NULL_ADDRESS) {
-  //       this.config.logger.debug('No new requests discovered.');
-  //       break;
-  //     }
-  //   }
-  // }
 
   // TODO meaningful return value
   async scanCache(): Promise<void> {

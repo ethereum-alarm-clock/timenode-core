@@ -3,18 +3,6 @@ interface Block {
 	timestamp: number;
 }
 
-type Bucket = number;
-
-interface BucketPair {
-	blockBucket: Bucket;
-	timestampBucket: Bucket;
-}
-
-interface Buckets {
-	currentBuckets: BucketPair;
-	nextBuckets: BucketPair;
-}
-
 type IntervalID = number;
 
 // TODO this is only temporary
@@ -24,9 +12,6 @@ interface TxRequest {
   
 export {
 	Block,
-	Bucket,
-	BucketPair,
-	Buckets,
 	IntervalID,
 	TxRequest,
 }
