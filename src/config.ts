@@ -1,7 +1,7 @@
 import Cache from './cache';
+import { Logger, DefaultLogger } from './logger';
 import Wallet from './wallet';
 
-declare const console;
 
 //TODO remove factory
 interface ConfigParams {
@@ -9,7 +9,7 @@ interface ConfigParams {
   eac?: any;
   economicStrategy?: EconomicStrategy,
   factory?: any;
-  logger?: any;
+  logger?: Logger;
   ms?: any;
   password?: any;
   provider?: any;
@@ -22,20 +22,13 @@ interface EconomicStrategy {
   // TODO
 }
 
-const DummyLogger = {
-  debug: (msg) => console.log(msg),
-  cache: (msg) => console.log(msg),
-  info: (msg) => console.log(msg),
-  error: (msg) => console.log(msg),
-};
-
 export default class Config {
   autostart: boolean;
   cache: any;
   eac: any;
   economicStrategy?: EconomicStrategy,
   factory: any;
-  logger: any;
+  logger: Logger;
   ms: any;
   provider: any;
   scanSpread: any;
@@ -46,7 +39,7 @@ export default class Config {
     this.autostart = params.autostart || true;
     this.scanSpread = params.scanSpread || 50;
 
-    this.logger = params.logger || DummyLogger;
+    this.logger = params.logger || new DefaultLogger();
 
     this.cache = new Cache(this.logger);
 

@@ -14,6 +14,14 @@ export default class TimeNode {
         this.config = config;
         this.scanner = new Scanner(this.config);
         this.router = new Router(this.config)
+        this.startupMessage();
+    }
 
+    startupMessage(): void {
+
+    }
+
+    logNetwork(): void {
+        
     }
 }
