@@ -10,33 +10,17 @@ import Config from './config';
 declare const clearInterval;
 declare const setInterval;
 
-interface Block {
-  number: number;
-  timestamp: number;
-}
-
-type Bucket = number;
-
-interface BucketPair {
-  blockBucket: Bucket;
-  timestampBucket: Bucket;
-}
-
-interface Buckets {
-  currentBuckets: BucketPair;
-  nextBuckets: BucketPair;
-}
-
-// TODO this is only temporary
-interface TxRequest {
-  refreshData: Function;
-}
-
-type IntervalID = number;
+import {
+  Block,
+  Bucket,
+  BucketPair,
+  Buckets,
+  IntervalID,
+  TxRequest,
+} from './types';
 
 export default class Scanner {
   config: Config;
-  ms: number;
   running: boolean;
 
   // Child Scanners, tracked by the ID of their interval
@@ -50,11 +34,15 @@ export default class Scanner {
    * @param {number} ms Milliseconds of the scan interval.
    * @param {Config} config The TimeNode Config object.
    */
-  constructor(ms: number, config: Config) {
+  constructor(config: Config) {
     this.config = config;
-    this.ms = ms;
-    this.running = false;
-    this.startupMessage();
+
+    if (this.config.autostart) {
+      this.startupMessage();
+      this.start();
+    } else {
+      this.running = false;
+    }
   }
 
   startupMessage() {
@@ -63,7 +51,7 @@ export default class Scanner {
     this.config.logger.info(
       `Using request factory at ${this.config.factory.address}`
     );
-    this.config.logger.info(`Scanning every ${this.ms / 1000} seconds`);
+    this.config.logger.info(`Scanning every ${this.config.ms / 1000} seconds`);
   }
 
   logNetwork() {
@@ -102,7 +90,7 @@ export default class Scanner {
     // Create the interval for processing the transaction requests in cache.
     this.cacheScanner = setInterval(() => {
       this.scanCache().catch((err) => this.config.logger.error(err));
-    }, this.ms);
+    }, this.config.ms);
 
     // TODO: extract this to a utils file perhaps
     //
@@ -258,7 +246,7 @@ export default class Scanner {
     // Set a recursive interval to continue this "scan" every ms/1000 seconds.
     return setInterval(() => {
       this.backupScanBlockchain().catch((err) => this.config.logger.error(err));
-    }, this.ms);
+    }, this.config.ms);
   }
 
   async watchBlockchain(): Promise<IntervalID> {

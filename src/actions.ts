@@ -1,4 +1,6 @@
 import Config from './config';
+import hasPending = require('./pending.js');
+
 
 export default class Actions {
     config: Config;
@@ -6,6 +8,10 @@ export default class Actions {
     constructor(config: Config) {
         this.config = config;
     }
+
+    // async hasPendingTxInTxPool(txRequest): Promise<boolean> {
+
+    // }
 
     async claim(txRequest): Promise<any> {
         const requiredDeposit = txRequest.requiredDeposit;
@@ -24,6 +30,12 @@ export default class Actions {
             data: claimData,
         }
 
+        if (await hasPending(this.config, txRequest)) {
+            return {
+                ignore: true,
+            }
+        }
+        
         const txHash = await this.config.wallet.sendFromNext(opts)
         //TODO get transaction object from txHash
     }

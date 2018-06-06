@@ -34,7 +34,8 @@ export default class Router {
 
     async beforeClaimWindow(txRequest): Promise<Status> {
         if (txRequest.isCancelled) {
-            return Status.CleanUp;
+            // TODO Status.CleanUp?
+            return Status.Executed;
         }
 
         if (await txRequest.beforeClaimWindow()) {

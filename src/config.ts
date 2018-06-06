@@ -10,6 +10,7 @@ interface ConfigParams {
   economicStrategy?: EconomicStrategy,
   factory?: any;
   logger?: any;
+  ms?: any;
   password?: any;
   provider?: any;
   scanSpread?: number | null;
@@ -29,18 +30,20 @@ const DummyLogger = {
 };
 
 export default class Config {
+  autostart: boolean;
   cache: any;
   eac: any;
   economicStrategy?: EconomicStrategy,
   factory: any;
   logger: any;
+  ms: any;
   provider: any;
-  scanning: boolean;
   scanSpread: any;
   wallet: any;
   web3: any;
 
   constructor(params: ConfigParams) {
+    this.autostart = params.autostart || true;
     this.scanSpread = params.scanSpread || 50;
 
     this.logger = params.logger || DummyLogger;
@@ -57,9 +60,6 @@ export default class Config {
         'Passed in Config params are incomplete! Unable to start TimeNode. Quitting..'
       );
     }
-
-    //TODO does this still do something?
-    this.scanning = params.autostart || false;
 
     if (
       params.walletStores &&
