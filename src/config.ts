@@ -72,10 +72,3 @@ export default class Config {
     }
   }
 }
-
-// const c = new Config({
-//   autostart: false,
-//   eac: 'as',
-// })
-
-// console.log(c)
