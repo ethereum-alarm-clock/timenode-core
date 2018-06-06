@@ -1,5 +1,7 @@
-const BigNumber = require('bignumber.js');
-const hasPending = require('./pending.js');
+declare const require;
+
+import BigNumber = require('bignumber.js');
+import hasPending = require('./pending.js');
 const { Util } = require('eac.js-lib')();
 
 const STATE = {
@@ -17,21 +19,21 @@ stateName[STATE.CLAIMING] = 'CLAIMING';
 stateName[STATE.PRE_EXECUTION] = 'PRE-EXECUTION';
 stateName[STATE.EXECUTION] = 'EXECUTION';
 
-const isClaimedByUs = (conf, txRequest) => {
-  const ourClaim = conf.wallet
-    ? conf.wallet.isKnownAddress(txRequest.claimedBy)
-    : txRequest.isClaimedBy(conf.web3.eth.defaultAccount);
+// const isClaimedByUs = (conf, txRequest) => {
+//   const ourClaim = conf.wallet
+//     ? conf.wallet.isKnownAddress(txRequest.claimedBy)
+//     : txRequest.isClaimedBy(conf.web3.eth.defaultAccount);
 
-  if (!ourClaim)
-    conf.logger.debug(
-      `[${txRequest.address}] In reserve window and not claimed by our account.`
-    );
+//   if (!ourClaim)
+//     conf.logger.debug(
+//       `[${txRequest.address}] In reserve window and not claimed by our account.`
+//     );
 
-  return ourClaim;
-};
+//   return ourClaim;
+// };
 
-const getSender = (conf) =>
-  conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount;
+// const getSender = (conf) =>
+//   conf.wallet ? conf.wallet.getAddresses()[0] : conf.web3.eth.defaultAccount;
 
 const isProfitableToClaim = async (conf, txRequest, gasToClaim) => {
   const { web3 } = conf;

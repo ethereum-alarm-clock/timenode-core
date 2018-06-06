@@ -1,14 +1,16 @@
 import Cache from './cache';
+import { Logger, DefaultLogger } from './logger';
 import Wallet from './wallet';
 
-declare const console;
 
 //TODO remove factory
 interface ConfigParams {
   autostart: boolean;
   eac?: any;
+  economicStrategy?: EconomicStrategy,
   factory?: any;
-  logger?: any;
+  logger?: Logger;
+  ms?: any;
   password?: any;
   provider?: any;
   scanSpread?: number | null;
@@ -16,28 +18,28 @@ interface ConfigParams {
   web3?: any;
 }
 
-const DummyLogger = {
-  debug: (msg) => console.log(msg),
-  cache: (msg) => console.log(msg),
-  info: (msg) => console.log(msg),
-  error: (msg) => console.log(msg),
-};
+interface EconomicStrategy {
+  // TODO
+}
 
 export default class Config {
+  autostart: boolean;
   cache: any;
   eac: any;
+  economicStrategy?: EconomicStrategy,
   factory: any;
-  logger: any;
+  logger: Logger;
+  ms: any;
   provider: any;
-  scanning: boolean;
   scanSpread: any;
   wallet: any;
   web3: any;
 
   constructor(params: ConfigParams) {
+    this.autostart = params.autostart || true;
     this.scanSpread = params.scanSpread || 50;
 
-    this.logger = params.logger || DummyLogger;
+    this.logger = params.logger || new DefaultLogger();
 
     this.cache = new Cache(this.logger);
 
@@ -51,8 +53,6 @@ export default class Config {
         'Passed in Config params are incomplete! Unable to start TimeNode. Quitting..'
       );
     }
-
-    this.scanning = params.autostart || false;
 
     if (
       params.walletStores &&
@@ -72,10 +72,3 @@ export default class Config {
     }
   }
 }
-
-// const c = new Config({
-//   autostart: false,
-//   eac: 'as',
-// })
-
-// console.log(c)

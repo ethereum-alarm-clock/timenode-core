@@ -1,7 +1,6 @@
 /* eslint no-await-in-loop: 'off' */
 declare const require;
 
-import { routeTxRequest } from './routing.js';
 const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
 
@@ -10,34 +9,23 @@ import Config from './config';
 declare const clearInterval;
 declare const setInterval;
 
-interface Block {
-  number: number;
-  timestamp: number;
-}
+import {
+  Block,
+  IntervalID,
+  TxRequest,
+} from './types';
 
-type Bucket = number;
-
-interface BucketPair {
-  blockBucket: Bucket;
-  timestampBucket: Bucket;
-}
-
-interface Buckets {
-  currentBuckets: BucketPair;
-  nextBuckets: BucketPair;
-}
-
-// TODO this is only temporary
-interface TxRequest {
-  refreshData: Function;
-}
-
-type IntervalID = number;
+import {
+  Bucket,
+  BucketPair,
+  Buckets,
+  BucketSize,
+} from './buckets';
 
 export default class Scanner {
   config: Config;
-  ms: number;
-  running: boolean;
+  scanning: boolean;
+  router: any;
 
   // Child Scanners, tracked by the ID of their interval
   cacheScanner: IntervalID;
@@ -50,59 +38,17 @@ export default class Scanner {
    * @param {number} ms Milliseconds of the scan interval.
    * @param {Config} config The TimeNode Config object.
    */
-  constructor(ms: number, config: Config) {
+  constructor(config: Config, router: any) {
     this.config = config;
-    this.ms = ms;
-    this.running = false;
-    this.startupMessage();
+    this.scanning = false;
+    this.router = router;
   }
 
-  startupMessage() {
-    this.logNetwork();
-    this.config.logger.info(`EAC.JS-client version.. ${clientVersion}`);
-    this.config.logger.info(
-      `Using request factory at ${this.config.factory.address}`
-    );
-    this.config.logger.info(`Scanning every ${this.ms / 1000} seconds`);
-  }
-
-  logNetwork() {
-    // TODO: extract this out to a constants package.
-    const Networks = {
-      0: 'Private',
-      1: 'Mainnet',
-      2: 'Morden',
-      3: 'Ropsten',
-      4: 'Rinkeby',
-      42: 'Kovan',
-    };
-    this.config.web3.version.getNetwork((err, res) => {
-      if (err) {
-        this.config.logger.error('Unable to determine Ethereum network..');
-      }
-      this.config.logger.info(`Ethereum network.. ${Networks[res || 0]}`);
-    });
-
-    const provider = this.config.web3.currentProvider;
-
-    let providerUrl;
-    if (provider) {
-      providerUrl = provider.host ? provider.host : provider.connection.url;
-    } else {
-      providerUrl = 'Unknown';
-    }
-
-    this.config.logger.info(`Web3 provider.. ${providerUrl}`);
-  }
-
-  async start() {
-    // Clear the intervals if this Scanner is already started via a hard reboot.
-    if (this.running) this.stop();
-
+  async start(): Promise<boolean> {
     // Create the interval for processing the transaction requests in cache.
     this.cacheScanner = setInterval(() => {
       this.scanCache().catch((err) => this.config.logger.error(err));
-    }, this.ms);
+    }, this.config.ms);
 
     // TODO: extract this to a utils file perhaps
     //
@@ -142,17 +88,22 @@ export default class Scanner {
 
     // Mark that we've started.
     this.config.logger.info('Scanner STARTED');
-    this.running = true;
+    this.scanning = true;
+    return this.scanning;
   }
 
-  async stop() {
-    // Clear scanning intervals.
-    clearInterval(this.cacheScanner);
-    clearInterval(this.chainScanner);
+  stop(): boolean {
+    if (this.scanning) {
+      // Clear scanning intervals.
+      clearInterval(this.cacheScanner);
+      clearInterval(this.chainScanner);
 
-    // Mark that we've stopped.
-    this.config.logger.info('Scanner STOPPED');
-    this.running = false;
+      // Mark that we've stopped.
+      this.config.logger.info('Scanner STOPPED');
+      this.scanning = false;
+    }
+
+    return this.scanning;
   }
 
   /**
@@ -174,25 +125,6 @@ export default class Scanner {
     );
   }
 
-  //TODO correctness?
-  // getWindowForBlockNumber(blockNumber: number) {
-  //   const leftBlockNumber = this.getLeftBlockNumber(blockNumber);
-  //   const rightBlockNumber = leftBlockNumber + this.config.scanSpread * 2;
-
-  //   return { leftBlockNumber, rightBlockNumber };
-  // }
-
-  // //TODO correctness?
-  // getLeftBlockNumber(blockNumber: number): number {
-  //   const leftBlock = blockNumber - this.config.scanSpread;
-  //   return leftBlock < 0 ? 0 : leftBlock;
-  // }
-
-  // //TODO correctness?
-  // getRightTimestamp(leftTimestamp, latestTimestamp): number {
-  //   return 2 * latestTimestamp - leftTimestamp;
-  // }
-
   //TODO move this to requestFactory instance
   getCurrentBuckets(reqFactory: any, latest: Block): BucketPair {
     return {
@@ -202,13 +134,8 @@ export default class Scanner {
   }
 
   getNextBuckets(reqFactory: any, latest: Block): BucketPair {
-    // TODO extract to Constants
-    const blockBucketSize = 240;
-    const tsBucketSize = 3600;
-    //
-
-    const nextBlockInterval = latest.number + blockBucketSize;
-    const nextTsInterval = latest.timestamp + tsBucketSize;
+    const nextBlockInterval = latest.number + BucketSize.block;
+    const nextTsInterval = latest.timestamp + BucketSize.timestamp;
 
     return {
       blockBucket: reqFactory.calcBucket(nextBlockInterval, 1),
@@ -258,7 +185,7 @@ export default class Scanner {
     // Set a recursive interval to continue this "scan" every ms/1000 seconds.
     return setInterval(() => {
       this.backupScanBlockchain().catch((err) => this.config.logger.error(err));
-    }, this.ms);
+    }, this.config.ms);
   }
 
   async watchBlockchain(): Promise<IntervalID> {
@@ -309,66 +236,6 @@ export default class Scanner {
     return true;
   }
 
-  // async fill(request) {
-  //   const txRequest = await this.config.eac.transactionRequest(request.address);
-  //   txRequest.fillWithParams(request.uintArgs);
-  //   return txRequest;
-  // }
-
-  // async scan(
-  //   left: number,
-  //   right: number,
-  //   firstRequest: String,
-  //   shouldStore: Function,
-  //   atBound: Function,
-  //   getNext: Function
-  // ): Promise<any> {
-  //   let currentRequestAddress = firstRequest;
-
-  //   // Return if NULL_ADDRESS and no new transaction requests found.
-  //   if (!this.isValid(currentRequestAddress)) return;
-
-  //   // Loop the cache storage logic while we still get valid transaction requests.
-  //   while (currentRequestAddress !== this.config.eac.Constants.NULL_ADDRESS) {
-  //     this.config.logger.debug(`[${currentRequestAddress}] Discovered.`);
-  //     // try get the value from cache, fallback to -1 as default
-  //     let windowStart = parseInt(
-  //       this.config.cache.get(currentRequestAddress, -1)
-  //     );
-
-  //     if (windowStart === -1) {
-  //       // If it's not already in cache, find windowStart.
-  //       const txRequest = await this.fill(currentRequestAddress);
-  //       windowStart = txRequest.windowStart;
-
-  //       if (
-  //         txRequest &&
-  //         shouldStore(windowStart) &&
-  //         this.isUpcoming(txRequest)
-  //       ) {
-  //         // If the windowStart returns True to `shouldStore(...)`, store it.
-  //         this.store(txRequest);
-  //       }
-  //     }
-
-  //     // always check if we already hit bounds
-  //     // TODO remove bounds -- no longer needed with the buckets
-  //     if (atBound(windowStart)) {
-  //       // Stop looping if we hit the bounds.
-  //       break;
-  //     }
-
-  //     // Get the next transaction request.
-  //     currentRequestAddress = await getNext(currentRequestAddress);
-
-  //     // Hearbeat
-  //     if (currentRequestAddress === this.config.eac.Constants.NULL_ADDRESS) {
-  //       this.config.logger.debug('No new requests discovered.');
-  //       break;
-  //     }
-  //   }
-  // }
-
   // TODO meaningful return value
   async scanCache(): Promise<void> {
     // Check if the cache is empty.
@@ -385,7 +252,7 @@ export default class Scanner {
       txRequests.forEach((txRequest: TxRequest) => {
         txRequest
           .refreshData()
-          .then(() => routeTxRequest(this.config, txRequest));
+          .then(() => this.router.route(this.config, txRequest));
       });
     });
   }
