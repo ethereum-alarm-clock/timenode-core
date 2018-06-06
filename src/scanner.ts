@@ -1,7 +1,6 @@
 /* eslint no-await-in-loop: 'off' */
 declare const require;
 
-import { routeTxRequest } from './routing.js';
 const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
 
@@ -21,7 +20,8 @@ import {
 
 export default class Scanner {
   config: Config;
-  running: boolean;
+  scanning: boolean;
+  router: any;
 
   // Child Scanners, tracked by the ID of their interval
   cacheScanner: IntervalID;
@@ -34,59 +34,13 @@ export default class Scanner {
    * @param {number} ms Milliseconds of the scan interval.
    * @param {Config} config The TimeNode Config object.
    */
-  constructor(config: Config) {
+  constructor(config: Config, router: any) {
     this.config = config;
-
-    if (this.config.autostart) {
-      this.startupMessage();
-      this.start();
-    } else {
-      this.running = false;
-    }
+    this.scanning = false;
+    this.router = router;
   }
 
-  startupMessage() {
-    this.logNetwork();
-    this.config.logger.info(`EAC.JS-client version.. ${clientVersion}`);
-    this.config.logger.info(
-      `Using request factory at ${this.config.factory.address}`
-    );
-    this.config.logger.info(`Scanning every ${this.config.ms / 1000} seconds`);
-  }
-
-  logNetwork() {
-    // TODO: extract this out to a constants package.
-    const Networks = {
-      0: 'Private',
-      1: 'Mainnet',
-      2: 'Morden',
-      3: 'Ropsten',
-      4: 'Rinkeby',
-      42: 'Kovan',
-    };
-    this.config.web3.version.getNetwork((err, res) => {
-      if (err) {
-        this.config.logger.error('Unable to determine Ethereum network..');
-      }
-      this.config.logger.info(`Ethereum network.. ${Networks[res || 0]}`);
-    });
-
-    const provider = this.config.web3.currentProvider;
-
-    let providerUrl;
-    if (provider) {
-      providerUrl = provider.host ? provider.host : provider.connection.url;
-    } else {
-      providerUrl = 'Unknown';
-    }
-
-    this.config.logger.info(`Web3 provider.. ${providerUrl}`);
-  }
-
-  async start() {
-    // Clear the intervals if this Scanner is already started via a hard reboot.
-    if (this.running) this.stop();
-
+  async start(): Promise<boolean> {
     // Create the interval for processing the transaction requests in cache.
     this.cacheScanner = setInterval(() => {
       this.scanCache().catch((err) => this.config.logger.error(err));
@@ -130,17 +84,22 @@ export default class Scanner {
 
     // Mark that we've started.
     this.config.logger.info('Scanner STARTED');
-    this.running = true;
+    this.scanning = true;
+    return this.scanning;
   }
 
-  async stop() {
-    // Clear scanning intervals.
-    clearInterval(this.cacheScanner);
-    clearInterval(this.chainScanner);
+  stop(): boolean {
+    if (this.scanning) {
+      // Clear scanning intervals.
+      clearInterval(this.cacheScanner);
+      clearInterval(this.chainScanner);
 
-    // Mark that we've stopped.
-    this.config.logger.info('Scanner STOPPED');
-    this.running = false;
+      // Mark that we've stopped.
+      this.config.logger.info('Scanner STOPPED');
+      this.scanning = false;
+    }
+
+    return this.scanning;
   }
 
   /**
@@ -373,7 +332,7 @@ export default class Scanner {
       txRequests.forEach((txRequest: TxRequest) => {
         txRequest
           .refreshData()
-          .then(() => routeTxRequest(this.config, txRequest));
+          .then(() => this.router.route(this.config, txRequest));
       });
     });
   }

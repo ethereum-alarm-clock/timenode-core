@@ -18,11 +18,10 @@ export default class Router {
     config: Config;
     txRequestStates: Object;
 
-    // TODO rename transitions -> processes
     transitions: Object;
 
-    constructor(config: Config) {
-        this.actions = new Actions(config);
+    constructor(config: Config, actions: any) {
+        this.actions = actions;
         this.config = config;
 
         this.transitions[Status.BeforeClaimWindow] = this.beforeClaimWindow;
