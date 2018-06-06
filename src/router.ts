@@ -22,11 +22,11 @@ export default class Router {
     constructor(config: Config) {
         this.config = config;
 
-        this.transitions[Status.BeforeClaimWindow] = this.beforeClaimWindow();
-        this.transitions[Status.ClaimWindow] = this.claimWindow();
-        this.transitions[Status.FreezePeriod] = this.freezePeriod();
-        this.transitions[Status.ExecutionWindow] = this.executionWindow();
-        this.transitions[Status.Executed] = this.executed();
+        this.transitions[Status.BeforeClaimWindow] = this.beforeClaimWindow;
+        this.transitions[Status.ClaimWindow] = this.claimWindow;
+        this.transitions[Status.FreezePeriod] = this.freezePeriod;
+        this.transitions[Status.ExecutionWindow] = this.executionWindow;
+        this.transitions[Status.Executed] = this.executed;
     }
 
     async beforeClaimWindow(txRequest): Promise<Status> {
@@ -49,6 +49,7 @@ export default class Router {
         }
 
         try {
+            //TODO do we care about return value?
             await this.claim(txRequest)
         } catch (e) {
             // TODO handle gracefully?
@@ -56,6 +57,29 @@ export default class Router {
         }
 
         return Status.FreezePeriod;
+    }
+
+    async freezePeriod(txRequest): Promise<Status> {
+        if (await txRequest.inFreezePeriod()) {
+            return Status.FreezePeriod;
+        }
+
+        if (await txRequest.inExecutionWindow()) {
+            return Status.ExecutionWindow;
+        }
+    }
+
+    async executionWindow(txRequest): Promise<Status> {
+        if (txRequest.wasCalled) {
+            return Status.Executed;
+        }
+
+        const reserved = await txRequest.inReservedWindow();
+        if (reserved && !this.isLocalClaim(txRequest)) {
+            return Status.ExecutionWindow;
+        }
+
+        
     }
 
     async claim(txRequest): Promise<any> {
