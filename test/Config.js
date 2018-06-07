@@ -1,3 +1,4 @@
+const { assert } = require('./helpers/assert');
 const standardConfig = require('./helpers/standardConfig');
 
 describe('Config', () => {
