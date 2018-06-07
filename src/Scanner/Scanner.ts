@@ -1,7 +1,6 @@
 /* eslint no-await-in-loop: 'off' */
 declare const require;
 
-const clientVersion = require('../package.json').version;
 const SCAN_DELAY = 1;
 
 import Config from '../Config';
