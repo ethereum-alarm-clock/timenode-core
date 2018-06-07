@@ -49,7 +49,17 @@ export default class Actions {
       value: 0,
       gas: gasToExecute,
       // TODO estimate gas above
+      gasPrice: 12,
+      data: executeData,
+    };
+
+    if (await hasPending(this.config, txRequest)) {
+      return {
+        ignore: true,
+      };
     }
+
+    const txHash = await this.config.wallet.sendFromIndex(opts);
   }
 
   async cleanup(txRequest): Promise<any> {}
