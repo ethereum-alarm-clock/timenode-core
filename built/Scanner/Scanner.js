@@ -35,7 +35,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var clientVersion = require('../package.json').version;
 var SCAN_DELAY = 1;
 var Buckets_1 = require("../Buckets");
 var Scanner = /** @class */ (function () {
