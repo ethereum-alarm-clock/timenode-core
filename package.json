@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "clean-backups": "rm src/*.b",
+    "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm built -r",
     "clean": "yarn clean-backups && yarn clean-built",
     "fmt": "node scripts/fmt.js",
