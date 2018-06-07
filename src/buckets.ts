@@ -1,13 +1,13 @@
 type Bucket = number;
 
-interface BucketPair {
+interface IBucketPair {
 	blockBucket: Bucket;
 	timestampBucket: Bucket;
 }
 
-interface Buckets {
-	currentBuckets: BucketPair;
-	nextBuckets: BucketPair;
+interface IBuckets {
+    currentBuckets: IBucketPair;
+    nextBuckets: IBucketPair;
 }
 
 const BucketSize = {
@@ -17,7 +17,7 @@ const BucketSize = {
 
 export {
     Bucket,
-    BucketPair,
-    Buckets,
+    IBucketPair,
+    IBuckets,
     BucketSize,
 }

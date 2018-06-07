@@ -1,15 +1,16 @@
 import Cache from './cache';
-import { Logger, DefaultLogger } from './logger';
+import { ILogger, DefaultLogger } from './logger';
 import Wallet from './wallet';
+import { IEconomicStrategy } from './EconomicStrategy';
 
 
 //TODO remove factory
-interface ConfigParams {
+interface IConfigParams {
   autostart: boolean;
   eac?: any;
-  economicStrategy?: EconomicStrategy,
+  economicStrategy?: IEconomicStrategy,
   factory?: any;
-  logger?: Logger;
+  logger?: ILogger;
   ms?: any;
   password?: any;
   provider?: any;
@@ -18,24 +19,20 @@ interface ConfigParams {
   web3?: any;
 }
 
-interface EconomicStrategy {
-  // TODO
-}
-
 export default class Config {
   autostart: boolean;
   cache: any;
   eac: any;
-  economicStrategy?: EconomicStrategy,
+  economicStrategy?: IEconomicStrategy,
   factory: any;
-  logger: Logger;
+  logger: ILogger;
   ms: any;
   provider: any;
   scanSpread: any;
   wallet: any;
   web3: any;
 
-  constructor(params: ConfigParams) {
+  constructor(params: IConfigParams) {
     this.autostart = params.autostart || true;
     this.scanSpread = params.scanSpread || 50;
 

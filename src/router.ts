@@ -1,4 +1,4 @@
-import BigNumber = require('bignumber.js');
+import BigNumber from 'bignumber.js';
 
 import Actions from './actions';
 import Config from './config';

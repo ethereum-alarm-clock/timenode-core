@@ -1,4 +1,4 @@
-interface Block {
+interface IBlock {
 	number: number;
 	timestamp: number;
 }
@@ -6,13 +6,13 @@ interface Block {
 type IntervalID = number;
 
 // TODO this is only temporary
-interface TxRequest {
+interface ITxRequest {
 	refreshData: Function;
 }
   
 export {
-	Block,
+	IBlock,
 	IntervalID,
-	TxRequest,
+	ITxRequest,
 }
   

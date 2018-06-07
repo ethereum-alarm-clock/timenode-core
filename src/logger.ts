@@ -1,13 +1,13 @@
 declare const console;
 
-interface Logger {
+interface ILogger {
     cache: Function,
     debug: Function,
     error: Function,
     info: Function,
 }
 
-class DefaultLogger implements Logger {
+class DefaultLogger implements ILogger {
     cache(msg: String): void {
         this.formatPrint(msg, 'CACHE');
     }
@@ -34,6 +34,6 @@ class DefaultLogger implements Logger {
 }
 
 export {
-    Logger,
+    ILogger,
     DefaultLogger,
 }
