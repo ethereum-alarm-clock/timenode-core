@@ -62,5 +62,50 @@ export default class Actions {
     const txHash = await this.config.wallet.sendFromIndex(opts);
   }
 
-  async cleanup(txRequest): Promise<any> {}
+  async cleanup(txRequest): Promise<boolean> {
+    // Check if there is any ether left in a txRequest.
+    const txRequestBalance = await txRequest.getBalance();
+
+    if (txRequestBalance.equals(0)) {
+      return true;
+    }
+
+    if (txRequest.isCancelled) {
+      return true;
+    } else {
+      // Cancel it!
+      // TODO estimate gas here
+      const gasToCancel = 12;
+
+      // Get latest block gas price.
+      const currentGasPrice = 12;
+
+      // TODO real numbers
+      const gasCostToCancel = currentGasPrice.times(gasToCancel);
+
+      const opts = {
+        to: txRequest.address,
+        value: 0,
+        gas: gasToCancel + 21000,
+        gasPrice: currentGasPrice,
+        data: txRequest.cancelData, // TODO make constant
+      };
+
+      let transactionHash;
+      // Check to see if any of our accounts is the owner.
+      const ownerIndex = this.config.getAddresses().indexOf(txRequest.owner);
+      if (ownerIndex !== -1) {
+        transactionHash = await this.config.wallet.sendFromIndex(ownerIndex, opts);
+      } else {
+        if (gasCostToCancel.greaterThan(txRequestBalance)) {
+          // The txRequest doesn't have high enough balance to compensate.
+          // It's now considered dust.
+          return true;
+        }
+        transactionHash = await this.config.sendFromNext(opts);
+      }
+
+      //TODO get tx Obj from hash
+    }
+  }
 }
