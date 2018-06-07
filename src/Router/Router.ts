@@ -116,7 +116,7 @@ export default class Router {
 
         // TODO
 
-    }
+    }  
 
     // TODO do not return void
     async route(txRequest): Promise<void> {

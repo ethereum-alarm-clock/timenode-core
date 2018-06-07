@@ -4,4 +4,4 @@ export interface IEconomicStrategy {
     maxDeposit?: BigNumber;
     minBalance?: BigNumber;
     minProfitability?: BigNumber;
-}
+};
