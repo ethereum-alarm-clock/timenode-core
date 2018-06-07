@@ -1,13 +1,13 @@
 type Bucket = number;
 
-interface BucketPair {
-  blockBucket: Bucket;
-  timestampBucket: Bucket;
+interface IBucketPair {
+	blockBucket: Bucket;
+	timestampBucket: Bucket;
 }
 
-interface Buckets {
-  currentBuckets: BucketPair;
-  nextBuckets: BucketPair;
+interface IBuckets {
+    currentBuckets: IBucketPair;
+    nextBuckets: IBucketPair;
 }
 
 const BucketSize = {
@@ -15,4 +15,9 @@ const BucketSize = {
   timestamp: 3600,
 };
 
-export { Bucket, BucketPair, Buckets, BucketSize };
+export {
+    Bucket,
+    IBucketPair,
+    IBuckets,
+    BucketSize,
+}
