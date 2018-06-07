@@ -46,7 +46,6 @@ const getSourceFiles = (path) => {
 
 const main = () => {
     const files = getSourceFiles(sourceDir);
-    console.log(files);
 
     files.map((file) => {
         // Set the Typescript parser for Typescript files
