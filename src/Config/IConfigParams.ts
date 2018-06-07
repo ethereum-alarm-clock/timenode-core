@@ -4,14 +4,14 @@ import { ILogger, DefaultLogger } from '../Logger';
 //TODO remove factory
 export interface IConfigParams {
   autostart: boolean;
-  eac?: any;
+  eac: any;
   economicStrategy?: IEconomicStrategy;
   factory?: any;
-  logger?: ILogger;
+  logger: ILogger|null;
   ms?: any;
   password?: any;
-  provider?: any;
-  scanSpread?: number | null;
+  provider: any;
+  scanSpread: number | null;
   walletStores?: any;
-  web3?: any;
+  web3: any;
 }

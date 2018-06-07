@@ -6,3 +6,5 @@ yarn.lock
 package-lock.json
 *.b
 Routing.ts
+old_tests
+old_tests/*
