@@ -40,8 +40,6 @@ var Actions = /** @class */ (function () {
     function Actions(config) {
         this.config = config;
     }
-    // async hasPendingTxInTxPool(txRequest): Promise<boolean> {
-    // }
     Actions.prototype.claim = function (txRequest) {
         return __awaiter(this, void 0, void 0, function () {
             var requiredDeposit, claimData, opts, txHash;
@@ -66,9 +64,7 @@ var Actions = /** @class */ (function () {
                                     ignore: true,
                                 }];
                         }
-                        return [4 /*yield*/, this.config.wallet.sendFromNext(opts)
-                            //TODO get transaction object from txHash
-                        ];
+                        return [4 /*yield*/, this.config.wallet.sendFromNext(opts)];
                     case 2:
                         txHash = _a.sent();
                         return [2 /*return*/];
@@ -77,18 +73,14 @@ var Actions = /** @class */ (function () {
         });
     };
     Actions.prototype.execute = function (txRequest) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                return [2 /*return*/];
-            });
-        });
+        return __awaiter(this, void 0, void 0, function () { return __generator(this, function (_a) {
+            return [2 /*return*/];
+        }); });
     };
     Actions.prototype.cleanup = function (txRequest) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                return [2 /*return*/];
-            });
-        });
+        return __awaiter(this, void 0, void 0, function () { return __generator(this, function (_a) {
+            return [2 /*return*/];
+        }); });
     };
     return Actions;
 }());

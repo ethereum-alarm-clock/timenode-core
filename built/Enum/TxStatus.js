@@ -9,4 +9,3 @@ var TxStatus;
     TxStatus[TxStatus["Executed"] = 4] = "Executed";
     TxStatus[TxStatus["Done"] = 5] = "Done";
 })(TxStatus = exports.TxStatus || (exports.TxStatus = {}));
-;

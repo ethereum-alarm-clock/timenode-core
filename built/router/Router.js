@@ -181,7 +181,9 @@ var Router = /** @class */ (function () {
                     case 0: return [4 /*yield*/, txRequest.claimPaymentModifier()];
                     case 1:
                         claimPaymentModifier = _a.sent();
-                        paymentWhenClaimed = txRequest.bounty.times(claimPaymentModifier).dividedToIntegerBy(100);
+                        paymentWhenClaimed = txRequest.bounty
+                            .times(claimPaymentModifier)
+                            .dividedToIntegerBy(100);
                         return [2 /*return*/];
                 }
             });

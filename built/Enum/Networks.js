@@ -9,4 +9,3 @@ var Networks;
     Networks[Networks["Rinkeby"] = 4] = "Rinkeby";
     Networks[Networks["Kovan"] = 42] = "Kovan";
 })(Networks = exports.Networks || (exports.Networks = {}));
-;
