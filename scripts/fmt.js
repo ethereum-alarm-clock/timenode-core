@@ -4,7 +4,7 @@
 const fs = require('fs');
 const prettier = require('prettier');
 
-const sourceDir = 'src';
+const sourceDir = 'src/';
 
 const pOpts = {
     arrowParens: 'always',
@@ -14,8 +14,40 @@ const pOpts = {
     parser: 'babylon',
 }
 
+const getSourceFiles = (path) => {
+    const contents = fs.readdirSync(path);
+
+    const files = contents.map((content) => {
+        const stats = fs.statSync(path + content);
+        if (stats.isDirectory()) {
+            content = content + '/';
+            const childFiles = getSourceFiles(path + content);
+            return childFiles.map((file) => {
+                return content + file;
+            })
+        }
+
+        return content;
+    })
+
+    let t = [];
+    files.forEach((file) => {
+        if (Array.isArray(file)) {
+            file.forEach((d) => {
+                t.push(d);
+            })
+        } else {
+            t.push(file);
+        }
+    })
+
+    return t;
+}
+
 const main = () => {
-    const files = fs.readdirSync(sourceDir);
+    const files = getSourceFiles(sourceDir);
+    console.log(files);
+
     files.map((file) => {
         // Set the Typescript parser for Typescript files
         if (file.slice(-2) === 'ts') {
