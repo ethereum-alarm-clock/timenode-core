@@ -1,5 +1,5 @@
 const packageJSON = require('../package.json');
-const expect = require("chai").expect
+const expect = require('chai').expect
 
 // from https://docs.npmjs.com/files/package.json#dependencies
 const nonExactPrefixes = ['~', '^', '>', '>=', '<', '<='];

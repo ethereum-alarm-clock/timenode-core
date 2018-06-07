@@ -37,7 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var clientVersion = require('../package.json').version;
 var SCAN_DELAY = 1;
-var buckets_1 = require("./buckets");
+var Buckets_1 = require("../Buckets");
 var Scanner = /** @class */ (function () {
     /**
      * Creates a new Scanner instance. The scanner serves as the top level
@@ -166,8 +166,8 @@ var Scanner = /** @class */ (function () {
         };
     };
     Scanner.prototype.getNextBuckets = function (reqFactory, latest) {
-        var nextBlockInterval = latest.number + buckets_1.BucketSize.block;
-        var nextTsInterval = latest.timestamp + buckets_1.BucketSize.timestamp;
+        var nextBlockInterval = latest.number + Buckets_1.BucketSize.block;
+        var nextTsInterval = latest.timestamp + Buckets_1.BucketSize.timestamp;
         return {
             blockBucket: reqFactory.calcBucket(nextBlockInterval, 1),
             timestampBucket: reqFactory.calcBucket(nextTsInterval, 2),
