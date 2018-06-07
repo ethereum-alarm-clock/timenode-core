@@ -10,4 +10,7 @@ cache:
 before_install: npm install -g mocha
 install: npm install
 script:
-  - npm test
+  - npm run fmt
+  - npm run build
+  - npm run test
+  - npm run clean
