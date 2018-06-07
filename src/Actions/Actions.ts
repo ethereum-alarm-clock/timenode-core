@@ -35,7 +35,22 @@ export default class Actions {
     //TODO get transaction object from txHash
   }
 
-  async execute(txRequest): Promise<any> {}
+  async execute(txRequest): Promise<any> {
+    const gasToExecute = txRequest.callGas.add(180000).div(64).times(65).round();
+    // TODO Check that the gasToExecue < gasLimit of latest block w/ some margin
+
+    // TODO make this a constant
+    const executeData = txRequest.executeData;
+
+    const claimIndex = this.config.wallet.getAddresses().indexOf(txRequest.claimedBy);
+
+    const opts = {
+      to: txRequest.address,
+      value: 0,
+      gas: gasToExecute,
+      // TODO estimate gas above
+    }
+  }
 
   async cleanup(txRequest): Promise<any> {}
 }

@@ -36,8 +36,9 @@ export default class Router {
   }
 
   async claimWindow(txRequest): Promise<TxStatus> {
-    //TODO check inClaimWindow
-
+    if (!(await txRequest.inClaimWindow())) {
+      return TxStatus.FreezePeriod;
+    }
     if (txRequest.isClaimed) {
       return TxStatus.FreezePeriod;
     }
