@@ -37,7 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
 var BigNumber = require("bignumber.js");
-var hasPending = require("./pending.js");
+var hasPending = require("../pending.js");
 var Util = require('eac.js-lib')().Util;
 var STATE = {
     PRE_CLAIMING: 0,

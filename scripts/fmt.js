@@ -52,7 +52,7 @@ const main = () => {
         if (file.slice(-2) === 'ts') {
             pOpts.parser = 'typescript';
         }
-        
+
         const filePath = sourceDir + '/' + file;
         const raw = fs.readFileSync(filePath, 'utf8');
 

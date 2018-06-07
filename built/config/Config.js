@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var cache_1 = require("./cache");
-var logger_1 = require("./logger");
-var wallet_1 = require("./wallet");
+var cache_1 = require("../cache");
+var wallet_1 = require("../wallet");
+var Logger_1 = require("../Logger");
 var Config = /** @class */ (function () {
     function Config(params) {
         this.autostart = params.autostart || true;
         this.scanSpread = params.scanSpread || 50;
-        this.logger = params.logger || new logger_1.DefaultLogger();
+        this.logger = params.logger || new Logger_1.DefaultLogger();
         this.cache = new cache_1.default(this.logger);
         if (params.eac && params.factory && params.provider && params.web3) {
             this.eac = params.eac;
