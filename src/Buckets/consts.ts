@@ -1,4 +1,4 @@
 export const BucketSize = {
-    block: 240,
-    timestamp: 3600,
+  block: 240,
+  timestamp: 3600,
 };

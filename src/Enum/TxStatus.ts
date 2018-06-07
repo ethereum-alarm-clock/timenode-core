@@ -1,8 +1,8 @@
 export enum TxStatus {
-    BeforeClaimWindow,
-    ClaimWindow,
-    FreezePeriod,
-    ExecutionWindow,
-    Executed,
-    Done,
-};
+  BeforeClaimWindow,
+  ClaimWindow,
+  FreezePeriod,
+  ExecutionWindow,
+  Executed,
+  Done,
+}

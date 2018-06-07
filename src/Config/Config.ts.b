@@ -17,7 +17,7 @@ export default class Config implements IConfigParams {
   wallet: any;
   web3: any;
 
-  constructor(params: IConfigParams) {
+  constructor(params: IConfigParams) {    
     this.autostart = params.autostart || true;
     this.scanSpread = params.scanSpread || 50;
 

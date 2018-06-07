@@ -1,11 +1,8 @@
 type Bucket = number;
 
 interface IBucketPair {
-	blockBucket: Bucket;
-	timestampBucket: Bucket;
-};
+  blockBucket: Bucket;
+  timestampBucket: Bucket;
+}
 
-export {
-	Bucket,
-	IBucketPair
-};
+export { Bucket, IBucketPair };

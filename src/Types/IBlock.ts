@@ -1,4 +1,4 @@
 export interface IBlock {
-    number: number;
-    timestamp: number;
-};
+  number: number;
+  timestamp: number;
+}

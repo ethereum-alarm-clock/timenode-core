@@ -9,9 +9,18 @@ import Config from '../Config';
 declare const clearInterval;
 declare const setInterval;
 
-import { IBlock, IntervalId, ITxRequest } from '../Types';
+import {
+  IBlock,
+  IntervalId,
+  ITxRequest,
+} from '../Types';
 
-import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
+import {
+  Bucket,
+  IBucketPair,
+  IBuckets,
+  BucketSize,
+} from '../Buckets';
 
 export default class Scanner {
   config: Config;

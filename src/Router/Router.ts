@@ -5,130 +5,132 @@ import Config from '../Config';
 import { TxStatus } from '../Enum';
 
 export default class Router {
-    actions: Actions;
-    config: Config;
-    txRequestStates: Object;
+  actions: Actions;
+  config: Config;
+  txRequestStates: Object;
 
-    transitions: Object;
+  transitions: Object;
 
-    constructor(config: Config, actions: any) {
-        this.actions = actions;
-        this.config = config;
+  constructor(config: Config, actions: any) {
+    this.actions = actions;
+    this.config = config;
 
-        this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow;
-        this.transitions[TxStatus.ClaimWindow] = this.claimWindow;
-        this.transitions[TxStatus.FreezePeriod] = this.freezePeriod;
-        this.transitions[TxStatus.ExecutionWindow] = this.executionWindow;
-        this.transitions[TxStatus.Executed] = this.executed;
+    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow;
+    this.transitions[TxStatus.ClaimWindow] = this.claimWindow;
+    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod;
+    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow;
+    this.transitions[TxStatus.Executed] = this.executed;
+  }
+
+  async beforeClaimWindow(txRequest): Promise<TxStatus> {
+    if (txRequest.isCancelled) {
+      // TODO Status.CleanUp?
+      return TxStatus.Executed;
     }
 
-    async beforeClaimWindow(txRequest): Promise<TxStatus> {
-        if (txRequest.isCancelled) {
-            // TODO Status.CleanUp?
-            return TxStatus.Executed;
-        }
-
-        if (await txRequest.beforeClaimWindow()) {
-            return TxStatus.BeforeClaimWindow;
-        }
-
-        return TxStatus.ClaimWindow;
+    if (await txRequest.beforeClaimWindow()) {
+      return TxStatus.BeforeClaimWindow;
     }
 
-    async claimWindow(txRequest): Promise<TxStatus> {
-        //TODO check inClaimWindow
+    return TxStatus.ClaimWindow;
+  }
 
-        if (txRequest.isClaimed) {
-            return TxStatus.FreezePeriod;
-        }
+  async claimWindow(txRequest): Promise<TxStatus> {
+    //TODO check inClaimWindow
 
-        try {
-            // check profitability FIRST
-            // ... here
-            //TODO do we care about return value?
-            await this.actions.claim(txRequest)
-        } catch (e) {
-            // TODO handle gracefully?
-            throw new Error(e);
-        }
-
-        return TxStatus.FreezePeriod;
+    if (txRequest.isClaimed) {
+      return TxStatus.FreezePeriod;
     }
 
-    async freezePeriod(txRequest): Promise<TxStatus> {
-        if (await txRequest.inFreezePeriod()) {
-            return TxStatus.FreezePeriod;
-        }
-
-        if (await txRequest.inExecutionWindow()) {
-            return TxStatus.ExecutionWindow;
-        }
+    try {
+      // check profitability FIRST
+      // ... here
+      //TODO do we care about return value?
+      await this.actions.claim(txRequest);
+    } catch (e) {
+      // TODO handle gracefully?
+      throw new Error(e);
     }
 
-    async executionWindow(txRequest): Promise<TxStatus> {
-        if (txRequest.wasCalled) {
-            return TxStatus.Executed;
-        }
+    return TxStatus.FreezePeriod;
+  }
 
-        const reserved = await txRequest.inReservedWindow();
-        if (reserved && !this.isLocalClaim(txRequest)) {
-            return TxStatus.ExecutionWindow;
-        }
-
-        try {
-            await this.actions.execute(txRequest);
-        } catch (e) {
-            //TODO handle gracefully?
-            throw new Error(e);
-        }
-
-        return TxStatus.Executed;
+  async freezePeriod(txRequest): Promise<TxStatus> {
+    if (await txRequest.inFreezePeriod()) {
+      return TxStatus.FreezePeriod;
     }
 
-    async executed(txRequest): Promise<TxStatus> {
-        await this.actions.cleanup(txRequest);
-        return TxStatus.Done;
+    if (await txRequest.inExecutionWindow()) {
+      return TxStatus.ExecutionWindow;
+    }
+  }
+
+  async executionWindow(txRequest): Promise<TxStatus> {
+    if (txRequest.wasCalled) {
+      return TxStatus.Executed;
     }
 
-    isLocalClaim(txRequest) {
-        let localClaim;
-        // TODO add function on config `hasWallet(): boolean`
-        if (this.config.wallet) {
-            localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
-        } else {
-            localClaim = txRequest.isClaimedBy(this.config.web3.defaultAccount);
-        }
-
-        if (!localClaim) {
-            this.config.logger.debug(
-                `[${txRequest.address}] In reserve window and not claimed by this TimeNode.`
-            );
-        }
-
-        return localClaim;
+    const reserved = await txRequest.inReservedWindow();
+    if (reserved && !this.isLocalClaim(txRequest)) {
+      return TxStatus.ExecutionWindow;
     }
 
-    async isProfitableClaim(txRequest) {
-        const claimPaymentModifier = await txRequest.claimPaymentModifier();
-        const paymentWhenClaimed = txRequest.bounty.times(
-            claimPaymentModifier,
-        ).dividedToIntegerBy(100);
-
-        // TODO
-
-    }  
-
-    // TODO do not return void
-    async route(txRequest): Promise<void> {
-        let status: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
-        let nextStatus: TxStatus = await this.transitions[status](txRequest);
-
-        while (nextStatus !== status) {
-            status = nextStatus;
-            nextStatus = await this.transitions[status](txRequest);
-        }
-
-        this.txRequestStates[txRequest.address] = nextStatus;
-        return
+    try {
+      await this.actions.execute(txRequest);
+    } catch (e) {
+      //TODO handle gracefully?
+      throw new Error(e);
     }
+
+    return TxStatus.Executed;
+  }
+
+  async executed(txRequest): Promise<TxStatus> {
+    await this.actions.cleanup(txRequest);
+    return TxStatus.Done;
+  }
+
+  isLocalClaim(txRequest) {
+    let localClaim;
+    // TODO add function on config `hasWallet(): boolean`
+    if (this.config.wallet) {
+      localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
+    } else {
+      localClaim = txRequest.isClaimedBy(this.config.web3.defaultAccount);
+    }
+
+    if (!localClaim) {
+      this.config.logger.debug(
+        `[${
+          txRequest.address
+        }] In reserve window and not claimed by this TimeNode.`
+      );
+    }
+
+    return localClaim;
+  }
+
+  async isProfitableClaim(txRequest) {
+    const claimPaymentModifier = await txRequest.claimPaymentModifier();
+    const paymentWhenClaimed = txRequest.bounty
+      .times(claimPaymentModifier)
+      .dividedToIntegerBy(100);
+
+    // TODO
+  }
+
+  // TODO do not return void
+  async route(txRequest): Promise<void> {
+    let status: TxStatus =
+      this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
+    let nextStatus: TxStatus = await this.transitions[status](txRequest);
+
+    while (nextStatus !== status) {
+      status = nextStatus;
+      nextStatus = await this.transitions[status](txRequest);
+    }
+
+    this.txRequestStates[txRequest.address] = nextStatus;
+    return;
+  }
 }
