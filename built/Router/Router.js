@@ -70,29 +70,32 @@ var Router = /** @class */ (function () {
             var e_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        //TODO check inClaimWindow
+                    case 0: return [4 /*yield*/, txRequest.inClaimWindow()];
+                    case 1:
+                        if (!(_a.sent())) {
+                            return [2 /*return*/, Enum_1.TxStatus.FreezePeriod];
+                        }
                         if (txRequest.isClaimed) {
                             return [2 /*return*/, Enum_1.TxStatus.FreezePeriod];
                         }
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
+                        _a.label = 2;
+                    case 2:
+                        _a.trys.push([2, 4, , 5]);
                         // check profitability FIRST
                         // ... here
                         //TODO do we care about return value?
                         return [4 /*yield*/, this.actions.claim(txRequest)];
-                    case 2:
+                    case 3:
                         // check profitability FIRST
                         // ... here
                         //TODO do we care about return value?
                         _a.sent();
-                        return [3 /*break*/, 4];
-                    case 3:
+                        return [3 /*break*/, 5];
+                    case 4:
                         e_1 = _a.sent();
                         // TODO handle gracefully?
                         throw new Error(e_1);
-                    case 4: return [2 /*return*/, Enum_1.TxStatus.FreezePeriod];
+                    case 5: return [2 /*return*/, Enum_1.TxStatus.FreezePeriod];
                 }
             });
         });

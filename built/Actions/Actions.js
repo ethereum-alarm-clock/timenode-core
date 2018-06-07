@@ -35,6 +35,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var bignumber_js_1 = require("bignumber.js");
 var hasPending = require("../pending.js");
 var Actions = /** @class */ (function () {
     function Actions(config) {
@@ -73,14 +74,88 @@ var Actions = /** @class */ (function () {
         });
     };
     Actions.prototype.execute = function (txRequest) {
-        return __awaiter(this, void 0, void 0, function () { return __generator(this, function (_a) {
-            return [2 /*return*/];
-        }); });
+        return __awaiter(this, void 0, void 0, function () {
+            var gasToExecute, executeData, claimIndex, opts, txHash;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        gasToExecute = txRequest.callGas
+                            .add(180000)
+                            .div(64)
+                            .times(65)
+                            .round();
+                        executeData = txRequest.executeData;
+                        claimIndex = this.config.wallet
+                            .getAddresses()
+                            .indexOf(txRequest.claimedBy);
+                        opts = {
+                            to: txRequest.address,
+                            value: 0,
+                            gas: gasToExecute,
+                            // TODO estimate gas above
+                            gasPrice: 12,
+                            data: executeData,
+                        };
+                        return [4 /*yield*/, hasPending(this.config, txRequest)];
+                    case 1:
+                        if (_a.sent()) {
+                            return [2 /*return*/, {
+                                    ignore: true,
+                                }];
+                        }
+                        return [4 /*yield*/, this.config.wallet.sendFromIndex(opts)];
+                    case 2:
+                        txHash = _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
     };
     Actions.prototype.cleanup = function (txRequest) {
-        return __awaiter(this, void 0, void 0, function () { return __generator(this, function (_a) {
-            return [2 /*return*/];
-        }); });
+        return __awaiter(this, void 0, void 0, function () {
+            var txRequestBalance, gasToCancel, currentGasPrice, gasCostToCancel, opts, transactionHash, ownerIndex;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, txRequest.getBalance()];
+                    case 1:
+                        txRequestBalance = _a.sent();
+                        if (txRequestBalance.equals(0)) {
+                            return [2 /*return*/, true];
+                        }
+                        if (!txRequest.isCancelled) return [3 /*break*/, 2];
+                        return [2 /*return*/, true];
+                    case 2:
+                        gasToCancel = 12;
+                        currentGasPrice = new bignumber_js_1.default(12);
+                        gasCostToCancel = currentGasPrice.times(gasToCancel);
+                        opts = {
+                            to: txRequest.address,
+                            value: 0,
+                            gas: gasToCancel + 21000,
+                            gasPrice: currentGasPrice,
+                            data: txRequest.cancelData,
+                        };
+                        transactionHash = void 0;
+                        ownerIndex = this.config.wallet.getAddresses().indexOf(txRequest.owner);
+                        if (!(ownerIndex !== -1)) return [3 /*break*/, 4];
+                        return [4 /*yield*/, this.config.wallet.sendFromIndex(ownerIndex, opts)];
+                    case 3:
+                        transactionHash = _a.sent();
+                        return [3 /*break*/, 6];
+                    case 4:
+                        if (gasCostToCancel.greaterThan(txRequestBalance)) {
+                            // The txRequest doesn't have high enough balance to compensate.
+                            // It's now considered dust.
+                            return [2 /*return*/, true];
+                        }
+                        return [4 /*yield*/, this.config.wallet.sendFromNext(opts)];
+                    case 5:
+                        transactionHash = _a.sent();
+                        _a.label = 6;
+                    case 6: return [2 /*return*/];
+                }
+            });
+        });
     };
     return Actions;
 }());

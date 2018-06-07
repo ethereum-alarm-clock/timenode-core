@@ -1,9 +1,9 @@
-import Actions from './actions';
-import Config from './config';
+import Actions from './Actions';
+import Config from './Config';
 import { Networks } from './Enum';
-import Scanner from './scanner';
-import Router from './router';
-import Version from './version';
+import Scanner from './Scanner';
+import Router from './Router';
+import Version from './Version';
 
 export default class TimeNode {
   actions: Actions;

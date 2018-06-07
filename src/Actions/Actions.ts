@@ -1,4 +1,5 @@
-import Config from '../config';
+import BigNumber from 'bignumber.js';
+import Config from '../Config';
 import hasPending = require('../pending.js');
 
 export default class Actions {
@@ -36,13 +37,19 @@ export default class Actions {
   }
 
   async execute(txRequest): Promise<any> {
-    const gasToExecute = txRequest.callGas.add(180000).div(64).times(65).round();
+    const gasToExecute = txRequest.callGas
+      .add(180000)
+      .div(64)
+      .times(65)
+      .round();
     // TODO Check that the gasToExecue < gasLimit of latest block w/ some margin
 
     // TODO make this a constant
     const executeData = txRequest.executeData;
 
-    const claimIndex = this.config.wallet.getAddresses().indexOf(txRequest.claimedBy);
+    const claimIndex = this.config.wallet
+      .getAddresses()
+      .indexOf(txRequest.claimedBy);
 
     const opts = {
       to: txRequest.address,
@@ -78,7 +85,7 @@ export default class Actions {
       const gasToCancel = 12;
 
       // Get latest block gas price.
-      const currentGasPrice = 12;
+      const currentGasPrice = new BigNumber(12);
 
       // TODO real numbers
       const gasCostToCancel = currentGasPrice.times(gasToCancel);
@@ -93,16 +100,19 @@ export default class Actions {
 
       let transactionHash;
       // Check to see if any of our accounts is the owner.
-      const ownerIndex = this.config.getAddresses().indexOf(txRequest.owner);
+      const ownerIndex = this.config.wallet.getAddresses().indexOf(txRequest.owner);
       if (ownerIndex !== -1) {
-        transactionHash = await this.config.wallet.sendFromIndex(ownerIndex, opts);
+        transactionHash = await this.config.wallet.sendFromIndex(
+          ownerIndex,
+          opts
+        );
       } else {
         if (gasCostToCancel.greaterThan(txRequestBalance)) {
           // The txRequest doesn't have high enough balance to compensate.
           // It's now considered dust.
           return true;
         }
-        transactionHash = await this.config.sendFromNext(opts);
+        transactionHash = await this.config.wallet.sendFromNext(opts);
       }
 
       //TODO get tx Obj from hash
