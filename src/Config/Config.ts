@@ -1,16 +1,16 @@
-import Cache from '../Cache';
-import Wallet from '../Wallet';
+import Cache from '../Cache/index';
+import Wallet from '../Wallet/index';
 import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 
 export default class Config implements IConfigParams {
   autostart: boolean;
-  cache: any;
+  cache: Cache;
   eac: any;
   economicStrategy?: IEconomicStrategy;
   factory: any;
-  logger: ILogger;
+  logger?: ILogger;
   ms: any;
   provider: any;
   scanSpread: any;
@@ -45,6 +45,8 @@ export default class Config implements IConfigParams {
         if (typeof store === 'object') {
           return JSON.stringify(store);
         }
+
+        return store;
       });
 
       this.wallet = new Wallet(this.web3);
@@ -52,5 +54,7 @@ export default class Config implements IConfigParams {
     } else {
       this.wallet = false;
     }
+
+    this.ms = params.ms;
   }
 }

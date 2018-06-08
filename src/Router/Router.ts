@@ -1,13 +1,13 @@
 import BigNumber from 'bignumber.js';
 
-import Actions from '../Actions';
+import Actions from '../Actions/index';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
 
 export default class Router {
   actions: Actions;
   config: Config;
-  txRequestStates: Object;
+  txRequestStates: Object = {};
 
   transitions: Object = {};
 
@@ -16,7 +16,7 @@ export default class Router {
     this.config = config;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow;
-    this.transitions[TxStatus.ClaimWindow] = this.claimWindow;
+    this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
     this.transitions[TxStatus.FreezePeriod] = this.freezePeriod;
     this.transitions[TxStatus.ExecutionWindow] = this.executionWindow;
     this.transitions[TxStatus.Executed] = this.executed;
@@ -121,7 +121,7 @@ export default class Router {
   }
 
   // TODO do not return void
-  async route(txRequest): Promise<void> {
+  async route(txRequest): Promise<any> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
     let nextStatus: TxStatus = await this.transitions[status](txRequest);
@@ -139,6 +139,6 @@ export default class Router {
     }
 
     this.txRequestStates[txRequest.address] = nextStatus;
-    return;
+    return nextStatus;
   }
 }
