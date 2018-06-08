@@ -37,7 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var SCAN_DELAY = 1;
 var Buckets_1 = require("../Buckets");
-var Scanner = /** @class */ (function () {
+var default_1 = /** @class */ (function () {
     /**
      * Creates a new Scanner instance. The scanner serves as the top level
      * entry point for the EAC-JS TimeNode. You still need to call the
@@ -45,12 +45,12 @@ var Scanner = /** @class */ (function () {
      * @param {number} ms Milliseconds of the scan interval.
      * @param {Config} config The TimeNode Config object.
      */
-    function Scanner(config, router) {
+    function default_1(config, router) {
         this.config = config;
         this.scanning = false;
         this.router = router;
     }
-    Scanner.prototype.start = function () {
+    default_1.prototype.start = function () {
         return __awaiter(this, void 0, void 0, function () {
             var watchingEnabled, _a, _b;
             var _this = this;
@@ -104,7 +104,7 @@ var Scanner = /** @class */ (function () {
             });
         });
     };
-    Scanner.prototype.stop = function () {
+    default_1.prototype.stop = function () {
         if (this.scanning) {
             // Clear scanning intervals.
             clearInterval(this.cacheScanner);
@@ -125,7 +125,7 @@ var Scanner = /** @class */ (function () {
      * and should be stored in a TimeNodes cache.
      * @param txRequest Transaction Request Object
      */
-    Scanner.prototype.isUpcoming = function (txRequest) {
+    default_1.prototype.isUpcoming = function (txRequest) {
         return __awaiter(this, void 0, void 0, function () {
             var _a, _b, _c;
             return __generator(this, function (_d) {
@@ -158,13 +158,13 @@ var Scanner = /** @class */ (function () {
         });
     };
     //TODO move this to requestFactory instance
-    Scanner.prototype.getCurrentBuckets = function (reqFactory, latest) {
+    default_1.prototype.getCurrentBuckets = function (reqFactory, latest) {
         return {
             blockBucket: reqFactory.calcBucket(latest),
             timestampBucket: reqFactory.calcBucket(latest),
         };
     };
-    Scanner.prototype.getNextBuckets = function (reqFactory, latest) {
+    default_1.prototype.getNextBuckets = function (reqFactory, latest) {
         var nextBlockInterval = latest.number + Buckets_1.BucketSize.block;
         var nextTsInterval = latest.timestamp + Buckets_1.BucketSize.timestamp;
         return {
@@ -172,7 +172,7 @@ var Scanner = /** @class */ (function () {
             timestampBucket: reqFactory.calcBucket(nextTsInterval, 2),
         };
     };
-    Scanner.prototype.getBuckets = function (reqFactory) {
+    default_1.prototype.getBuckets = function (reqFactory) {
         return __awaiter(this, void 0, void 0, function () {
             var latest;
             return __generator(this, function (_a) {
@@ -189,15 +189,15 @@ var Scanner = /** @class */ (function () {
         });
     };
     // TODO shouldn't return void
-    Scanner.prototype.handleRequest = function (request) {
+    default_1.prototype.handleRequest = function (request) {
         if (!this.isValid(request.address))
             return;
-        this.config.logger.debug("[" + request.address + "] Discovered");
+        this.config.logger.info("[" + request.address + "] Discovered");
         if (!this.config.cache.has(request.address)) {
             this.store(request);
         }
     };
-    Scanner.prototype.backupScanBlockchain = function () {
+    default_1.prototype.backupScanBlockchain = function () {
         return __awaiter(this, void 0, void 0, function () {
             var reqFactory, _a, currentBuckets, nextBuckets;
             var _this = this;
@@ -231,9 +231,9 @@ var Scanner = /** @class */ (function () {
             });
         });
     };
-    Scanner.prototype.watchBlockchain = function () {
+    default_1.prototype.watchBlockchain = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var reqFactory, _a, currentBuckets, nextBuckets;
+            var reqFactory, _a, currentBuckets, nextBuckets, handleRequest;
             var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -243,11 +243,20 @@ var Scanner = /** @class */ (function () {
                         return [4 /*yield*/, this.getBuckets(reqFactory)];
                     case 2:
                         _a = _b.sent(), currentBuckets = _a.currentBuckets, nextBuckets = _a.nextBuckets;
+                        handleRequest = function (request) {
+                            if (!_this.isValid(request.address)) {
+                                throw new Error("[" + request.address + "] NOT VALID");
+                            }
+                            _this.config.logger.info("[" + request.address + "] Discovered");
+                            if (!_this.config.cache.has(request.address)) {
+                                _this.store(request);
+                            }
+                        };
                         // Start watching the current buckets right away.
-                        reqFactory.watchRequestsByBucket(currentBuckets.blockBucket, this.handleRequest);
-                        reqFactory.watchRequestsByBucket(currentBuckets.timestampBucket, this.handleRequest);
-                        reqFactory.watchRequestsByBucket(nextBuckets.blockBucket, this.handleRequest);
-                        reqFactory.watchRequestsByBucket(nextBuckets.timestampBucket, this.handleRequest);
+                        reqFactory.watchRequestsByBucket(currentBuckets.blockBucket, handleRequest);
+                        reqFactory.watchRequestsByBucket(currentBuckets.timestampBucket, handleRequest);
+                        reqFactory.watchRequestsByBucket(nextBuckets.blockBucket, handleRequest);
+                        reqFactory.watchRequestsByBucket(nextBuckets.timestampBucket, handleRequest);
                         // Needed?
                         this.config.logger.info("Watching STARTED");
                         // Set an timeout for every hour
@@ -259,7 +268,7 @@ var Scanner = /** @class */ (function () {
             });
         });
     };
-    Scanner.prototype.isValid = function (requestAddress) {
+    default_1.prototype.isValid = function (requestAddress) {
         if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
             this.config.logger.debug('Warning.. Transaction Request with NULL_ADDRESS found.');
             return false;
@@ -271,7 +280,7 @@ var Scanner = /** @class */ (function () {
         return true;
     };
     // TODO meaningful return value
-    Scanner.prototype.scanCache = function () {
+    default_1.prototype.scanCache = function () {
         return __awaiter(this, void 0, void 0, function () {
             var allTxRequests;
             var _this = this;
@@ -296,7 +305,7 @@ var Scanner = /** @class */ (function () {
         });
     };
     // TODO extract to a utils?
-    Scanner.prototype.getBlock = function (number) {
+    default_1.prototype.getBlock = function (number) {
         var _this = this;
         if (number === void 0) { number = 'latest'; }
         return new Promise(function (resolve, reject) {
@@ -311,10 +320,10 @@ var Scanner = /** @class */ (function () {
             });
         });
     };
-    Scanner.prototype.store = function (request) {
+    default_1.prototype.store = function (request) {
         this.config.logger.info("[" + request.address + "] Inputting to cache");
         this.config.cache.set(request.address, request.params[7]);
     };
-    return Scanner;
+    return default_1;
 }());
-exports.default = Scanner;
+exports.default = default_1;

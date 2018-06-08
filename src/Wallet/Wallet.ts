@@ -1,5 +1,5 @@
-import ethTx from 'ethereumjs-tx';
-import ethWallet from 'ethereumjs-wallet';
+import ethTx =  require('ethereumjs-tx');
+import ethWallet = require('ethereumjs-wallet');
 
 declare const Buffer;
 declare const setTimeout;

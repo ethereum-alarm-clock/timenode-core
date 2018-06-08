@@ -35,8 +35,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var ethereumjs_tx_1 = require("ethereumjs-tx");
-var ethereumjs_wallet_1 = require("ethereumjs-wallet");
+var ethTx = require("ethereumjs-tx");
+var ethWallet = require("ethereumjs-wallet");
 var Wallet = /** @class */ (function () {
     function Wallet(web3) {
         this.length = 0;
@@ -63,7 +63,7 @@ var Wallet = /** @class */ (function () {
     };
     Wallet.prototype.create = function (numAccounts) {
         for (var i = 0; i < numAccounts; i++) {
-            var wallet = ethereumjs_wallet_1.default.generate();
+            var wallet = ethWallet.generate();
             this.add(wallet);
         }
         return this;
@@ -114,7 +114,7 @@ var Wallet = /** @class */ (function () {
     Wallet.prototype.decrypt = function (encryptedKeystores, password) {
         var _this = this;
         encryptedKeystores.forEach(function (keystore) {
-            var wallet = ethereumjs_wallet_1.default.fromV3(keystore, password, true);
+            var wallet = ethWallet.fromV3(keystore, password, true);
             if (wallet) {
                 _this.add(wallet);
             }
@@ -217,7 +217,7 @@ var Wallet = /** @class */ (function () {
                 value: _this_1.web3.toHex(opts.value),
                 data: opts.data,
             };
-            var tx = new ethereumjs_tx_1.default(params);
+            var tx = new ethTx(params);
             var privKey = _this_1[from].privKey;
             tx.sign(new Buffer(privKey, 'hex'));
             resolve(tx);

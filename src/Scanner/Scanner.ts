@@ -3,6 +3,8 @@ declare const require;
 
 const SCAN_DELAY = 1;
 
+declare const console;
+
 import Config from '../Config';
 
 declare const clearInterval;
@@ -12,7 +14,7 @@ import { IBlock, IntervalId, ITxRequest } from '../Types';
 
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 
-export default class Scanner {
+export default class {
   config: Config;
   scanning: boolean;
   router: any;
@@ -145,7 +147,7 @@ export default class Scanner {
   handleRequest(request: any): void {
     if (!this.isValid(request.address)) return;
 
-    this.config.logger.debug(`[${request.address}] Discovered`);
+    this.config.logger.info(`[${request.address}] Discovered`);
     if (!this.config.cache.has(request.address)) {
       this.store(request);
     }
@@ -183,22 +185,35 @@ export default class Scanner {
 
     const { currentBuckets, nextBuckets } = await this.getBuckets(reqFactory);
 
+    // const handleRequest = this.handleRequest.bind(this);
+
+    const handleRequest = (request: any): void => {
+      if (!this.isValid(request.address)) {
+        throw new Error(`[${request.address}] NOT VALID`);
+      }
+  
+      this.config.logger.info(`[${request.address}] Discovered`);
+      if (!this.config.cache.has(request.address)) {
+        this.store(request);
+      }
+    }
+  
     // Start watching the current buckets right away.
     reqFactory.watchRequestsByBucket(
       currentBuckets.blockBucket,
-      this.handleRequest
+      handleRequest
     );
     reqFactory.watchRequestsByBucket(
       currentBuckets.timestampBucket,
-      this.handleRequest
+      handleRequest
     );
     reqFactory.watchRequestsByBucket(
       nextBuckets.blockBucket,
-      this.handleRequest
+      handleRequest
     );
     reqFactory.watchRequestsByBucket(
       nextBuckets.timestampBucket,
-      this.handleRequest
+      handleRequest
     );
 
     // Needed?
