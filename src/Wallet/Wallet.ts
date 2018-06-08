@@ -1,4 +1,4 @@
-import ethTx =  require('ethereumjs-tx');
+import ethTx = require('ethereumjs-tx');
 import ethWallet = require('ethereumjs-wallet');
 
 declare const Buffer;

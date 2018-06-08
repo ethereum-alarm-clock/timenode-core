@@ -4,9 +4,10 @@
   "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run parcel && npm run clean-built",
+    "parcel": "./node_modules/.bin/parcel build built/index.js -d .",
     "clean-backups": "find . -type f -name '*.b' -delete",
-    "clean-built": "rm built -r",
+    "clean-built": "rm -r built",
     "clean": "npm run clean-backups && npm run clean-built",
     "fmt": "node scripts/fmt.js",
     "test": "mocha",
@@ -43,6 +44,7 @@
     "ganache-core": "2.1.0",
     "husky": "1.0.0-rc.8",
     "mocha": "5.1.1",
+    "parcel": "1.8.1",
     "prettier": "1.13.4",
     "web3": "0.20.6"
   },
