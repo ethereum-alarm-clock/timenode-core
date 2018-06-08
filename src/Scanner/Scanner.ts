@@ -191,26 +191,20 @@ export default class {
       if (!this.isValid(request.address)) {
         throw new Error(`[${request.address}] NOT VALID`);
       }
-  
+
       this.config.logger.info(`[${request.address}] Discovered`);
       if (!this.config.cache.has(request.address)) {
         this.store(request);
       }
-    }
-  
+    };
+
     // Start watching the current buckets right away.
-    reqFactory.watchRequestsByBucket(
-      currentBuckets.blockBucket,
-      handleRequest
-    );
+    reqFactory.watchRequestsByBucket(currentBuckets.blockBucket, handleRequest);
     reqFactory.watchRequestsByBucket(
       currentBuckets.timestampBucket,
       handleRequest
     );
-    reqFactory.watchRequestsByBucket(
-      nextBuckets.blockBucket,
-      handleRequest
-    );
+    reqFactory.watchRequestsByBucket(nextBuckets.blockBucket, handleRequest);
     reqFactory.watchRequestsByBucket(
       nextBuckets.timestampBucket,
       handleRequest
