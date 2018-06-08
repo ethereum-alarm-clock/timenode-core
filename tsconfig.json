@@ -1,11 +1,12 @@
 {
     "compilerOptions": {
-        "outDir": "./built",
+        // "outDir": "./built",
         "allowJs": true,
         "lib": [
-            "ES2015"
+            "es2018"
         ],
-        "target": "es5"
+        "target": "es2018",
+        "sourceMap": true
     },
     "include": [
         "./src/**/*"

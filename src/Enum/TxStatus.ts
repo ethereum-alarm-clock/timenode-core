@@ -4,5 +4,6 @@ export enum TxStatus {
   FreezePeriod,
   ExecutionWindow,
   Executed,
-  Done,
+  Missed,
+  Done
 }

@@ -66,7 +66,7 @@ export default class Actions {
       };
     }
 
-    const txHash = await this.config.wallet.sendFromIndex(opts);
+    const txHash = await this.config.wallet.sendFromIndex(0, opts);
   }
 
   async cleanup(txRequest): Promise<boolean> {

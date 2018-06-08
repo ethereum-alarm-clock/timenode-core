@@ -1,18 +1,16 @@
 /* eslint no-await-in-loop: 'off' */
 declare const require;
 
-const SCAN_DELAY = 1;
-
 declare const console;
 
-import Config from '../Config';
+import Config from '../Config/index';
 
 declare const clearInterval;
 declare const setInterval;
 
-import { IBlock, IntervalId, ITxRequest } from '../Types';
+import { IBlock, IntervalId, ITxRequest } from '../Types/index';
 
-import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
+import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets/index';
 
 export default class {
   config: Config;
@@ -249,9 +247,7 @@ export default class {
     // Get fresh data on our transaction requests and route them into appropiate action.
     Promise.all(allTxRequests).then((txRequests) => {
       txRequests.forEach((txRequest: ITxRequest) => {
-        txRequest
-          .refreshData()
-          .then(() => this.router.route(this.config, txRequest));
+        txRequest.refreshData().then(() => this.router.route(txRequest));
       });
     });
   }
