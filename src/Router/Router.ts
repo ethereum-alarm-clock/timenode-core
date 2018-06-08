@@ -9,7 +9,7 @@ export default class Router {
   config: Config;
   txRequestStates: Object;
 
-  transitions: Object;
+  transitions: Object = {};
 
   constructor(config: Config, actions: any) {
     this.actions = actions;

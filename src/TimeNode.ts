@@ -12,12 +12,12 @@ export default class TimeNode {
   router: Router;
 
   constructor(config: Config) {
-    this.startupMessage();
-
     this.actions = new Actions(config);
     this.config = config;
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
+  
+    this.startupMessage();
   }
 
   startupMessage(): void {
