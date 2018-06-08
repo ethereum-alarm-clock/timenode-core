@@ -44,7 +44,7 @@
     "ganache-core": "2.1.0",
     "husky": "1.0.0-rc.8",
     "mocha": "5.1.1",
-    "parcel": "^1.8.1",
+    "parcel": "1.8.1",
     "prettier": "1.13.4",
     "web3": "0.20.6"
   },
