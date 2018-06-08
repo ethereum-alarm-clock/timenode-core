@@ -1,8 +1,8 @@
 import BigNumber from 'bignumber.js';
 
 import Actions from '../Actions/index';
-import Config from '../Config';
-import { TxStatus } from '../Enum';
+import Config from '../Config/index';
+import { TxStatus } from '../Enum/index';
 
 export default class Router {
   actions: Actions;
@@ -15,11 +15,17 @@ export default class Router {
     this.actions = actions;
     this.config = config;
 
-    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow;
+    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
-    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod;
-    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow;
-    this.transitions[TxStatus.Executed] = this.executed;
+    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod.bind(this);
+    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(this);
+    this.transitions[TxStatus.Executed] = this.executed.bind(this);
+    this.transitions[TxStatus.Missed] = (txRequest) => {
+      console.log('missed: ', txRequest.address);
+      this.config.cache.del(txRequest.address);
+
+      return TxStatus.Missed;
+    }
   }
 
   async beforeClaimWindow(txRequest): Promise<TxStatus> {
@@ -27,6 +33,8 @@ export default class Router {
       // TODO Status.CleanUp?
       return TxStatus.Executed;
     }
+
+    console.log(txRequest.windowStart);
 
     if (await txRequest.beforeClaimWindow()) {
       return TxStatus.BeforeClaimWindow;
@@ -64,6 +72,8 @@ export default class Router {
     if (await txRequest.inExecutionWindow()) {
       return TxStatus.ExecutionWindow;
     }
+
+    // return TxStatus.Missed;
   }
 
   async executionWindow(txRequest): Promise<TxStatus> {
@@ -124,16 +134,13 @@ export default class Router {
   async route(txRequest): Promise<any> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
-    let nextStatus: TxStatus = await this.transitions[status](txRequest);
+
+    const statusFunction = this.transitions[status];
+
+    let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
-      this.config.logger.info(
-        txRequest.address +
-          ' Transitioning from ' +
-          status +
-          ' to ' +
-          nextStatus
-      );
+      this.config.logger.info(`${txRequest.address} Transitioning from  ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`);
       status = nextStatus;
       nextStatus = await this.transitions[status](txRequest);
     }

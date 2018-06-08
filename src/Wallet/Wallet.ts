@@ -96,7 +96,8 @@ export default class Wallet {
     const _this = this;
 
     encryptedKeystores.forEach((keystore) => {
-      const wallet = ethWallet.fromV3(keystore, password, true);
+      keystore = Buffer.from(keystore, 'hex');
+      const wallet = ethWallet.fromPrivateKey(keystore, password, true);
 
       if (wallet) {
         _this.add(wallet);
@@ -179,7 +180,7 @@ export default class Wallet {
 
       const tx = new ethTx(params);
       const privKey = this[from].privKey;
-      tx.sign(new Buffer(privKey, 'hex'));
+      tx.sign(Buffer.from(privKey, 'hex'));
 
       resolve(tx);
     });
@@ -195,6 +196,7 @@ export default class Wallet {
     if (idx > this.length) {
       throw new Error('Index is outside range of addresses.');
     }
+
     const from = this.getAccounts()[idx].getAddressString();
     return this.getNonce(from)
       .then((nonce) => this.signTransaction(from, nonce, opts))
