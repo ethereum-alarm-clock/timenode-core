@@ -100,7 +100,9 @@ export default class Actions {
 
       let transactionHash;
       // Check to see if any of our accounts is the owner.
-      const ownerIndex = this.config.wallet.getAddresses().indexOf(txRequest.owner);
+      const ownerIndex = this.config.wallet
+        .getAddresses()
+        .indexOf(txRequest.owner);
       if (ownerIndex !== -1) {
         transactionHash = await this.config.wallet.sendFromIndex(
           ownerIndex,

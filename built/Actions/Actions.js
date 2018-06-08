@@ -136,7 +136,9 @@ var Actions = /** @class */ (function () {
                             data: txRequest.cancelData,
                         };
                         transactionHash = void 0;
-                        ownerIndex = this.config.wallet.getAddresses().indexOf(txRequest.owner);
+                        ownerIndex = this.config.wallet
+                            .getAddresses()
+                            .indexOf(txRequest.owner);
                         if (!(ownerIndex !== -1)) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.config.wallet.sendFromIndex(ownerIndex, opts)];
                     case 3:

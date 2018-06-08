@@ -38,6 +38,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Enum_1 = require("../Enum");
 var Router = /** @class */ (function () {
     function Router(config, actions) {
+        this.transitions = {};
         this.actions = actions;
         this.config = config;
         this.transitions[Enum_1.TxStatus.BeforeClaimWindow] = this.beforeClaimWindow;
@@ -206,6 +207,11 @@ var Router = /** @class */ (function () {
                         _a.label = 2;
                     case 2:
                         if (!(nextStatus !== status)) return [3 /*break*/, 4];
+                        this.config.logger.info(txRequest.address +
+                            ' Transitioning from ' +
+                            status +
+                            ' to ' +
+                            nextStatus);
                         status = nextStatus;
                         return [4 /*yield*/, this.transitions[status](txRequest)];
                     case 3:

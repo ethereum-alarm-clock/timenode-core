@@ -97,7 +97,7 @@ var Scanner = /** @class */ (function () {
                         // TODO: Do we need to immediately scan the cache?
                         this.scanCache().catch(function (err) { return _this.config.logger.error(err); });
                         // Mark that we've started.
-                        this.config.logger.info('Scanner STARTED');
+                        // this.config.logger.info('Scanner STARTED');
                         this.scanning = true;
                         return [2 /*return*/, this.scanning];
                 }

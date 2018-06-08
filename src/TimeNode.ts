@@ -16,7 +16,7 @@ export default class TimeNode {
     this.config = config;
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
-  
+
     this.startupMessage();
   }
 

@@ -77,7 +77,7 @@ export default class Scanner {
     this.scanCache().catch((err) => this.config.logger.error(err));
 
     // Mark that we've started.
-    this.config.logger.info('Scanner STARTED');
+    // this.config.logger.info('Scanner STARTED');
     this.scanning = true;
     return this.scanning;
   }

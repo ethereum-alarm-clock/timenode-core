@@ -42,11 +42,11 @@ var Router_1 = require("./Router");
 var Version_1 = require("./Version");
 var TimeNode = /** @class */ (function () {
     function TimeNode(config) {
-        this.startupMessage();
         this.actions = new Actions_1.default(config);
         this.config = config;
         this.router = new Router_1.default(this.config, this.actions);
         this.scanner = new Scanner_1.default(this.config, this.router);
+        this.startupMessage();
     }
     TimeNode.prototype.startupMessage = function () {
         this.config.logger.info('EAC-TimeNode');

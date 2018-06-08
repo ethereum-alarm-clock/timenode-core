@@ -127,6 +127,13 @@ export default class Router {
     let nextStatus: TxStatus = await this.transitions[status](txRequest);
 
     while (nextStatus !== status) {
+      this.config.logger.info(
+        txRequest.address +
+          ' Transitioning from ' +
+          status +
+          ' to ' +
+          nextStatus
+      );
       status = nextStatus;
       nextStatus = await this.transitions[status](txRequest);
     }
