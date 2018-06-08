@@ -3,8 +3,12 @@ node_modules/*
 src/*.b
 yarn-error.log
 yarn.lock
-package-lock.json
 *.b
 Routing.ts
 old_tests
 old_tests/*
+built/
+built/*
+.cache
+dist/
+dist/*
