@@ -10,7 +10,8 @@
     "clean-built": "rm -r built",
     "clean": "npm run clean-backups && npm run clean-built",
     "fmt": "node scripts/fmt.js",
-    "test": "mocha",
+    "test": "mocha --exit",
+    "test-noexit": "mocha",
     "lint": "eslint ."
   },
   "repository": {
@@ -36,9 +37,11 @@
     "ethereumjs-wallet": "0.6.0",
     "eventemitter3": "3.1.0",
     "lodash": "4.17.10",
+    "lokijs": "1.5.5",
     "memory-cache": "0.2.0"
   },
   "devDependencies": {
+    "@types/node": "10.3.2",
     "bluebird": "3.5.1",
     "chai": "4.1.2",
     "ganache-core": "2.1.0",

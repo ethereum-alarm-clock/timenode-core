@@ -1,13 +1,19 @@
-const BigNumber = require('bignumber.js');
+import BigNumber from 'bignumber.js';
 
 // / Wrapper over a lokijs persistent storage to keep track of the stats of executing accounts.
-class StatsDB {
+export class StatsDB {
   /**
    * Creates an instance of StatsDB.
    * @param {any} web3
    * @param {any} db Any storage solution that exposes find, update, insert
    * @memberof StatsDB
    */
+  
+  db: any;
+  web3: any;
+  eac: any;
+  stats: any;
+
   constructor(web3, db) {
     this.db = db;
     this.web3 = web3;
@@ -68,5 +74,3 @@ class StatsDB {
     return this.stats.data;
   }
 }
-
-module.exports = StatsDB;

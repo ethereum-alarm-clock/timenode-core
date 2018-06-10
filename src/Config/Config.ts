@@ -3,6 +3,7 @@ import Wallet from '../Wallet';
 import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
+import { StatsDB } from '../Stats';
 
 export default class Config implements IConfigParams {
   autostart: boolean;
@@ -14,6 +15,7 @@ export default class Config implements IConfigParams {
   ms: any;
   provider: any;
   scanSpread: any;
+  statsDb: StatsDB;
   wallet: any;
   web3: any;
 
