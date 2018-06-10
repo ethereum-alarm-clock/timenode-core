@@ -8,7 +8,7 @@ export class StatsDB {
    * @param {any} db Any storage solution that exposes find, update, insert
    * @memberof StatsDB
    */
-  
+
   db: any;
   web3: any;
   eac: any;

@@ -12,18 +12,13 @@ describe('TimeNode', () => {
     expect(this.timenode).to.exist;
   })
 
-  it('claims a tx', async () => {
-    await this.timenode.startScanning();
-    expect(this.timenode.scanner.scanning).to.be.true;
-  })
-
   it('starts scanning', async () => {
     await this.timenode.startScanning();
     expect(this.timenode.scanner.scanning).to.be.true;
   })
 
-  it('stops scanning', async () => {
-    await this.timenode.stopScanning();
-    expect(this.timenode.scanner.scanning).to.be.false;
-  })
+  // it('stops scanning', async () => {
+  //   await this.timenode.stopScanning();
+  //   expect(this.timenode.scanner.scanning).to.be.false;
+  // })
 })
