@@ -1,14 +1,8 @@
 /* eslint no-await-in-loop: 'off' */
-declare const require;
-
-const SCAN_DELAY = 1;
-
-declare const console;
-
 import Config from '../Config';
 
-declare const clearInterval;
-declare const setInterval;
+declare const clearInterval: any;
+declare const setInterval: any;
 
 import { IBlock, IntervalId, ITxRequest } from '../Types';
 
@@ -55,7 +49,7 @@ export default class {
           method: 'eth_getFilterLogs',
           params: [],
         },
-        (err) => {
+        (err: any) => {
           if (err !== null) {
             resolve(false);
           }
@@ -108,7 +102,7 @@ export default class {
    * and should be stored in a TimeNodes cache.
    * @param txRequest Transaction Request Object
    */
-  async isUpcoming(txRequest): Promise<boolean> {
+  async isUpcoming(txRequest: any): Promise<boolean> {
     return (
       (await txRequest.beforeClaimWindow()) ||
       (await txRequest.inClaimWindow()) ||
@@ -243,8 +237,8 @@ export default class {
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.config.cache
       .stored()
-      .filter((address) => this.config.cache.get(address) > 0)
-      .map((address) => this.config.eac.transactionRequest(address));
+      .filter((address: string) => this.config.cache.get(address) > 0)
+      .map((address: string) => this.config.eac.transactionRequest(address));
 
     // Get fresh data on our transaction requests and route them into appropiate action.
     Promise.all(allTxRequests).then((txRequests) => {
@@ -259,7 +253,7 @@ export default class {
   // TODO extract to a utils?
   getBlock(number = 'latest'): Promise<IBlock> {
     return new Promise((resolve, reject) => {
-      this.config.web3.eth.getBlock(number, (err, block) => {
+      this.config.web3.eth.getBlock(number, (err: any, block: IBlock) => {
         if (!err)
           if (block) resolve(block);
           else reject(`Returned block ${number} is null`);
@@ -268,7 +262,7 @@ export default class {
     });
   }
 
-  store(request) {
+  store(request: any) {
     this.config.logger.info(`[${request.address}] Inputting to cache`);
     this.config.cache.set(request.address, request.params[7]);
   }

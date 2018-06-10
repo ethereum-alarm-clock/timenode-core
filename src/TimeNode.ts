@@ -26,11 +26,11 @@ export default class TimeNode {
   }
 
   logNetwork(): void {
-    this.config.web3.version.getNetwork((e, r) => {
-      if (e) {
-        throw new Error(e);
+    this.config.web3.version.getNetwork((error: any, result: number) => {
+      if (error) {
+        throw new Error(error);
       } else {
-        this.config.logger.info('Operating on ' + Networks[r]);
+        this.config.logger.info('Operating on ' + Networks[result]);
       }
     });
   }

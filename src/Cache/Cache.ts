@@ -12,7 +12,7 @@ export default class Cache {
     this.mem = [];
   }
 
-  set(k, v) {
+  set(k: string, v: any) {
     if (_.indexOf(this.mem, k) === -1) {
       this.mem.push(k);
     }
@@ -20,7 +20,7 @@ export default class Cache {
     this.logger.cache(`stored ${k} with value ${v}`);
   }
 
-  get(k, d) {
+  get(k: string, d: any) {
     // / FIXME more elegant error handling for this...
     if (this.cache.get(k) === null) {
       if (d === undefined) {
@@ -32,7 +32,7 @@ export default class Cache {
     return this.cache.get(k);
   }
 
-  has(k) {
+  has(k: string) {
     if (this.cache.get(k) === null) {
       this.logger.cache(`miss ${k}`);
       return false;
@@ -41,7 +41,7 @@ export default class Cache {
     return true;
   }
 
-  del(k) {
+  del(k: string) {
     // mutates the this.mem array to remove the value
     _.remove(this.mem, (addr) => addr === k);
     this.cache.del(k);
@@ -62,7 +62,7 @@ export default class Cache {
   }
 
   sweepExpired() {
-    this.mem.forEach((txRequestAddress) => {
+    this.mem.forEach((txRequestAddress: string) => {
       if (this.get(txRequestAddress, 0) === 99) {
         // expired
         this.del(txRequestAddress);

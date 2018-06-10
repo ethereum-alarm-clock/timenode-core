@@ -1,6 +1,6 @@
 import { ILogger } from './ILogger';
 
-declare const console;
+declare const console: any;
 
 export class DefaultLogger implements ILogger {
   cache(msg: String): void {

@@ -1,8 +1,8 @@
 import ethTx = require('ethereumjs-tx');
 import ethWallet = require('ethereumjs-wallet');
 
-declare const Buffer;
-declare const setTimeout;
+declare const Buffer: any;
+declare const setTimeout: any;
 
 export default class Wallet {
   length: number;
@@ -15,7 +15,7 @@ export default class Wallet {
     this.web3 = web3;
   }
 
-  _findSafeIndex(pointer = 0) {
+  _findSafeIndex(pointer = 0): number {
     pointer = pointer;
     if (this.hasOwnProperty(pointer)) {
       return this._findSafeIndex(pointer + 1);
@@ -33,7 +33,7 @@ export default class Wallet {
     return indexes;
   }
 
-  create(numAccounts) {
+  create(numAccounts: number) {
     for (let i = 0; i < numAccounts; i++) {
       const wallet = ethWallet.generate();
       this.add(wallet);
@@ -41,7 +41,7 @@ export default class Wallet {
     return this;
   }
 
-  add(wallet) {
+  add(wallet: any) {
     if (!this[wallet.getAddressString()]) {
       const idx = this._findSafeIndex();
       wallet.index = idx;
@@ -56,7 +56,7 @@ export default class Wallet {
     }
   }
 
-  rm(addressOrIndex) {
+  rm(addressOrIndex: string | number) {
     const wallet = this[addressOrIndex];
 
     if (wallet && wallet.getAddressString()) {
@@ -81,7 +81,7 @@ export default class Wallet {
     return this;
   }
 
-  encrypt(password, opts) {
+  encrypt(password: string, opts: Object) {
     const _this = this;
     const indexes = this._currentIndexes();
 
@@ -92,7 +92,7 @@ export default class Wallet {
     return wallets;
   }
 
-  decrypt(encryptedKeystores, password) {
+  decrypt(encryptedKeystores: Array<string | Object>, password: string) {
     const _this = this;
 
     encryptedKeystores.forEach((keystore) => {
@@ -111,24 +111,25 @@ export default class Wallet {
    * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
-  sendFromNext(opts) {
+  sendFromNext(opts: Object) {
     const next = this.nonce++ % this.length;
     return this.sendFromIndex(next, opts);
   }
 
-  getNonce(account) {
-    return new Promise<string>((resolve) => {
-      this.web3.eth.getTransactionCount(account, (err, res) => {
+  getNonce(account: string) {
+    return new Promise<string>((resolve, reject) => {
+      this.web3.eth.getTransactionCount(account, (err: Error, res: any) => {
+        if (err) reject(err);
         resolve(res);
       });
     });
   }
 
-  sendRawTransaction(tx) {
+  sendRawTransaction(tx: any) {
     return new Promise((resolve, reject) => {
       this.web3.eth.sendRawTransaction(
         '0x'.concat(tx.serialize().toString('hex')),
-        (err, res) => {
+        (err: Error, res: any) => {
           if (err) reject(err);
           resolve(res);
         }
@@ -136,16 +137,23 @@ export default class Wallet {
     });
   }
 
-  async getTransactionReceipt(hash, from) {
-    var transactionReceiptAsync;
+  async getTransactionReceipt(hash: any, from: string) {
+    let transactionReceiptAsync: any;
     const _this = this;
-    transactionReceiptAsync = async function(hash, resolve, reject) {
+    transactionReceiptAsync = async function(
+      hash: any,
+      resolve: any,
+      reject: any
+    ) {
       try {
-        const getTransactionReceipt = (hash) => {
+        const getTransactionReceipt = (hash: any) => {
           return new Promise((resolve) => {
-            _this.web3.eth.getTransactionReceipt(hash, (err, res) => {
-              if (!err) resolve(res);
-            });
+            _this.web3.eth.getTransactionReceipt(
+              hash,
+              (err: Error, res: any) => {
+                if (!err) resolve(res);
+              }
+            );
           });
         };
         var receipt = await getTransactionReceipt(hash);
@@ -165,7 +173,7 @@ export default class Wallet {
     });
   }
 
-  signTransaction(from, nonce, opts) {
+  signTransaction(from: string, nonce: number | string, opts: any) {
     return new Promise((resolve) => {
       const params = {
         nonce,
@@ -179,7 +187,7 @@ export default class Wallet {
 
       const tx = new ethTx(params);
       const privKey = this[from].privKey;
-      tx.sign(new Buffer(privKey, 'hex'));
+      tx.sign(Buffer.from(privKey, 'hex'));
 
       resolve(tx);
     });
@@ -191,7 +199,7 @@ export default class Wallet {
    * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
-  sendFromIndex(idx, opts) {
+  sendFromIndex(idx: number, opts: Object) {
     if (idx > this.length) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -210,7 +218,7 @@ export default class Wallet {
     return this.getAccounts().map((account) => account.getAddressString());
   }
 
-  isKnownAddress(address) {
+  isKnownAddress(address: string) {
     return this.getAccounts().some(
       (account) => account.getAddressString() === address
     );
