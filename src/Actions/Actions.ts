@@ -9,7 +9,7 @@ export default class Actions {
     this.config = config;
   }
 
-  async claim(txRequest): Promise<any> {
+  async claim(txRequest: any): Promise<any> {
     const requiredDeposit = txRequest.requiredDeposit;
     // TODO make this a constant
     const claimData = txRequest.claimData;
@@ -36,7 +36,7 @@ export default class Actions {
     //TODO get transaction object from txHash
   }
 
-  async execute(txRequest): Promise<any> {
+  async execute(txRequest: any): Promise<any> {
     const gasToExecute = txRequest.callGas
       .add(180000)
       .div(64)
@@ -69,7 +69,7 @@ export default class Actions {
     const txHash = await this.config.wallet.sendFromIndex(opts);
   }
 
-  async cleanup(txRequest): Promise<boolean> {
+  async cleanup(txRequest: any): Promise<boolean> {
     // Check if there is any ether left in a txRequest.
     const txRequestBalance = await txRequest.getBalance();
 

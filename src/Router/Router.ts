@@ -22,7 +22,7 @@ export default class Router {
     this.transitions[TxStatus.Executed] = this.executed;
   }
 
-  async beforeClaimWindow(txRequest): Promise<TxStatus> {
+  async beforeClaimWindow(txRequest: any): Promise<TxStatus> {
     if (txRequest.isCancelled) {
       // TODO Status.CleanUp?
       return TxStatus.Executed;
@@ -35,7 +35,7 @@ export default class Router {
     return TxStatus.ClaimWindow;
   }
 
-  async claimWindow(txRequest): Promise<TxStatus> {
+  async claimWindow(txRequest: any): Promise<TxStatus> {
     if (!(await txRequest.inClaimWindow())) {
       return TxStatus.FreezePeriod;
     }
@@ -56,7 +56,7 @@ export default class Router {
     return TxStatus.FreezePeriod;
   }
 
-  async freezePeriod(txRequest): Promise<TxStatus> {
+  async freezePeriod(txRequest: any): Promise<TxStatus> {
     if (await txRequest.inFreezePeriod()) {
       return TxStatus.FreezePeriod;
     }
@@ -66,7 +66,7 @@ export default class Router {
     }
   }
 
-  async executionWindow(txRequest): Promise<TxStatus> {
+  async executionWindow(txRequest: any): Promise<TxStatus> {
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
     }
@@ -86,12 +86,12 @@ export default class Router {
     return TxStatus.Executed;
   }
 
-  async executed(txRequest): Promise<TxStatus> {
+  async executed(txRequest: any): Promise<TxStatus> {
     await this.actions.cleanup(txRequest);
     return TxStatus.Done;
   }
 
-  isLocalClaim(txRequest) {
+  isLocalClaim(txRequest: any) {
     let localClaim;
     // TODO add function on config `hasWallet(): boolean`
     if (this.config.wallet) {
@@ -111,7 +111,7 @@ export default class Router {
     return localClaim;
   }
 
-  async isProfitableClaim(txRequest) {
+  async isProfitableClaim(txRequest: any) {
     const claimPaymentModifier = await txRequest.claimPaymentModifier();
     const paymentWhenClaimed = txRequest.bounty
       .times(claimPaymentModifier)
@@ -121,7 +121,7 @@ export default class Router {
   }
 
   // TODO do not return void
-  async route(txRequest): Promise<void> {
+  async route(txRequest: any): Promise<void> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
     let nextStatus: TxStatus = await this.transitions[status](txRequest);
