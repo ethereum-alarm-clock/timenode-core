@@ -4,7 +4,7 @@
  * @param {TransactionRequest} txRequest
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = async (conf, txRequest) => {
+const _hasPendingParity = async (conf, txRequest) => {
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ const hasPendingParity = async (conf, txRequest) => {
  * @param {TransactionRequest} txRequest
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingGeth = (conf, txRequest) => {
+const _hasPendingGeth = (conf, txRequest) => {
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -68,10 +68,10 @@ const hasPendingGeth = (conf, txRequest) => {
  */
 const hasPending = (conf, txRequest) => {
   if (conf.client == 'parity') {
-    return hasPendingParity(conf, txRequest);
+    return _hasPendingParity(conf, txRequest);
   } else if (conf.client == 'geth') {
-    return hasPendingGeth(conf, txRequest);
+    return _hasPendingGeth(conf, txRequest);
   }
 };
 
-module.exports = hasPending;
+export default hasPending;

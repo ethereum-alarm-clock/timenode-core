@@ -1,16 +1,13 @@
-const EAC = require('eac.js-lib');
-const Bb = require('bluebird');
-const Web3 = require('web3');
-const expect = require('chai').expect;
-const { promisify } = require('util');
-const calcEndowment = require('./helpers/calcEndowment');
-
-const { TimeNode } = require('../index');
-const standardConfig = require('./helpers/standardConfig');
+import * as EAC from 'eac.js-lib';
+import * as Bb from 'bluebird';
+import * as Web3 from 'web3';
+import { expect } from 'chai';
+import calcEndowment from './helpers/calcEndowment';
+import 'mocha';
 
 describe('ScheduleTx', () => {
-
   it('schedules a basic transaction', async () => {
+
     const provider = new Web3.providers.HttpProvider('http://localhost:8545');
     const web3 = new Web3(provider);
     const eac = EAC(web3);
@@ -20,7 +17,6 @@ describe('ScheduleTx', () => {
     const latestBlock = await Bb.fromCallback((callback) => web3.eth.getBlockNumber(callback));
     const mainAccount = web3.eth.accounts[0];
 
-    const toAddress = mainAccount;
     const callGas = 1000000;
     const callValue = 1;
     const gasPrice = 1;
@@ -49,6 +45,7 @@ describe('ScheduleTx', () => {
       true
     );
 
+    console.log(receipt.logs[1].topics[0]);
     expect(receipt).to.exist;
   }).timeout(15000);
 

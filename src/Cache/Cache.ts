@@ -1,5 +1,5 @@
-import mem_cache = require('memory-cache');
-import _ = require('lodash');
+import * as mem_cache from 'memory-cache';
+import * as _ from 'lodash';
 
 export default class Cache {
   cache: any;
@@ -20,7 +20,7 @@ export default class Cache {
     this.logger.cache(`stored ${k} with value ${v}`);
   }
 
-  get(k, d) {
+  get(k, d?) {
     // / FIXME more elegant error handling for this...
     if (this.cache.get(k) === null) {
       if (d === undefined) {

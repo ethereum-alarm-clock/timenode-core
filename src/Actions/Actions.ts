@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import hasPending = require('../pending.js');
+import hasPending from './Pending';
 
 export default class Actions {
   config: Config;

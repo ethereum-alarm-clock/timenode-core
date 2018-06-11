@@ -1,4 +1,4 @@
-class MockLogger {
+export default class MockLogger {
   debug(msg) {
     console.log(`[debug] ${msg}`);
   }
@@ -15,5 +15,3 @@ class MockLogger {
     console.log(`[error] ${msg}`);
   }
 }
-
-module.exports = MockLogger;

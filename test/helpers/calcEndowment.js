@@ -1,6 +1,6 @@
 const BigNumber = require('bignumber.js');
 
-function calcEndowment(
+export default function calcEndowment(
   eac,
   gasAmount = 0,
   amountToSend = 0,
@@ -28,5 +28,3 @@ function calcEndowment(
 
   return endowment;
 }
-
-module.exports = calcEndowment;
