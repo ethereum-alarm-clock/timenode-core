@@ -8,7 +8,7 @@ export interface IConfigParams {
   eac: any;
   economicStrategy?: IEconomicStrategy;
   factory?: any;
-  logger: ILogger | null;
+  logger?: ILogger | null;
   ms?: any;
   password?: any;
   provider: any;

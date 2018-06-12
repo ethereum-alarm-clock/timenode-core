@@ -7,11 +7,11 @@ import { StatsDB } from '../Stats';
 
 export default class Config implements IConfigParams {
   autostart: boolean;
-  cache: any;
+  cache: Cache;
   eac: any;
   economicStrategy?: IEconomicStrategy;
   factory: any;
-  logger: ILogger;
+  logger?: ILogger;
   ms: any;
   provider: any;
   scanSpread: any;
@@ -58,5 +58,7 @@ export default class Config implements IConfigParams {
     } else {
       this.wallet = false;
     }
+
+    this.ms = params.ms;
   }
 }
