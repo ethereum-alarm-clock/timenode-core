@@ -14,7 +14,7 @@ export class StatsDB {
   eac: any;
   stats: any;
 
-  constructor(web3, db) {
+  constructor(web3: any, db: any) {
     this.db = db;
     this.web3 = web3;
     this.eac = require('eac.js-lib')(web3);
@@ -25,7 +25,7 @@ export class StatsDB {
   }
 
   // / Takes an array of addresses and stores them as new stats objects.
-  initialize(accounts) {
+  initialize(accounts: Array<string>) {
     accounts.forEach(async (account) => {
       const found = this.stats.find({ account })[0];
       if (found) {
@@ -48,7 +48,7 @@ export class StatsDB {
   }
 
   // / Takes the account which has claimed a transaction.
-  async updateClaimed(account, cost) {
+  async updateClaimed(account: string, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.claimed += 1;
     found.costs = found.costs.plus(cost);
@@ -57,7 +57,7 @@ export class StatsDB {
   }
 
   // / Takes the account which has executed a transaction.
-  async updateExecuted(account, bounty, cost) {
+  async updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.executed += 1;
     found.executedTransactions.push({ timestamp: Date.now() });

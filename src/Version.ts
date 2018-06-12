@@ -1,6 +1,6 @@
 type Version = string;
 
-declare const require;
+declare const require: any;
 
 const version: Version = require('../package.json').version;
 

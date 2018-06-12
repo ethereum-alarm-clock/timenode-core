@@ -43,11 +43,15 @@ export default class Config implements IConfigParams {
       params.walletStores.length &&
       params.walletStores.length > 0
     ) {
-      params.walletStores = params.walletStores.map((store, idx) => {
-        if (typeof store === 'object') {
-          return JSON.stringify(store);
+      params.walletStores = params.walletStores.map(
+        (store: Object | string) => {
+          if (typeof store === 'object') {
+            return JSON.stringify(store);
+          }
+
+          return store;
         }
-      });
+      );
 
       this.wallet = new Wallet(this.web3);
       this.wallet.decrypt(params.walletStores, params.password);

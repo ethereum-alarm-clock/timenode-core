@@ -1,17 +1,17 @@
 export default class MockLogger {
-  debug(msg) {
+  debug(msg: string) {
     console.log(`[debug] ${msg}`);
   }
 
-  cache(msg) {
+  cache(msg: string) {
     console.log(`[cache] ${msg}`);
   }
 
-  info(msg) {
+  info(msg: string) {
     console.log(`[info] ${msg}`);
   }
 
-  error(msg) {
+  error(msg: string) {
     console.log(`[error] ${msg}`);
   }
 }
