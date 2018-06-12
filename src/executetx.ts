@@ -83,7 +83,7 @@ const main = async () => {
   const callData = '';
   const callValue = 1;
   const windowSize = '255';
-  const windowStart = latestBlock + 60;
+  const windowStart = latestBlock + 100;
   const gasPrice = 1;
   const fee = 0;
   const bounty = 0;
@@ -98,26 +98,31 @@ const main = async () => {
     value: endowment,
   });
 
+  console.log('ATTEMPTING SCHEDULING');
+
   const scheduledTxReceipt = await scheduler.blockSchedule(
-      toAddress,
-      callGas,
-      callData,
-      callValue,
-      windowSize,
-      windowStart,
-      gasPrice,
-      fee,
-      bounty,
-      requiredDeposit,
-      true
+    toAddress,
+    callGas,
+    callData,
+    callValue,
+    windowSize,
+    windowStart,
+    gasPrice,
+    fee,
+    bounty,
+    requiredDeposit,
+    true
   );
+
+  console.log('SCHEDULED TX', scheduledTxReceipt, scheduledTxReceipt.address);
 
   // const worker = new EacWorker();
 
-//   const timenodeKeystore = `{"version":3,"id":"cbc9f9b0-5244-4b2b-b54c-ef1f9aa2916e","address":"a724377a6cd3e0b4c6eeccd2f50647edc0bd05e1","Crypto":{"ciphertext":"07c65b649bc8ccdb97978e5a876738fb9e440b8529eee353484f0c22761db1db","cipherparams":{"iv":"1b12696db8c8b3d710788179963e8be6"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"f9b8f8524e058abf55a98e1cf9d4317220c5c541ccdf83433c106d76757b3373","n":8192,"r":8,"p":1},"mac":"b62771e9bbf7310fdb928e5829605faff72730ab412b78c92a9fbb20a7f5e626"}}`;
-//   const timenodeKeystorePassword = 'testtest1';
+  //   const timenodeKeystore = `{"version":3,"id":"cbc9f9b0-5244-4b2b-b54c-ef1f9aa2916e","address":"a724377a6cd3e0b4c6eeccd2f50647edc0bd05e1","Crypto":{"ciphertext":"07c65b649bc8ccdb97978e5a876738fb9e440b8529eee353484f0c22761db1db","cipherparams":{"iv":"1b12696db8c8b3d710788179963e8be6"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"f9b8f8524e058abf55a98e1cf9d4317220c5c541ccdf83433c106d76757b3373","n":8192,"r":8,"p":1},"mac":"b62771e9bbf7310fdb928e5829605faff72730ab412b78c92a9fbb20a7f5e626"}}`;
+  //   const timenodeKeystorePassword = 'testtest1';
 
-const timenodePrivateKey = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
+  const timenodePrivateKey =
+    'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
   const customProviderUrl =
     'wss://rarely-suitable-shark.quiknode.io/87817da9-942d-4275-98c0-4176eee51e1a/aB5gwSfQdN4jmkS65F1HyA==/';
 

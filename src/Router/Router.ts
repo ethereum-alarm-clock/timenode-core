@@ -3,6 +3,13 @@ import BigNumber from 'bignumber.js';
 import Actions from '../Actions/index';
 import Config from '../Config/index';
 import { TxStatus } from '../Enum/index';
+import * as Bb from 'bluebird';
+import * as moment from 'moment';
+
+export class TEMPORAL_UNIT {
+  static BLOCK = 1;
+  static TIMESTAMP = 2;
+}
 
 export default class Router {
   actions: Actions;
@@ -15,17 +22,25 @@ export default class Router {
     this.actions = actions;
     this.config = config;
 
-    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
+    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(
+      this
+    );
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
     this.transitions[TxStatus.FreezePeriod] = this.freezePeriod.bind(this);
-    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(this);
+    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(
+      this
+    );
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = (txRequest) => {
       console.log('missed: ', txRequest.address);
       this.config.cache.del(txRequest.address);
 
       return TxStatus.Missed;
-    }
+    };
+  }
+
+  async getBlockNumber() {
+    return Bb.fromCallback((callback) => this.config.web3.eth.getBlockNumber(callback));
   }
 
   async beforeClaimWindow(txRequest): Promise<TxStatus> {
@@ -44,11 +59,23 @@ export default class Router {
   }
 
   async claimWindow(txRequest): Promise<TxStatus> {
+    console.log({
+      windowStart: txRequest.windowStart.toFixed(),
+      windowSize: txRequest.windowSize.toFixed(),
+      currentBlock: await this.getBlockNumber(),
+      isMissed: await this.isTransactionMissed(txRequest),
+      claimWindow: await txRequest.inClaimWindow(),
+      wasCalled: txRequest.wasCalled,
+      isClaimed: txRequest.isClaimed,
+      inExecutionWindow: await txRequest.inExecutionWindow()
+    });
+
     if (!(await txRequest.inClaimWindow())) {
       return TxStatus.FreezePeriod;
     }
+
     if (txRequest.isClaimed) {
-      return TxStatus.FreezePeriod;
+      return TxStatus.ClaimWindow;
     }
 
     try {
@@ -56,12 +83,13 @@ export default class Router {
       // ... here
       //TODO do we care about return value?
       await this.actions.claim(txRequest);
+      this.config.logger.info(`${txRequest.address} CLAIMED`);
     } catch (e) {
       // TODO handle gracefully?
       throw new Error(e);
     }
 
-    return TxStatus.FreezePeriod;
+    return TxStatus.ClaimWindow;
   }
 
   async freezePeriod(txRequest): Promise<TxStatus> {
@@ -73,7 +101,35 @@ export default class Router {
       return TxStatus.ExecutionWindow;
     }
 
-    // return TxStatus.Missed;
+    if (await this.isTransactionMissed(txRequest)) {
+      return TxStatus.Missed;
+    }
+  }
+
+  isTxUnitTimestamp(transaction) {
+    if (!transaction || !transaction.temporalUnit) {
+      return false;
+    }
+
+    let temporalUnit = transaction.temporalUnit;
+
+    if (transaction.temporalUnit.toNumber) {
+      temporalUnit = transaction.temporalUnit.toNumber();
+    }
+
+    return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
+  }
+
+  async isTransactionMissed(transaction) : Promise<boolean> {
+    let afterExecutionWindow;
+
+    if (this.isTxUnitTimestamp(transaction)) {
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(moment().unix());
+    } else {
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(await this.getBlockNumber());
+    }
+
+    return Boolean(afterExecutionWindow && !transaction.wasCalled);
   }
 
   async executionWindow(txRequest): Promise<TxStatus> {
@@ -87,6 +143,7 @@ export default class Router {
     }
 
     try {
+      console.log('ATTEMPT EXECUTION');
       await this.actions.execute(txRequest);
     } catch (e) {
       //TODO handle gracefully?
@@ -97,6 +154,7 @@ export default class Router {
   }
 
   async executed(txRequest): Promise<TxStatus> {
+    console.log('CLEANUP TX');
     await this.actions.cleanup(txRequest);
     return TxStatus.Done;
   }
@@ -140,7 +198,11 @@ export default class Router {
     let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
-      this.config.logger.info(`${txRequest.address} Transitioning from  ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`);
+      this.config.logger.info(
+        `${txRequest.address} Transitioning from  ${TxStatus[status]} to ${
+          TxStatus[nextStatus]
+        } (${nextStatus})`
+      );
       status = nextStatus;
       nextStatus = await this.transitions[status](txRequest);
     }

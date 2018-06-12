@@ -104,6 +104,7 @@ export default class Actions {
         .getAddresses()
         .indexOf(txRequest.owner);
       if (ownerIndex !== -1) {
+        console.log('ownerIndex!!!', ownerIndex);
         transactionHash = await this.config.wallet.sendFromIndex(
           ownerIndex,
           opts
