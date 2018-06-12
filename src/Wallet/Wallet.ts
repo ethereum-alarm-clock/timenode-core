@@ -199,7 +199,6 @@ export default class Wallet {
       throw new Error('Index is outside range of addresses.');
     }
 
-
     const from = this.getAccounts()[idx].getAddressString();
 
     const nonce = await this.getNonce(from);

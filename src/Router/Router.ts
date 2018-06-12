@@ -40,7 +40,9 @@ export default class Router {
   }
 
   async getBlockNumber() {
-    return Bb.fromCallback((callback) => this.config.web3.eth.getBlockNumber(callback));
+    return Bb.fromCallback((callback) =>
+      this.config.web3.eth.getBlockNumber(callback)
+    );
   }
 
   async beforeClaimWindow(txRequest): Promise<TxStatus> {
@@ -67,7 +69,7 @@ export default class Router {
       claimWindow: await txRequest.inClaimWindow(),
       wasCalled: txRequest.wasCalled,
       isClaimed: txRequest.isClaimed,
-      inExecutionWindow: await txRequest.inExecutionWindow()
+      inExecutionWindow: await txRequest.inExecutionWindow(),
     });
 
     if (!(await txRequest.inClaimWindow())) {
@@ -120,13 +122,17 @@ export default class Router {
     return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
   }
 
-  async isTransactionMissed(transaction) : Promise<boolean> {
+  async isTransactionMissed(transaction): Promise<boolean> {
     let afterExecutionWindow;
 
     if (this.isTxUnitTimestamp(transaction)) {
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(moment().unix());
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
+        moment().unix()
+      );
     } else {
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(await this.getBlockNumber());
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
+        await this.getBlockNumber()
+      );
     }
 
     return Boolean(afterExecutionWindow && !transaction.wasCalled);
