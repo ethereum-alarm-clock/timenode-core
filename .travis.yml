@@ -7,7 +7,10 @@ node_js:
 cache:
   directories:
     - node_modules
-before_install: npm install -g mocha
+before_install: npm install -g mocha && npm install -g typescript
 install: npm install
 script:
-  - npm test
+  - npm run fmt
+  - npm run build
+  - npm run test
+  - npm run clean-backups

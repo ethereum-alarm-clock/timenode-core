@@ -1,0 +1,1 @@
+export { IEconomicStrategy } from './IEconomicStrategy';

@@ -17,14 +17,17 @@ const hasPendingParity = async (conf, txRequest, type) => {
         id: 0o7,
       },
       (err, res) => {
-        if (err) reject(err)
+        if (err) reject(err);
 
-        const hasTx = res && res.result && !!res.result.find(tx => tx.to === txRequest.address)
-        resolve(hasTx)
+        const hasTx =
+          res &&
+          res.result &&
+          !!res.result.filter((tx) => tx.to === txRequest.address).length;
+        resolve(hasTx);
       }
-    )
-  })
-}
+    );
+  });
+};
 
 /**
  * Uses the Geth specific RPC request `txpool_content` to search
@@ -113,19 +116,19 @@ const isOfType = (transaction, type) => {
         id: 0o7,
       },
       (err, res) => {
-        if (err) reject(err)
+        if (err) reject(err);
         for (const account in res.result.pending) {
           for (const nonce in res.result.pending[account]) {
             if (res.result.pending[account][nonce].to === txRequest.address) {
-              resolve(true)
+              resolve(true);
             }
           }
         }
-        resolve(false)
+        resolve(false);
       }
-    )
-  })
-}
+    );
+  });
+};
 
 /**
  * Depening on the client, routes the correct RPC request to return whether
@@ -141,6 +144,6 @@ const hasPending = (conf, txRequest, type, checkGasPrice = true) => {
   } else if (conf.client == 'geth') {
     return hasPendingGeth(conf, txRequest, type)
   }
-}
+};
 
-module.exports = hasPending
+module.exports = hasPending;
