@@ -249,9 +249,7 @@ export default class {
     // Get fresh data on our transaction requests and route them into appropiate action.
     Promise.all(allTxRequests).then((txRequests) => {
       txRequests.forEach((txRequest: ITxRequest) => {
-        txRequest
-          .refreshData()
-          .then(() => this.router.route(txRequest));
+        txRequest.refreshData().then(() => this.router.route(txRequest));
       });
     });
   }

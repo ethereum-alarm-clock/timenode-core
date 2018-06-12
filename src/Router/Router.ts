@@ -13,10 +13,14 @@ export default class Router {
     this.actions = actions;
     this.config = config;
 
-    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
+    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(
+      this
+    );
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
     this.transitions[TxStatus.FreezePeriod] = this.freezePeriod.bind(this);
-    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(this);
+    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(
+      this
+    );
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
   }
 
@@ -122,12 +126,16 @@ export default class Router {
   async route(txRequest): Promise<TxStatus> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
-    
+
     const statusFunction = this.transitions[status];
     let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
-      this.config.logger.info(`${txRequest.address} Transitioning from  ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`);
+      this.config.logger.info(
+        `${txRequest.address} Transitioning from  ${TxStatus[status]} to ${
+          TxStatus[nextStatus]
+        } (${nextStatus})`
+      );
       status = nextStatus;
       nextStatus = await this.transitions[status](txRequest);
     }
