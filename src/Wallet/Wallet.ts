@@ -80,7 +80,7 @@ export default class Wallet {
     return this;
   }
 
-  encrypt(password: string, opts: Object) {
+  encrypt(password: String, opts: Object) {
     const _this = this;
     const indexes = this._currentIndexes();
 
@@ -91,7 +91,7 @@ export default class Wallet {
     return wallets;
   }
 
-  decrypt(encryptedKeystores: Array<string | Object>, password: string) {
+  decrypt(encryptedKeystores: Array<String | Object>, password: String) {
     const _this = this;
 
     encryptedKeystores.forEach((keystore) => {
@@ -115,7 +115,7 @@ export default class Wallet {
     return this.sendFromIndex(next, opts);
   }
 
-  getNonce(account: string) {
+  getNonce(account: String) {
     return new Promise<string>((resolve, reject) => {
       this.web3.eth.getTransactionCount(account, (err: Error, res: any) => {
         if (err) reject(err);
@@ -136,7 +136,7 @@ export default class Wallet {
     });
   }
 
-  async getTransactionReceipt(hash: any, from: string) {
+  async getTransactionReceipt(hash: any, from: String) {
     let transactionReceiptAsync: any;
     const _this = this;
     transactionReceiptAsync = async function(
@@ -218,7 +218,7 @@ export default class Wallet {
     return this.getAccounts().map((account) => account.getAddressString());
   }
 
-  isKnownAddress(address: string) {
+  isKnownAddress(address: String) {
     return this.getAccounts().some(
       (account) => account.getAddressString() === address
     );
