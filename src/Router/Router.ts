@@ -1,5 +1,3 @@
-import BigNumber from 'bignumber.js';
-
 import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
@@ -7,7 +5,7 @@ import { TxStatus } from '../Enum';
 export default class Router {
   actions: Actions;
   config: Config;
-  txRequestStates: Object;
+  txRequestStates: Object = {};
 
   transitions: Object = {};
 
@@ -15,11 +13,11 @@ export default class Router {
     this.actions = actions;
     this.config = config;
 
-    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow;
-    this.transitions[TxStatus.ClaimWindow] = this.claimWindow;
-    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod;
-    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow;
-    this.transitions[TxStatus.Executed] = this.executed;
+    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
+    this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
+    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod.bind(this);
+    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(this);
+    this.transitions[TxStatus.Executed] = this.executed.bind(this);
   }
 
   async beforeClaimWindow(txRequest): Promise<TxStatus> {
@@ -121,24 +119,20 @@ export default class Router {
   }
 
   // TODO do not return void
-  async route(txRequest): Promise<void> {
+  async route(txRequest): Promise<TxStatus> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
-    let nextStatus: TxStatus = await this.transitions[status](txRequest);
+    
+    const statusFunction = this.transitions[status];
+    let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
-      this.config.logger.info(
-        txRequest.address +
-          ' Transitioning from ' +
-          status +
-          ' to ' +
-          nextStatus
-      );
+      this.config.logger.info(`${txRequest.address} Transitioning from  ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`);
       status = nextStatus;
       nextStatus = await this.transitions[status](txRequest);
     }
 
     this.txRequestStates[txRequest.address] = nextStatus;
-    return;
+    return nextStatus;
   }
 }

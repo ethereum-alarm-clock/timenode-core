@@ -251,7 +251,7 @@ export default class {
       txRequests.forEach((txRequest: ITxRequest) => {
         txRequest
           .refreshData()
-          .then(() => this.router.route(this.config, txRequest));
+          .then(() => this.router.route(txRequest));
       });
     });
   }
