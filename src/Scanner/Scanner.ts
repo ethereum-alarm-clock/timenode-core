@@ -237,15 +237,13 @@ export default class {
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.config.cache
       .stored()
-      .filter((address: string) => this.config.cache.get(address) > 0)
-      .map((address: string) => this.config.eac.transactionRequest(address));
+      .filter((address: String) => this.config.cache.get(address) > 0)
+      .map((address: String) => this.config.eac.transactionRequest(address));
 
     // Get fresh data on our transaction requests and route them into appropiate action.
     Promise.all(allTxRequests).then((txRequests) => {
       txRequests.forEach((txRequest: ITxRequest) => {
-        txRequest
-          .refreshData()
-          .then(() => this.router.route(this.config, txRequest));
+        txRequest.refreshData().then(() => this.router.route(txRequest));
       });
     });
   }

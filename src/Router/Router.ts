@@ -1,13 +1,19 @@
-import BigNumber from 'bignumber.js';
-
 import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
 
+import * as Bb from 'bluebird';
+import * as moment from 'moment';
+
+export class TEMPORAL_UNIT {
+  static BLOCK = 1;
+  static TIMESTAMP = 2;
+};
+
 export default class Router {
   actions: Actions;
   config: Config;
-  txRequestStates: Object;
+  txRequestStates: Object = {};
 
   transitions: Object = {};
 
@@ -15,11 +21,26 @@ export default class Router {
     this.actions = actions;
     this.config = config;
 
-    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow;
-    this.transitions[TxStatus.ClaimWindow] = this.claimWindow;
-    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod;
-    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow;
-    this.transitions[TxStatus.Executed] = this.executed;
+    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(
+      this
+    );
+    this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
+    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod.bind(this);
+    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(
+      this
+    );
+    this.transitions[TxStatus.Executed] = this.executed.bind(this);
+    this.transitions[TxStatus.Missed] = (txRequest: any) => {
+      console.log('missed: ', txRequest.address);
+      this.config.cache.del(txRequest.address);
+      return TxStatus.Missed;
+    };
+  }
+
+  async getBlockNumber() {
+    return Bb.fromCallback((callback) =>
+      this.config.web3.eth.getBlockNumber(callback)
+    );
   }
 
   async beforeClaimWindow(txRequest: any): Promise<TxStatus> {
@@ -40,7 +61,7 @@ export default class Router {
       return TxStatus.FreezePeriod;
     }
     if (txRequest.isClaimed) {
-      return TxStatus.FreezePeriod;
+      return TxStatus.ClaimWindow;
     }
 
     try {
@@ -53,7 +74,7 @@ export default class Router {
       throw new Error(e);
     }
 
-    return TxStatus.FreezePeriod;
+    return TxStatus.ClaimWindow;
   }
 
   async freezePeriod(txRequest: any): Promise<TxStatus> {
@@ -64,6 +85,36 @@ export default class Router {
     if (await txRequest.inExecutionWindow()) {
       return TxStatus.ExecutionWindow;
     }
+  }
+
+  isTxUnitTimestamp(transaction: any) {
+    if (!transaction || !transaction.temporalUnit) {
+      return false;
+    }
+    
+    let temporalUnit = transaction.temporalUnit;
+
+    if (transaction.temporalUnit.toNumber) {
+      temporalUnit = transaction.temporalUnit.toNumber();
+    }
+    
+    return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
+  }
+
+  async isTransactionMissed(transaction: any): Promise<boolean> {
+    let afterExecutionWindow;
+
+    if (this.isTxUnitTimestamp(transaction)) {
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
+        moment().unix()
+      );
+    } else {
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
+        await this.getBlockNumber()
+      );
+    }
+    
+    return Boolean(afterExecutionWindow && !transaction.wasCalled);
   }
 
   async executionWindow(txRequest: any): Promise<TxStatus> {
@@ -121,24 +172,24 @@ export default class Router {
   }
 
   // TODO do not return void
-  async route(txRequest: any): Promise<void> {
+  async route(txRequest: any): Promise<any> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
-    let nextStatus: TxStatus = await this.transitions[status](txRequest);
+
+    const statusFunction = this.transitions[status];
+    let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
       this.config.logger.info(
-        txRequest.address +
-          ' Transitioning from ' +
-          status +
-          ' to ' +
-          nextStatus
+        `${txRequest.address} Transitioning from  ${TxStatus[status]} to ${
+          TxStatus[nextStatus]
+        } (${nextStatus})`
       );
       status = nextStatus;
       nextStatus = await this.transitions[status](txRequest);
     }
 
     this.txRequestStates[txRequest.address] = nextStatus;
-    return;
+    return nextStatus;
   }
 }

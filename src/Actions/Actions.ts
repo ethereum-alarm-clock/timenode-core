@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import hasPending = require('../pending.js');
+import hasPending from './Pending';
 
 export default class Actions {
   config: Config;
@@ -32,7 +32,7 @@ export default class Actions {
       };
     }
 
-    const txHash = await this.config.wallet.sendFromNext(opts);
+    // const txHash = await this.config.wallet.sendFromNext(opts);
     //TODO get transaction object from txHash
   }
 
