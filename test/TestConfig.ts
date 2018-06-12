@@ -5,5 +5,5 @@ describe('Config', () => {
   it('creates a config from standard params', () => {
     const config = mockConfig();
     assert(config);
-  })
+  }).timeout(10000);
 })

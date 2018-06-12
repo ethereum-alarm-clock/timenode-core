@@ -7,7 +7,7 @@ describe('TimeNode', () => {
     const config = mockConfig();
     this.timenode = new TimeNode(config);
     expect(this.timenode).to.exist;
-  });
+  }).timeout(10000);
 
   it('starts scanning', async () => {
     await this.timenode.startScanning();
