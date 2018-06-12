@@ -1,4 +1,4 @@
-import ethWallet from 'ethereumjs-wallet';
+import * as ethWallet from 'ethereumjs-wallet';
 
 declare const Buffer: any;
 declare const setTimeout: any;
