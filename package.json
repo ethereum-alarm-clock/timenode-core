@@ -51,7 +51,7 @@
     "@types/node": "10.3.2",
     "bluebird": "3.5.1",
     "chai": "4.1.2",
-    "ganache-core": "2.1.0",
+    "ganache-core": "2.1.2",
     "husky": "1.0.0-rc.8",
     "mocha": "5.1.1",
     "mocha-typescript": "1.1.16",
