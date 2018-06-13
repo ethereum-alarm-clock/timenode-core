@@ -1,6 +1,7 @@
 import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
+import { isProfitable } from '../EconomicStrategy';
 
 import * as Bb from 'bluebird';
 import * as moment from 'moment';
@@ -8,7 +9,7 @@ import * as moment from 'moment';
 export class TEMPORAL_UNIT {
   static BLOCK = 1;
   static TIMESTAMP = 2;
-};
+}
 
 export default class Router {
   actions: Actions;
@@ -64,14 +65,18 @@ export default class Router {
       return TxStatus.ClaimWindow;
     }
 
-    try {
-      // check profitability FIRST
-      // ... here
-      //TODO do we care about return value?
-      await this.actions.claim(txRequest);
-    } catch (e) {
-      // TODO handle gracefully?
-      throw new Error(e);
+    if (
+      await isProfitable(
+        txRequest,
+        this.config.economicStrategy.minProfitability
+      )
+    ) {
+      try {
+        await this.actions.claim(txRequest);
+      } catch (e) {
+        // TODO handle gracefully?
+        throw new Error(e);
+      }
     }
 
     return TxStatus.ClaimWindow;
@@ -91,13 +96,13 @@ export default class Router {
     if (!transaction || !transaction.temporalUnit) {
       return false;
     }
-    
+
     let temporalUnit = transaction.temporalUnit;
 
     if (transaction.temporalUnit.toNumber) {
       temporalUnit = transaction.temporalUnit.toNumber();
     }
-    
+
     return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
   }
 
@@ -113,7 +118,7 @@ export default class Router {
         await this.getBlockNumber()
       );
     }
-    
+
     return Boolean(afterExecutionWindow && !transaction.wasCalled);
   }
 

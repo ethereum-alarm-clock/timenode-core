@@ -206,12 +206,12 @@ export default class Wallet {
     }
     const from = this.getAccounts()[idx].getAddressString();
     const nonce = await this.getNonce(from);
-    
+
     const signedTx = await this.signTransaction(from, nonce, opts);
     const hash = await this.sendRawTransaction(signedTx);
-    
+
     const receipt = await this.getTransactionReceipt(hash, from);
-    
+
     return receipt;
   }
 

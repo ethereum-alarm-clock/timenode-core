@@ -49,7 +49,13 @@ describe('ScheduleTx', () => {
       true
     );
 
-    console.log(receipt.logs[1].topics[0]);
+    const {
+      Util: { getTxRequestFromReceipt },
+    } = eac;
+
+    const address = getTxRequestFromReceipt(receipt);
+    console.log(address);
+    
     expect(receipt).to.exist;
   }).timeout(20000);
 

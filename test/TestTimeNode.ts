@@ -10,8 +10,10 @@ describe('TimeNode', () => {
   }).timeout(10000);
 
   it('starts scanning', async () => {
-    await this.timenode.startScanning();
-    expect(this.timenode.scanner.scanning).to.be.true;
+    const started = await this.timenode.startScanning();
+    console.log(started);
+    console.log('lol')
+    expect(started).to.be.true;
   });
 
   // it('stops scanning', async () => {
