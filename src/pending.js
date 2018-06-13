@@ -96,7 +96,7 @@ const hasValidGasPrice = async (web3, transaction) => {
  * @param {any} type Type of pending request: claim,execute.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const isOfType = (transaction, type) => {
+const isOfType = (transaction, type = null) => {
   if (transaction && !type) {
     return true;
   }
@@ -111,7 +111,7 @@ const isOfType = (transaction, type) => {
  * @param {any} type (optional) Type of pending request: claim,execute.
  * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network.
  */
-const hasPending = (conf, txRequest, { type = null, checkGasPrice }) => {
+const hasPending = (conf, txRequest, { type, checkGasPrice }) => {
   if (conf.client == 'parity') {
     return hasPendingParity(conf, txRequest, { type, checkGasPrice })
   } else if (conf.client == 'geth') {
