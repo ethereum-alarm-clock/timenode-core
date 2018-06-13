@@ -32,7 +32,26 @@ export default class Actions {
       };
     }
 
-    // const txHash = await this.config.wallet.sendFromNext(opts);
+    if (this.config.wallet.isWalletAbleToSendTx(0)) {
+      this.config.logger.debug(
+        'Actions::claim()::Wallet with index 0 able to send tx.'
+      );
+
+      try {
+        const txHash = await this.config.wallet.sendFromIndex(0, opts);
+
+        return true;
+      } catch (error) {
+        this.config.logger.debug(
+          `Actions::claim()::sendFromIndex error: ${error}`
+        );
+      }
+    } else {
+      this.config.logger.debug(
+        'Actions::claim()::Wallet with index 0 is not able to send tx.'
+      );
+    }
+
     //TODO get transaction object from txHash
   }
 
@@ -66,7 +85,18 @@ export default class Actions {
       };
     }
 
-    const txHash = await this.config.wallet.sendFromIndex(opts);
+    if (this.config.wallet.isWalletAbleToSendTx(0)) {
+      this.config.logger.debug(
+        'Actions::execute()::Wallet with index 0 able to send tx.'
+      );
+      const txHash = await this.config.wallet.sendFromIndex(0, opts);
+
+      return true;
+    } else {
+      this.config.logger.debug(
+        'Actions::execute()::Wallet with index 0 is not able to send tx.'
+      );
+    }
   }
 
   async cleanup(txRequest: any): Promise<boolean> {

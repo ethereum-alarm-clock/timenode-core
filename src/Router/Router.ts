@@ -75,8 +75,13 @@ export default class Router {
       // check profitability FIRST
       // ... here
       //TODO do we care about return value?
-      await this.actions.claim(txRequest);
+      const claimed = await this.actions.claim(txRequest);
+
+      if (claimed === true) {
+        this.config.logger.info(`${txRequest.address} claimed`);
+      }
     } catch (e) {
+      this.config.logger.error(`${txRequest.address} claiming failed`);
       // TODO handle gracefully?
       throw new Error(e);
     }
@@ -135,13 +140,17 @@ export default class Router {
     }
 
     try {
-      await this.actions.execute(txRequest);
+      const executed = await this.actions.execute(txRequest);
+
+      if (executed === true) {
+        return TxStatus.Executed;
+      }
     } catch (e) {
       //TODO handle gracefully?
       throw new Error(e);
     }
 
-    return TxStatus.Executed;
+    return TxStatus.ExecutionWindow;
   }
 
   async executed(txRequest: any): Promise<TxStatus> {
