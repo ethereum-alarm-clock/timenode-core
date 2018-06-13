@@ -110,8 +110,9 @@ export default class Wallet {
    * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
-  sendFromNext(opts: Object) {
-    const next = ++this.nonce % this.length;
+  sendFromNext(opts : any) {
+    const next = this.nonce++ % this.length;
+
     return this.sendFromIndex(next, opts);
   }
 
@@ -193,6 +194,8 @@ export default class Wallet {
     });
   }
 
+  sendingTxInProgress = false;
+
   /**
    * sendFromIndex will send a transaction from the account index specified
    * @param {number} idx The index of the account to send a transaction from.
@@ -200,18 +203,32 @@ export default class Wallet {
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
   async sendFromIndex(idx: number, opts: any) {
-    console.log('sendFromIndex', idx, opts);
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
     const from = this.getAccounts()[idx].getAddressString();
     const nonce = await this.getNonce(from);
-    
+
     const signedTx = await this.signTransaction(from, nonce, opts);
-    const hash = await this.sendRawTransaction(signedTx);
-    
-    const receipt = await this.getTransactionReceipt(hash, from);
-    
+
+    if (this.sendingTxInProgress) {
+      throw 'Sending transaction is already in progress. Please wait.';
+    }
+
+    let receipt;
+    try {
+      this.sendingTxInProgress = true;
+
+      const hash = await this.sendRawTransaction(signedTx);
+
+      receipt = await this.getTransactionReceipt(hash, from);
+    } catch (error) {
+      console.log('Wallet::sendFromIndex(): Error.', error);
+      throw error;
+    } finally {
+      this.sendingTxInProgress = false;
+    }
+
     return receipt;
   }
 

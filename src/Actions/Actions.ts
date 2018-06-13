@@ -70,6 +70,8 @@ export default class Actions {
   }
 
   async cleanup(txRequest: any): Promise<boolean> {
+    throw Error('Not implemented according to latest EAC changes.');
+
     // Check if there is any ether left in a txRequest.
     const txRequestBalance = await txRequest.getBalance();
 

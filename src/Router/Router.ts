@@ -35,10 +35,17 @@ export default class Router {
       this.config.cache.del(txRequest.address);
       return TxStatus.Missed;
     };
+
+    this.transitions[TxStatus.Done] = (txRequest: any) => {
+      console.log('done: ', txRequest.address);
+      this.config.cache.del(txRequest.address);
+
+      return TxStatus.Done;
+    };
   }
 
   async getBlockNumber() {
-    return Bb.fromCallback((callback) =>
+    return Bb.fromCallback((callback : any) =>
       this.config.web3.eth.getBlockNumber(callback)
     );
   }
@@ -91,13 +98,13 @@ export default class Router {
     if (!transaction || !transaction.temporalUnit) {
       return false;
     }
-    
+
     let temporalUnit = transaction.temporalUnit;
 
     if (transaction.temporalUnit.toNumber) {
       temporalUnit = transaction.temporalUnit.toNumber();
     }
-    
+
     return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
   }
 
@@ -113,7 +120,7 @@ export default class Router {
         await this.getBlockNumber()
       );
     }
-    
+
     return Boolean(afterExecutionWindow && !transaction.wasCalled);
   }
 
@@ -138,7 +145,14 @@ export default class Router {
   }
 
   async executed(txRequest: any): Promise<TxStatus> {
-    await this.actions.cleanup(txRequest);
+    /**
+     * We don't cleanup because cleanup needs refactor according to latest logic in EAC
+     * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
+     *
+     * await this.actions.cleanup(txRequest);
+     */
+    //
+
     return TxStatus.Done;
   }
 
