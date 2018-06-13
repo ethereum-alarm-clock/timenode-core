@@ -4,7 +4,7 @@ const FnSignatures = require('Enum/FnSignatures');
  * Uses the Parity specific RPC request `parity_pendingTransactions` to search
  * for pending transactions in the transaction pool.
  * @param {TransactionRequest} txRequest
- * @param {string} type (optional) Type of pending request: claim,execute.
+ * @param {any} type (optional) Type of pending request: claim,execute.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
 const hasPendingParity = async (conf, txRequest, { type, checkGasPrice = true }) => {
@@ -40,7 +40,7 @@ const hasPendingParity = async (conf, txRequest, { type, checkGasPrice = true })
  * Uses the Geth specific RPC request `txpool_content` to search
  * for pending transactions in the transaction pool.
  * @param {TransactionRequest} txRequest
- * @param {string} type (optional) Type of pending request: claim,execute.
+ * @param {any} type (optional) Type of pending request: claim,execute.
  * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network when (type: claim).
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
@@ -93,7 +93,7 @@ const hasValidGasPrice = async (web3, transaction) => {
  * Uses the Geth specific RPC request `txpool_content` to search
  * for pending transactions in the transaction pool.
  * @param {TransactionReceipt} transaction Ethereum transaction receipt
- * @param {string} type Type of pending request: claim,execute.
+ * @param {any} type Type of pending request: claim,execute.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
 const isOfType = (transaction, type) => {
@@ -108,8 +108,8 @@ const isOfType = (transaction, type) => {
  * a TransactionRequest has a pending transaction in the transaction pool.
  * @param {Config} conf Config object.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
- * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network when (type: claim).
- * @param {string} type (optional) Type of pending request: claim,execute.
+ * @param {any} type (optional) Type of pending request: claim,execute.
+ * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network.
  */
 const hasPending = (conf, txRequest, { type = null, checkGasPrice }) => {
   if (conf.client == 'parity') {
