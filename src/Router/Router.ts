@@ -8,7 +8,7 @@ import * as moment from 'moment';
 export class TEMPORAL_UNIT {
   static BLOCK = 1;
   static TIMESTAMP = 2;
-};
+}
 
 export default class Router {
   actions: Actions;
@@ -45,7 +45,7 @@ export default class Router {
   }
 
   async getBlockNumber() {
-    return Bb.fromCallback((callback : any) =>
+    return Bb.fromCallback((callback: any) =>
       this.config.web3.eth.getBlockNumber(callback)
     );
   }

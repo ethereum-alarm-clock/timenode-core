@@ -110,7 +110,7 @@ export default class Wallet {
    * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
-  sendFromNext(opts : any) {
+  sendFromNext(opts: any) {
     const next = this.nonce++ % this.length;
 
     return this.sendFromIndex(next, opts);
