@@ -7,7 +7,7 @@ node_js:
 cache:
   directories:
     - node_modules
-before_install: npm install -g mocha typescript
+before_install: npm install -g truffle mocha typescript ganache-cli
 install: npm install
 script:
   - npm run deploy-eac
@@ -15,3 +15,6 @@ script:
   - npm run build
   - npm run test
   - npm run clean-backups
+before_script:
+  - ganache-cli -b 1 -i 1002 > /dev/null &
+  - sleep 5
