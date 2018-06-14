@@ -1,7 +1,7 @@
 import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
-import { isProfitable } from '../EconomicStrategy';
+import { isProfitable, isAboveMinBalanceLimit } from '../EconomicStrategy';
 
 import * as Bb from 'bluebird';
 import * as moment from 'moment';
@@ -65,12 +65,13 @@ export default class Router {
       return TxStatus.ClaimWindow;
     }
 
-    if (
-      await isProfitable(
-        txRequest,
-        this.config.economicStrategy.minProfitability
-      )
-    ) {
+    const profitable = await isProfitable(
+      txRequest,
+      this.config.economicStrategy.minProfitability
+    )
+    const enoughBalance = await isAboveMinBalanceLimit(this.config);
+
+    if (profitable && enoughBalance) {
       try {
         await this.actions.claim(txRequest);
       } catch (e) {
