@@ -1,6 +1,2 @@
 export { IEconomicStrategy } from './IEconomicStrategy';
-export {
-  isProfitable,
-  isAboveMinBalanceLimit,
-  exceedsMaxDeposit,
-} from './EconomicStrategyHelpers';
+export { shouldClaimTx } from './EconomicStrategyHelpers';

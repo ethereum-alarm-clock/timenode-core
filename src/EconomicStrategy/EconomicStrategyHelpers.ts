@@ -1,5 +1,6 @@
-import { IEconomicStrategy } from './IEconomicStrategy';
 import * as Bb from 'bluebird';
+import { IEconomicStrategy } from './IEconomicStrategy';
+import Config from '../Config';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
@@ -54,4 +55,19 @@ const isProfitable = async (
   return true;
 };
 
-export { isProfitable, isAboveMinBalanceLimit, exceedsMaxDeposit };
+const shouldClaimTx = async (txRequest: any, config: Config) => {
+  const profitable = await isProfitable(txRequest, config.economicStrategy);
+  if (!profitable) return false;
+
+  const enoughBalance = await isAboveMinBalanceLimit(
+    config.economicStrategy,
+    config.web3
+  );
+  if (!enoughBalance) return false;
+
+  const exceedsDepositLimit = exceedsMaxDeposit(txRequest, config.economicStrategy);
+
+  return profitable && enoughBalance && !exceedsDepositLimit;
+};
+
+export { shouldClaimTx };
