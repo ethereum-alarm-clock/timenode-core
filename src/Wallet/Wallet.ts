@@ -240,6 +240,8 @@ export default class Wallet {
       throw new Error('Index is outside range of addresses.');
     }
 
+    console.log('send tx options', opts);
+
     const from: string = this.getAccounts()[idx].getAddressString();
 
     const balance = await this.getBalanceOf(from);
@@ -270,6 +272,7 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
+      console.log('receipt', receipt);
     } catch (error) {
       console.log('Wallet::sendFromIndex(): Error.', error);
       throw error;

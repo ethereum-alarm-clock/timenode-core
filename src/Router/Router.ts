@@ -145,9 +145,13 @@ export default class Router {
       const executed = await this.actions.execute(txRequest);
 
       if (executed === true) {
+        this.config.logger.info(`${txRequest.address} executed`);
+
         return TxStatus.Executed;
       }
     } catch (e) {
+      this.config.logger.error(`${txRequest.address} execution failed`);
+
       //TODO handle gracefully?
       throw new Error(e);
     }
