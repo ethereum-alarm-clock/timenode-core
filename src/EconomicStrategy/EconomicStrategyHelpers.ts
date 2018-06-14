@@ -46,10 +46,12 @@ const isProfitable = async (
   economicStrategy: IEconomicStrategy
 ) => {
   const paymentModifier = await txRequest.claimPaymentModifier();
+  const reward = txRequest.bounty.times(paymentModifier);
+
   const minProfitability = economicStrategy.minProfitability;
 
   if (minProfitability.gt(0)) {
-    return paymentModifier.lt(minProfitability);
+    return reward.lt(minProfitability);
   }
 
   return true;
