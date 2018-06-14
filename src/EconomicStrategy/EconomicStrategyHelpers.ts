@@ -1,28 +1,28 @@
-import BigNumber from 'bignumber.js';
-import Config from '../Config';
+import { IEconomicStrategy } from './IEconomicStrategy';
 import * as Bb from 'bluebird';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
  * user-set maximum deposit limit.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
- * @param {Config} config TimeNode configuration object.
+ * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const exceedsMaxDeposit = (txRequest: any, config: Config) => {
-  const requiredDeposit = txRequest.requiredDeposit();
-  const maxDeposit = config.economicStrategy.maxDeposit;
+const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) => {
+  const requiredDeposit = txRequest.requiredDeposit;
+  const maxDeposit = economicStrategy.maxDeposit;
 
   return requiredDeposit.gt(maxDeposit);
 };
 
 /**
  * Checks if the balance of the TimeNode is above a set limit.
- * @param {Config} config TimeNode configuration object.
+ * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
+ * @param {Web3} web3 The Web3 object
  */
-const isAboveMinBalanceLimit = async (config: Config) => {
-  const minBalance = config.economicStrategy.minBalance;
+const isAboveMinBalanceLimit = async (economicStrategy: IEconomicStrategy, web3: any) => {
+  const minBalance = economicStrategy.minBalance;
   const currentBalance = await Bb.fromCallback((callback) =>
-    config.web3.eth.getBlockNumber(callback)
+    web3.eth.getBalance(web3.eth.accounts[0], callback)
   );
 
   return currentBalance.gt(minBalance);
@@ -32,11 +32,11 @@ const isAboveMinBalanceLimit = async (config: Config) => {
  * Compares the profitability user settings and checks if the TimeNode
  * should claim a transaction.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
- * @param {Config} config TimeNode configuration object.
+ * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const isProfitable = async (txRequest: any, config: Config) => {
+const isProfitable = async (txRequest: any, economicStrategy: IEconomicStrategy) => {
   const paymentModifier = await txRequest.claimPaymentModifier();
-  const minProfitability = config.economicStrategy.minProfitability;
+  const minProfitability = economicStrategy.minProfitability;
 
   if (minProfitability.gt(0)) {
     return paymentModifier.lt(minProfitability);
