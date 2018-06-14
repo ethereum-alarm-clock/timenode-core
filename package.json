@@ -12,7 +12,8 @@
     "fmt": "node scripts/fmt.js",
     "test": "mocha -r ts-node/register test/*.ts --exit",
     "test-noexit": "mocha -r ts-node/register test/*.ts",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "deploy-eac": "sh scripts/deploy_eac.sh"
   },
   "repository": {
     "type": "git",
