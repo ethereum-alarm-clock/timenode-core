@@ -1,5 +1,5 @@
-import mem_cache = require('memory-cache');
-import _ = require('lodash');
+import * as mem_cache from 'memory-cache';
+import * as _ from 'lodash';
 
 export default class Cache {
   cache: any;
@@ -12,7 +12,7 @@ export default class Cache {
     this.mem = [];
   }
 
-  set(k: string, v: any) {
+  set(k: String, v: any) {
     if (_.indexOf(this.mem, k) === -1) {
       this.mem.push(k);
     }
@@ -20,7 +20,7 @@ export default class Cache {
     this.logger.cache(`stored ${k} with value ${v}`);
   }
 
-  get(k: string, d: any) {
+  get(k: String, d?: any) {
     // / FIXME more elegant error handling for this...
     if (this.cache.get(k) === null) {
       if (d === undefined) {
@@ -32,7 +32,7 @@ export default class Cache {
     return this.cache.get(k);
   }
 
-  has(k: string) {
+  has(k: String) {
     if (this.cache.get(k) === null) {
       this.logger.cache(`miss ${k}`);
       return false;
@@ -41,7 +41,7 @@ export default class Cache {
     return true;
   }
 
-  del(k: string) {
+  del(k: String) {
     // mutates the this.mem array to remove the value
     _.remove(this.mem, (addr) => addr === k);
     this.cache.del(k);
@@ -62,7 +62,7 @@ export default class Cache {
   }
 
   sweepExpired() {
-    this.mem.forEach((txRequestAddress: string) => {
+    this.mem.forEach((txRequestAddress: String) => {
       if (this.get(txRequestAddress, 0) === 99) {
         // expired
         this.del(txRequestAddress);

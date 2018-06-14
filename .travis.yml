@@ -7,7 +7,7 @@ node_js:
 cache:
   directories:
     - node_modules
-before_install: npm install -g mocha && npm install -g typescript
+before_install: npm install -g mocha typescript
 install: npm install
 script:
   - npm run fmt

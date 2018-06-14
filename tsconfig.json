@@ -7,7 +7,8 @@
         "lib": [
             "es2015"
         ],
-        "target": "es5"
+        "target": "es6",
+        "moduleResolution": "node"
     },
     "include": [
         "./src/**/*"

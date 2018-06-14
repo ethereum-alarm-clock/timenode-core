@@ -7,7 +7,7 @@ const FnSignatures = require('Enum/FnSignatures');
  * @param {any} type (optional) Type of pending request: claim,execute.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = async (conf, txRequest, { type, checkGasPrice = true }) => {
+const hasPendingParity = async (conf: any, txRequest: any, { type, checkGasPrice = true }) => {
   const provider = conf.web3.currentProvider
 
   return new Promise((resolve, reject) => {
@@ -18,16 +18,16 @@ const hasPendingParity = async (conf, txRequest, { type, checkGasPrice = true })
         params: [],
         id: 0o7,
       },
-      async (err, res) => {
+      async (err: Error, res: any) => {
         if (err) reject(err);
 
         const hasTx =
           res &&
           res.result &&
-          !!await res.result.filter(async (tx) => {
+          !!await res.result.filter(async (tx: any) => {
             if (tx.to === txRequest.address) {
-              const hasValidGasPrice = tx && (!checkGasPrice || await hasValidGasPrice(conf.web3, tx));
-              return tx && isOfType(tx, type) && hasValidGasPrice;
+              const withValidGasPrice = tx && (!checkGasPrice || await hasValidGasPrice(conf.web3, tx));
+              return tx && isOfType(tx, type) && withValidGasPrice;
             }
           }).length;
         resolve(hasTx);
@@ -44,7 +44,7 @@ const hasPendingParity = async (conf, txRequest, { type, checkGasPrice = true })
  * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network when (type: claim).
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingGeth = (conf, txRequest, { type, checkGasPrice = true }) => {
+const hasPendingGeth = (conf: any, txRequest: any, { type, checkGasPrice = true }) => {
   const provider = conf.web3.currentProvider
 
   return new Promise((resolve, reject) => {
@@ -55,7 +55,7 @@ const hasPendingGeth = (conf, txRequest, { type, checkGasPrice = true }) => {
         params: [],
         id: 0o7,
       },
-      (err, res) => {
+      (err: Error, res: any) => {
         if (err) reject(err)
         for (const account in res.result.pending) {
           for (const nonce in res.result.pending[account]) {
@@ -111,7 +111,7 @@ const isOfType = (transaction, type = null) => {
  * @param {any} type (optional) Type of pending request: claim,execute.
  * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network.
  */
-const hasPending = (conf, txRequest, { type, checkGasPrice }) => {
+const hasPending = (conf: any, txRequest: any, { type, checkGasPrice }) => {
   if (conf.client == 'parity') {
     return hasPendingParity(conf, txRequest, { type, checkGasPrice })
   } else if (conf.client == 'geth') {
@@ -119,4 +119,4 @@ const hasPending = (conf, txRequest, { type, checkGasPrice }) => {
   }
 };
 
-module.exports = hasPending;
+export default hasPending;
