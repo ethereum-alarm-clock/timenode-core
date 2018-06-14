@@ -16,4 +16,5 @@ export interface IConfigParams {
   statsDb: StatsDB;
   walletStores?: any;
   web3: any;
+  walletStoresAsPrivateKeys: boolean;
 }
