@@ -1,6 +1,7 @@
 import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
+import { shouldClaimTx } from '../EconomicStrategy';
 
 import * as Bb from 'bluebird';
 import * as moment from 'moment';
@@ -71,19 +72,20 @@ export default class Router {
       return TxStatus.ClaimWindow;
     }
 
-    try {
-      // check profitability FIRST
-      // ... here
-      //TODO do we care about return value?
-      const claimed = await this.actions.claim(txRequest);
+    const shouldClaim = await shouldClaimTx(txRequest, this.config);
 
-      if (claimed === true) {
-        this.config.logger.info(`${txRequest.address} claimed`);
+    if (shouldClaim) {
+      try {
+        const claimed = await this.actions.claim(txRequest);
+
+        if (claimed === true) {
+          this.config.logger.info(`${txRequest.address} claimed`);
+        }
+      } catch (e) {
+        this.config.logger.error(`${txRequest.address} claiming failed`);
+        // TODO handle gracefully?
+        throw new Error(e);
       }
-    } catch (e) {
-      this.config.logger.error(`${txRequest.address} claiming failed`);
-      // TODO handle gracefully?
-      throw new Error(e);
     }
 
     return TxStatus.ClaimWindow;
