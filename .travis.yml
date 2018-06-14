@@ -10,6 +10,7 @@ cache:
 before_install: npm install -g mocha typescript
 install: npm install
 script:
+  - npm run deploy_eac
   - npm run fmt
   - npm run build
   - npm run test
