@@ -6,7 +6,7 @@ declare const setInterval: any;
 
 import { IBlock, IntervalId, ITxRequest } from '../Types';
 
-import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
+import { IBucketPair, IBuckets, BucketSize } from '../Buckets';
 
 export default class {
   config: Config;
@@ -32,9 +32,10 @@ export default class {
 
   async start(): Promise<boolean> {
     // Create the interval for processing the transaction requests in cache.
+    console.log(this.config.ms/1000)
     this.cacheScanner = setInterval(() => {
       this.scanCache().catch((err) => this.config.logger.error(err));
-    }, this.config.ms);
+    }, parseInt(this.config.ms))/1000;
 
     // TODO: extract this to a utils file perhaps
     //
@@ -114,8 +115,8 @@ export default class {
   //TODO move this to requestFactory instance
   getCurrentBuckets(reqFactory: any, latest: IBlock): IBucketPair {
     return {
-      blockBucket: reqFactory.calcBucket(latest),
-      timestampBucket: reqFactory.calcBucket(latest),
+      blockBucket: reqFactory.calcBucket(latest.number, 1),
+      timestampBucket: reqFactory.calcBucket(latest.timestamp, 2),
     };
   }
 
@@ -191,6 +192,9 @@ export default class {
         this.store(request);
       }
     };
+
+    this.config.logger.info(currentBuckets);
+    this.config.logger.info(nextBuckets);
 
     // Start watching the current buckets right away.
     reqFactory.watchRequestsByBucket(currentBuckets.blockBucket, handleRequest);
