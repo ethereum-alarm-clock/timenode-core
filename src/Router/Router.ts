@@ -72,13 +72,16 @@ export default class Router {
     const economicStrategy = this.config.economicStrategy;
 
     const profitable = await isProfitable(txRequest, economicStrategy);
-    const enoughBalance = await isAboveMinBalanceLimit(economicStrategy, this.config.web3);
+    const enoughBalance = await isAboveMinBalanceLimit(
+      economicStrategy,
+      this.config.web3
+    );
     const exceedsDepositLimit = exceedsMaxDeposit(txRequest, economicStrategy);
 
     console.log({
-      'profitable': profitable,
-      'enoughBalance': enoughBalance,
-      'exceedsDepositLimit': exceedsDepositLimit
+      profitable: profitable,
+      enoughBalance: enoughBalance,
+      exceedsDepositLimit: exceedsDepositLimit,
     });
 
     if (profitable && enoughBalance && !exceedsDepositLimit) {

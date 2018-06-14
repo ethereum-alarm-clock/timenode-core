@@ -7,7 +7,10 @@ import * as Bb from 'bluebird';
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) => {
+const exceedsMaxDeposit = (
+  txRequest: any,
+  economicStrategy: IEconomicStrategy
+) => {
   const requiredDeposit = txRequest.requiredDeposit;
   const maxDeposit = economicStrategy.maxDeposit;
 
@@ -19,7 +22,10 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) 
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  * @param {Web3} web3 The Web3 object
  */
-const isAboveMinBalanceLimit = async (economicStrategy: IEconomicStrategy, web3: any) => {
+const isAboveMinBalanceLimit = async (
+  economicStrategy: IEconomicStrategy,
+  web3: any
+) => {
   const minBalance = economicStrategy.minBalance;
   const currentBalance = await Bb.fromCallback((callback) =>
     web3.eth.getBalance(web3.eth.accounts[0], callback)
@@ -34,7 +40,10 @@ const isAboveMinBalanceLimit = async (economicStrategy: IEconomicStrategy, web3:
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const isProfitable = async (txRequest: any, economicStrategy: IEconomicStrategy) => {
+const isProfitable = async (
+  txRequest: any,
+  economicStrategy: IEconomicStrategy
+) => {
   const paymentModifier = await txRequest.claimPaymentModifier();
   const minProfitability = economicStrategy.minProfitability;
 
