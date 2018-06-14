@@ -65,7 +65,10 @@ const shouldClaimTx = async (txRequest: any, config: Config) => {
   );
   if (!enoughBalance) return false;
 
-  const exceedsDepositLimit = exceedsMaxDeposit(txRequest, config.economicStrategy);
+  const exceedsDepositLimit = exceedsMaxDeposit(
+    txRequest,
+    config.economicStrategy
+  );
 
   return profitable && enoughBalance && !exceedsDepositLimit;
 };
