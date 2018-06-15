@@ -68,7 +68,7 @@ describe('TimeNode', () => {
     });
 
     assert.ok(claimedLogged, `Claiming of ${TEST_TX_ADDRESS} hasn't been logged.`);
-  }).timeout(40000);
+  }).timeout(400000);
 
   // it('stops scanning', async () => {
   //   await this.timenode.stopScanning();

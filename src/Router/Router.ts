@@ -69,7 +69,7 @@ export default class Router {
       return TxStatus.FreezePeriod;
     }
     if (txRequest.isClaimed) {
-      return TxStatus.ClaimWindow;
+      return TxStatus.FreezePeriod;
     }
 
     const shouldClaim = await shouldClaimTx(txRequest, this.config);

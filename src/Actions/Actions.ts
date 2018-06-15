@@ -26,7 +26,7 @@ export default class Actions {
       //TODO estimate gas above
       gas: 3000000,
       //TODO estimate gas above
-      gasPrice: 12,
+      gasPrice: 12121212121,
       data: claimData,
     };
 
@@ -36,13 +36,13 @@ export default class Actions {
       };
     }
 
-    if (this.config.wallet.isWalletAbleToSendTx(0)) {
-      this.config.logger.debug(
-        `Actions::claim(${shortenAddress(txRequest.address)})::Wallet with index 0 able to send tx.`
-      );
+    if (this.config.wallet.isNextAccountFree()) {
+      // this.config.logger.debug(
+      //   `Actions::claim(${shortenAddress(txRequest.address)})::Wallet with index 0 able to send tx.`
+      // );
 
       try {
-        const txHash : any = await this.config.wallet.sendFromIndex(0, opts);
+        const txHash: any = await this.config.wallet.sendFromNext(opts);
 
         return txHash.receipt.status === '0x1';
       } catch (error) {

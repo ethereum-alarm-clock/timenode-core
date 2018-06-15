@@ -229,6 +229,10 @@ export default class Wallet {
     );
   }
 
+  isNextAccountFree() {
+    return this.isWalletAbleToSendTx(this.nonce % this.length);
+  }
+
   /**
    * sendFromIndex will send a transaction from the account index specified
    * @param {number} idx The index of the account to send a transaction from.
