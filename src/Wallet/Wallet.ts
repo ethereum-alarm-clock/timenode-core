@@ -270,6 +270,7 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
+      console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
       console.log('Wallet::sendFromIndex(): Error.', error);
       throw error;
