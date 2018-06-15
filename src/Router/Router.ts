@@ -99,6 +99,8 @@ export default class Router {
     if (await txRequest.inExecutionWindow()) {
       return TxStatus.ExecutionWindow;
     }
+
+    return TxStatus.FreezePeriod;
   }
 
   isTxUnitTimestamp(transaction: any) {
