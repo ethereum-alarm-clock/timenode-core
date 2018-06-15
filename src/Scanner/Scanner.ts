@@ -32,10 +32,11 @@ export default class {
 
   async start(): Promise<boolean> {
     // Create the interval for processing the transaction requests in cache.
-    console.log(this.config.ms/1000)
-    this.cacheScanner = setInterval(() => {
-      this.scanCache().catch((err) => this.config.logger.error(err));
-    }, parseInt(this.config.ms))/1000;
+    console.log(this.config.ms / 1000);
+    this.cacheScanner =
+      setInterval(() => {
+        this.scanCache().catch((err) => this.config.logger.error(err));
+      }, parseInt(this.config.ms)) / 1000;
 
     // TODO: extract this to a utils file perhaps
     //

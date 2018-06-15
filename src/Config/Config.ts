@@ -67,8 +67,6 @@ export default class Config implements IConfigParams {
       this.wallet = null;
     }
 
-    this.ms = params.ms;
-
     this.economicStrategy = params.economicStrategy;
   }
 }
