@@ -43,6 +43,8 @@ describe('TimeNode', () => {
    * PROBABLY THIS IS BECAUSE OF BUCKET ISSUES
    */
   it('claims transaction', async () => {
+    const { eac } = timenode.config;
+
     const TEST_TX_ADDRESS = await scheduleTestTx();
     const TEST_TX_REQUEST = await eac.transactionRequest(TEST_TX_ADDRESS);
 
