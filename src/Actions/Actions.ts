@@ -3,7 +3,10 @@ import Config from '../Config';
 import hasPending from './Pending';
 
 export function shortenAddress(address: string) {
-  return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
+  return `${address.slice(0, 6)}...${address.slice(
+    address.length - 5,
+    address.length
+  )}`;
 }
 
 export default class Actions {
@@ -38,21 +41,27 @@ export default class Actions {
 
     if (this.config.wallet.isWalletAbleToSendTx(0)) {
       this.config.logger.debug(
-        `Actions::claim(${shortenAddress(txRequest.address)})::Wallet with index 0 able to send tx.`
+        `Actions::claim(${shortenAddress(
+          txRequest.address
+        )})::Wallet with index 0 able to send tx.`
       );
 
       try {
-        const txHash : any = await this.config.wallet.sendFromIndex(0, opts);
+        const txHash: any = await this.config.wallet.sendFromIndex(0, opts);
 
         return txHash.receipt.status === '0x1';
       } catch (error) {
         this.config.logger.debug(
-          `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${error}`
+          `Actions::claim(${shortenAddress(
+            txRequest.address
+          )})::sendFromIndex error: ${error}`
         );
       }
     } else {
       this.config.logger.debug(
-        `Actions::claim(${shortenAddress(txRequest.address)})::Wallet with index 0 is not able to send tx.`
+        `Actions::claim(${shortenAddress(
+          txRequest.address
+        )})::Wallet with index 0 is not able to send tx.`
       );
     }
 
