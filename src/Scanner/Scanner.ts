@@ -12,10 +12,14 @@ export default class {
   config: Config;
   scanning: boolean;
   router: any;
+  requestFactory: Promise<any>;
 
   // Child Scanners, tracked by the ID of their interval
   cacheScanner: IntervalId;
   chainScanner: IntervalId;
+
+  buckets: IBuckets;
+  eventWatchers: {};
 
   /**
    * Creates a new Scanner instance. The scanner serves as the top level
@@ -28,14 +32,15 @@ export default class {
     this.config = config;
     this.scanning = false;
     this.router = router;
+    this.requestFactory = config.eac.requestFactory();
+  }
+
+  runAndSetInterval(fn: () => void, interval: number): IntervalId {
+    fn();
+    return setInterval(fn, interval);
   }
 
   async start(): Promise<boolean> {
-    // Create the interval for processing the transaction requests in cache.
-    this.cacheScanner = setInterval(() => {
-      this.scanCache().catch((err) => this.config.logger.error(err));
-    }, this.config.ms);
-
     // TODO: extract this to a utils file perhaps
     //
     // Helper function to determine if we're on a provider which allows
@@ -69,8 +74,11 @@ export default class {
       this.chainScanner = await this.backupScanBlockchain();
     }
 
-    // TODO: Do we need to immediately scan the cache?
-    this.scanCache().catch((err) => this.config.logger.error(err));
+    // Create the interval for processing the transaction requests in cache.
+    this.cacheScanner = this.runAndSetInterval(
+      () => this.scanCache().catch((err) => this.config.logger.error(err)),
+      this.config.ms
+    );
 
     // Mark that we've started.
     // this.config.logger.info('Scanner STARTED');
@@ -112,14 +120,17 @@ export default class {
   }
 
   //TODO move this to requestFactory instance
-  getCurrentBuckets(reqFactory: any, latest: IBlock): IBucketPair {
+  async getCurrentBuckets(latest: IBlock): Promise<IBucketPair> {
+    const reqFactory = await this.requestFactory;
+
     return {
-      blockBucket: reqFactory.calcBucket(latest),
-      timestampBucket: reqFactory.calcBucket(latest),
+      blockBucket: reqFactory.calcBucket(latest.number, 1),
+      timestampBucket: reqFactory.calcBucket(latest.timestamp, 2),
     };
   }
 
-  getNextBuckets(reqFactory: any, latest: IBlock): IBucketPair {
+  async getNextBuckets(latest: IBlock): Promise<IBucketPair> {
+    const reqFactory = await this.requestFactory;
     const nextBlockInterval = latest.number + BucketSize.block;
     const nextTsInterval = latest.timestamp + BucketSize.timestamp;
 
@@ -129,11 +140,11 @@ export default class {
     };
   }
 
-  async getBuckets(reqFactory: any): Promise<IBuckets> {
+  async getBuckets(): Promise<IBuckets> {
     const latest: IBlock = await this.getBlock('latest');
     return {
-      currentBuckets: this.getCurrentBuckets(reqFactory, latest),
-      nextBuckets: this.getNextBuckets(reqFactory, latest),
+      currentBuckets: await this.getCurrentBuckets(latest),
+      nextBuckets: await this.getNextBuckets(latest),
     };
   }
 
@@ -149,9 +160,8 @@ export default class {
 
   async backupScanBlockchain(): Promise<IntervalId> {
     // TODO only init reqFactory once, so check here with a function before calling again
-    const reqFactory = await this.config.eac.requestFactory();
-
-    const { currentBuckets, nextBuckets } = await this.getBuckets(reqFactory);
+    const reqFactory = await this.requestFactory;
+    const { currentBuckets, nextBuckets } = await this.getBuckets();
 
     // TODO: extract this out
     (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(
@@ -174,12 +184,34 @@ export default class {
     }, this.config.ms);
   }
 
+  async stopWatcher(bucket: Bucket) {
+    const watcher = this.eventWatchers[bucket];
+    if (watcher !== undefined) {
+      const reqFactory = await this.requestFactory;
+      await reqFactory.stopWatch(watcher);
+
+      delete this.eventWatchers[bucket];
+    }
+  }
+
+  async watchRequestsByBucket(
+    bucket: Bucket,
+    previousBucket: Bucket,
+    handleRequest: (request: any) => void
+  ) {
+    const reqFactory = await this.requestFactory;
+    if (bucket !== previousBucket) {
+      this.stopWatcher(previousBucket);
+      const watcher = await reqFactory.watchRequestsByBucket(
+        bucket,
+        handleRequest
+      );
+      this.eventWatchers[bucket] = watcher;
+    }
+  }
+
   async watchBlockchain(): Promise<IntervalId> {
-    const reqFactory = await this.config.eac.requestFactory();
-
-    const { currentBuckets, nextBuckets } = await this.getBuckets(reqFactory);
-
-    // const handleRequest = this.handleRequest.bind(this);
+    const buckets = await this.getBuckets();
 
     const handleRequest = (request: any): void => {
       if (!this.isValid(request.address)) {
@@ -193,14 +225,25 @@ export default class {
     };
 
     // Start watching the current buckets right away.
-    reqFactory.watchRequestsByBucket(currentBuckets.blockBucket, handleRequest);
-    reqFactory.watchRequestsByBucket(
-      currentBuckets.timestampBucket,
+    await this.watchRequestsByBucket(
+      buckets.currentBuckets.blockBucket,
+      this.buckets.currentBuckets.blockBucket,
       handleRequest
     );
-    reqFactory.watchRequestsByBucket(nextBuckets.blockBucket, handleRequest);
-    reqFactory.watchRequestsByBucket(
-      nextBuckets.timestampBucket,
+    await this.watchRequestsByBucket(
+      buckets.nextBuckets.blockBucket,
+      this.buckets.nextBuckets.blockBucket,
+      handleRequest
+    );
+
+    await this.watchRequestsByBucket(
+      buckets.currentBuckets.timestampBucket,
+      this.buckets.currentBuckets.timestampBucket,
+      handleRequest
+    );
+    await this.watchRequestsByBucket(
+      buckets.nextBuckets.timestampBucket,
+      this.buckets.nextBuckets.timestampBucket,
       handleRequest
     );
 
@@ -211,7 +254,7 @@ export default class {
     return setInterval(() => {
       // We only really need to watch the next buckets, but this is convienence & clarity.
       this.watchBlockchain();
-    }, 60 * 60 * 1000);
+    }, 5 * 60 * 1000); //scan every 5min, so we also support chains with faster blocks than assumed 250blocks/1h
   }
 
   isValid(requestAddress: String): boolean {
