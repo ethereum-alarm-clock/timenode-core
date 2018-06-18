@@ -1,6 +1,7 @@
 import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
+import { shouldClaimTx } from '../EconomicStrategy';
 
 import * as Bb from 'bluebird';
 import * as moment from 'moment';
@@ -8,7 +9,7 @@ import * as moment from 'moment';
 export class TEMPORAL_UNIT {
   static BLOCK = 1;
   static TIMESTAMP = 2;
-};
+}
 
 export default class Router {
   actions: Actions;
@@ -35,10 +36,17 @@ export default class Router {
       this.config.cache.del(txRequest.address);
       return TxStatus.Missed;
     };
+
+    this.transitions[TxStatus.Done] = (txRequest: any) => {
+      console.log('done: ', txRequest.address);
+      this.config.cache.del(txRequest.address);
+
+      return TxStatus.Done;
+    };
   }
 
   async getBlockNumber() {
-    return Bb.fromCallback((callback) =>
+    return Bb.fromCallback((callback: any) =>
       this.config.web3.eth.getBlockNumber(callback)
     );
   }
@@ -64,14 +72,20 @@ export default class Router {
       return TxStatus.ClaimWindow;
     }
 
-    try {
-      // check profitability FIRST
-      // ... here
-      //TODO do we care about return value?
-      await this.actions.claim(txRequest);
-    } catch (e) {
-      // TODO handle gracefully?
-      throw new Error(e);
+    const shouldClaim = await shouldClaimTx(txRequest, this.config);
+
+    if (shouldClaim) {
+      try {
+        const claimed = await this.actions.claim(txRequest);
+
+        if (claimed === true) {
+          this.config.logger.info(`${txRequest.address} claimed`);
+        }
+      } catch (e) {
+        this.config.logger.error(`${txRequest.address} claiming failed`);
+        // TODO handle gracefully?
+        throw new Error(e);
+      }
     }
 
     return TxStatus.ClaimWindow;
@@ -85,19 +99,21 @@ export default class Router {
     if (await txRequest.inExecutionWindow()) {
       return TxStatus.ExecutionWindow;
     }
+
+    return TxStatus.FreezePeriod;
   }
 
   isTxUnitTimestamp(transaction: any) {
     if (!transaction || !transaction.temporalUnit) {
       return false;
     }
-    
+
     let temporalUnit = transaction.temporalUnit;
 
     if (transaction.temporalUnit.toNumber) {
       temporalUnit = transaction.temporalUnit.toNumber();
     }
-    
+
     return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
   }
 
@@ -113,7 +129,7 @@ export default class Router {
         await this.getBlockNumber()
       );
     }
-    
+
     return Boolean(afterExecutionWindow && !transaction.wasCalled);
   }
 
@@ -128,17 +144,28 @@ export default class Router {
     }
 
     try {
-      await this.actions.execute(txRequest);
+      const executed = await this.actions.execute(txRequest);
+
+      if (executed === true) {
+        return TxStatus.Executed;
+      }
     } catch (e) {
       //TODO handle gracefully?
       throw new Error(e);
     }
 
-    return TxStatus.Executed;
+    return TxStatus.ExecutionWindow;
   }
 
   async executed(txRequest: any): Promise<TxStatus> {
-    await this.actions.cleanup(txRequest);
+    /**
+     * We don't cleanup because cleanup needs refactor according to latest logic in EAC
+     * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
+     *
+     * await this.actions.cleanup(txRequest);
+     */
+    //
+
     return TxStatus.Done;
   }
 

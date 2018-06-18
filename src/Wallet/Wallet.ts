@@ -1,17 +1,36 @@
 import * as ethWallet from 'ethereumjs-wallet';
+import { BigNumber } from 'bignumber.js';
 
 declare const Buffer: any;
 declare const setTimeout: any;
+
+interface AccountState {
+  sendingTxInProgress: boolean;
+}
+
+interface AccountStateMap {
+  [Account: string]: AccountState;
+}
 
 export default class Wallet {
   length: number;
   nonce: number;
   web3: any;
+  walletStates: AccountStateMap;
 
   constructor(web3: any) {
     this.length = 0;
     this.nonce = 0;
     this.web3 = web3;
+    this.walletStates = {};
+  }
+
+  getBalanceOf(address: string): Promise<BigNumber> {
+    return new Promise((resolve) => {
+      const balance = this.web3.eth.getBalance(address);
+
+      resolve(balance);
+    });
   }
 
   _findSafeIndex(pointer = 0): number {
@@ -50,9 +69,9 @@ export default class Wallet {
       this[wallet.getAddressString().toLowerCase()] = wallet;
       this.length++;
       return wallet;
-    } else {
-      return this[wallet.getAddressString()];
     }
+
+    return this[wallet.getAddressString()];
   }
 
   rm(addressOrIndex: string | number) {
@@ -64,41 +83,45 @@ export default class Wallet {
       delete this[wallet.index];
       this.length--;
       return true;
-    } else {
-      return false;
     }
+
+    return false;
   }
 
   clear() {
-    const _this = this;
     const indexes = this._currentIndexes();
 
     indexes.forEach((idx) => {
-      _this.rm(idx);
+      this.rm(idx);
     });
 
     return this;
   }
 
   encrypt(password: String, opts: Object) {
-    const _this = this;
     const indexes = this._currentIndexes();
 
-    const wallets = indexes.map((idx) => {
-      return _this[idx].toV3(password, opts);
-    });
+    return indexes.map((idx) => this[idx].toV3(password, opts));
+  }
 
-    return wallets;
+  loadPrivateKeys(privateKeys: Array<String>) {
+    privateKeys.forEach((privateKey) => {
+      const wallet = ethWallet.fromPrivateKey(Buffer.from(privateKey, 'hex'));
+
+      if (wallet) {
+        this.add(wallet);
+      } else {
+        throw new Error("Couldn't load private key.");
+      }
+    });
   }
 
   decrypt(encryptedKeystores: Array<String | Object>, password: String) {
-    const _this = this;
-
     encryptedKeystores.forEach((keystore) => {
       const wallet = ethWallet.fromV3(keystore, password, true);
 
       if (wallet) {
-        _this.add(wallet);
+        this.add(wallet);
       } else {
         throw new Error("Couldn't decrypt keystore. Wrong password?");
       }
@@ -110,8 +133,9 @@ export default class Wallet {
    * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
-  sendFromNext(opts: Object) {
-    const next = ++this.nonce % this.length;
+  sendFromNext(opts: any) {
+    const next = this.nonce++ % this.length;
+
     return this.sendFromIndex(next, opts);
   }
 
@@ -193,6 +217,18 @@ export default class Wallet {
     });
   }
 
+  isWalletAbleToSendTx(idx: number) {
+    if (idx >= this.length) {
+      throw new Error('Index is outside range of addresses.');
+    }
+
+    const from: string = this.getAccounts()[idx].getAddressString();
+
+    return (
+      !this.walletStates[from] || !this.walletStates[from].sendingTxInProgress
+    );
+  }
+
   /**
    * sendFromIndex will send a transaction from the account index specified
    * @param {number} idx The index of the account to send a transaction from.
@@ -200,18 +236,48 @@ export default class Wallet {
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
   async sendFromIndex(idx: number, opts: any) {
-    console.log('sendFromIndex', idx, opts);
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
-    const from = this.getAccounts()[idx].getAddressString();
+
+    const from: string = this.getAccounts()[idx].getAddressString();
+
+    const balance = await this.getBalanceOf(from);
+
+    if (balance.eq(0)) {
+      throw `Account ${from} has not enough funds to send transaction.`;
+    }
+
     const nonce = await this.getNonce(from);
-    
+
     const signedTx = await this.signTransaction(from, nonce, opts);
-    const hash = await this.sendRawTransaction(signedTx);
-    
-    const receipt = await this.getTransactionReceipt(hash, from);
-    
+
+    if (
+      this.walletStates[from] &&
+      this.walletStates[from].sendingTxInProgress
+    ) {
+      throw `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`;
+    }
+
+    let receipt;
+    try {
+      if (!this.walletStates[from]) {
+        this.walletStates[from] = {} as AccountState;
+      }
+
+      this.walletStates[from].sendingTxInProgress = true;
+
+      const hash = await this.sendRawTransaction(signedTx);
+
+      receipt = await this.getTransactionReceipt(hash, from);
+      console.log('Wallet::sendFromIndex(): receipt', receipt);
+    } catch (error) {
+      console.log('Wallet::sendFromIndex(): Error.', error);
+      throw error;
+    } finally {
+      this.walletStates[from].sendingTxInProgress = false;
+    }
+
     return receipt;
   }
 
