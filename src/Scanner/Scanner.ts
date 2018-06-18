@@ -18,8 +18,17 @@ export default class {
   cacheScanner: IntervalId;
   chainScanner: IntervalId;
 
-  buckets: IBuckets;
-  eventWatchers: {};
+  buckets: IBuckets = {
+    currentBuckets: {
+      blockBucket: -1,
+      timestampBucket: -1,
+    },
+    nextBuckets: {
+      blockBucket: -1,
+      timestampBucket: -1,
+    }
+  };
+  eventWatchers: {} = {};
 
   /**
    * Creates a new Scanner instance. The scanner serves as the top level
@@ -246,6 +255,8 @@ export default class {
       this.buckets.nextBuckets.timestampBucket,
       handleRequest
     );
+
+    this.buckets = buckets;
 
     // Needed?
     this.config.logger.info(`Watching STARTED`);
