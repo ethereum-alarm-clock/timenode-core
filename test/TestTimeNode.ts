@@ -1,10 +1,14 @@
 import { assert, expect } from 'chai';
 import { TimeNode } from '../src/index';
 import { mockConfig } from './helpers/mockConfig';
-import { scheduleTestTx } from './TestScheduleTx';
+import { scheduleTestTx, getHelperMethods } from './TestScheduleTx';
 
 describe('TimeNode', () => {
   const config = mockConfig();
+
+  const { web3 } = config;
+
+  const { waitUntilBlock } = getHelperMethods(web3);
 
   let timenode : TimeNode;
 
@@ -33,14 +37,22 @@ describe('TimeNode', () => {
    * PROBABLY THIS IS BECAUSE OF BUCKET ISSUES
    */
   it('claims transaction', async () => {
+    const { eac } = timenode.config;
+
     const TEST_TX_ADDRESS = await scheduleTestTx();
+    const TEST_TX_REQUEST = await eac.transactionRequest(TEST_TX_ADDRESS);
+
+    await TEST_TX_REQUEST.fillData();
+
+    const firstClaimBlock = TEST_TX_REQUEST.windowStart.toNumber() - TEST_TX_REQUEST.freezePeriod.toNumber() - TEST_TX_REQUEST.claimWindowSize.toNumber();
+
+    await waitUntilBlock(0, firstClaimBlock);
 
     console.log('SCHEDULED TX ADDRESS TO CLAIM', TEST_TX_ADDRESS);
 
     const originalLoggerInfoMethod = timenode.config.logger.info;
     let claimedLogged = false;
 
-    const { eac } = timenode.config;
 
     timenode.config.logger.info = (msg: any) => {
       if (msg === `${TEST_TX_ADDRESS} claimed`) {
@@ -56,9 +68,7 @@ describe('TimeNode', () => {
 
           clearInterval(claimedLoggedInterval);
 
-          const TEST_TX_REQUEST = await eac.transactionRequest(TEST_TX_ADDRESS);
-
-          await TEST_TX_REQUEST.fillData();
+          await TEST_TX_REQUEST.refreshData();
 
           assert.ok(TEST_TX_REQUEST.isClaimed, `${TEST_TX_ADDRESS} hasn't been claimed!`);
 
@@ -68,7 +78,7 @@ describe('TimeNode', () => {
     });
 
     assert.ok(claimedLogged, `Claiming of ${TEST_TX_ADDRESS} hasn't been logged.`);
-  }).timeout(20000);
+  }).timeout(40000);
 
   // it('stops scanning', async () => {
   //   await this.timenode.stopScanning();
