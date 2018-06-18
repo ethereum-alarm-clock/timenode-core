@@ -88,7 +88,7 @@ export default class Actions {
       value: 0,
       gas: gasToExecute,
       // TODO estimate gas above
-      gasPrice: 12,
+      gasPrice: txRequest.gasPrice,
       data: executeData,
     };
 
