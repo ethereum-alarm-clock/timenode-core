@@ -21,11 +21,11 @@ export default class {
   buckets: IBuckets = {
     currentBuckets: {
       blockBucket: -1,
-      timestampBucket: -1,
+      timestampBucket: -1
     },
     nextBuckets: {
       blockBucket: -1,
-      timestampBucket: -1,
+      timestampBucket: -1
     }
   };
   eventWatchers: {} = {};
@@ -61,7 +61,7 @@ export default class {
           jsonrpc: '2.0',
           id: 1,
           method: 'eth_getFilterLogs',
-          params: [],
+          params: []
         },
         (err: any) => {
           if (err !== null) {
@@ -134,7 +134,7 @@ export default class {
 
     return {
       blockBucket: reqFactory.calcBucket(latest.number, 1),
-      timestampBucket: reqFactory.calcBucket(latest.timestamp, 2),
+      timestampBucket: reqFactory.calcBucket(latest.timestamp, 2)
     };
   }
 
@@ -145,7 +145,7 @@ export default class {
 
     return {
       blockBucket: reqFactory.calcBucket(nextBlockInterval, 1),
-      timestampBucket: reqFactory.calcBucket(nextTsInterval, 2),
+      timestampBucket: reqFactory.calcBucket(nextTsInterval, 2)
     };
   }
 
@@ -153,7 +153,7 @@ export default class {
     const latest: IBlock = await this.getBlock('latest');
     return {
       currentBuckets: await this.getCurrentBuckets(latest),
-      nextBuckets: await this.getNextBuckets(latest),
+      nextBuckets: await this.getNextBuckets(latest)
     };
   }
 

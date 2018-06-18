@@ -5,5 +5,5 @@ export enum TxStatus {
   ExecutionWindow,
   Executed,
   Missed,
-  Done,
+  Done
 }

@@ -4,5 +4,5 @@ export enum Networks {
   Morden = 2,
   Ropsten = 3,
   Rinkeby = 4,
-  Kovan = 42,
+  Kovan = 42
 }
