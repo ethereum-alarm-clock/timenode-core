@@ -16,7 +16,7 @@ export default class W3Util {
 
   networkGasPrice(): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.gasPrice((e: any, r: any) => {
+      this.web3.eth.getGasPrice((e: any, r: any) => {
         if (e) reject(e);
         else resolve(r);
       });
