@@ -4,6 +4,7 @@ import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
+import W3Util from '../Util';
 
 export default class Config implements IConfigParams {
   autostart: boolean;
@@ -68,6 +69,7 @@ export default class Config implements IConfigParams {
       this.wallet = null;
     }
 
+    this.util = new W3Util(this.web3);
     this.economicStrategy = params.economicStrategy;
   }
 }

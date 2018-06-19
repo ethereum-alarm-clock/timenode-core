@@ -1,15 +1,13 @@
-import Config from './Config';
+export default class W3Util {
+  web3: any;
 
-export default class Util {
-  config: Config;
-
-  constructor(config: Config) {
-    this.config = config;
+  constructor(web3: any) {
+    this.web3 = web3;
   }
 
   estimateGas(opts: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.config.web3.eth.estimateGas(opts, (e: any, r: any) => {
+      this.web3.eth.estimateGas(opts, (e: any, r: any) => {
         if (e) reject(e);
         else resolve(r);
       });
@@ -18,7 +16,7 @@ export default class Util {
 
   networkGasPrice(): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.config.web3.eth.gasPrice((e: any, r: any) => {
+      this.web3.eth.gasPrice((e: any, r: any) => {
         if (e) reject(e);
         else resolve(r);
       });

@@ -1,6 +1,7 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
 import hasPending from './Pending';
+import W3Util from '../Util';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(
@@ -101,7 +102,10 @@ export default class Actions {
     }
 
     if (claimIndex !== -1) {
-      const txHash: any = await this.config.wallet.sendFromIndex(claimIndex, opts);
+      const txHash: any = await this.config.wallet.sendFromIndex(
+        claimIndex,
+        opts
+      );
 
       if (txHash.receipt.status === '0x1') {
         await txRequest.refreshData();
@@ -111,7 +115,6 @@ export default class Actions {
 
       return false;
     }
-
 
     if (this.config.wallet.isNextAccountFree()) {
       const txHash: any = await this.config.wallet.sendFromNext(opts);
