@@ -44,10 +44,6 @@ export default class Actions {
     }
 
     if (this.config.wallet.isNextAccountFree()) {
-      // this.config.logger.debug(
-      //   `Actions::claim(${shortenAddress(txRequest.address)})::Wallet with index 0 able to send tx.`
-      // );
-
       try {
         const txHash: any = await this.config.wallet.sendFromNext(opts);
 
@@ -104,22 +100,18 @@ export default class Actions {
       };
     }
 
-    if (await txRequest.inReservedWindow()) {
-      const accounts = this.config.wallet.getAccounts();
-      accounts.forEach(async (account, idx) => {
-        if (account === txRequest.claimedBy) {
-          const txHash: any = await this.config.sendFromIndex(idx, opts);
+    if (claimIndex !== -1) {
+      const txHash: any = await this.config.wallet.sendFromIndex(claimIndex, opts);
 
-          if (txHash.receipt.status === '0x1') {
-            await txRequest.refreshData();
+      if (txHash.receipt.status === '0x1') {
+        await txRequest.refreshData();
 
-            return txRequest.wasSuccessful;
-          }
+        return txRequest.wasSuccessful;
+      }
 
-          return false;
-        }
-      });
+      return false;
     }
+
 
     if (this.config.wallet.isNextAccountFree()) {
       const txHash: any = await this.config.wallet.sendFromNext(opts);
