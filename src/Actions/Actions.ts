@@ -3,7 +3,10 @@ import Config from '../Config';
 import hasPending from './Pending';
 
 export function shortenAddress(address: string) {
-  return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
+  return `${address.slice(0, 6)}...${address.slice(
+    address.length - 5,
+    address.length
+  )}`;
 }
 
 export default class Actions {
@@ -32,7 +35,7 @@ export default class Actions {
 
     if (await hasPending(this.config, txRequest)) {
       return {
-        ignore: true,
+        ignore: true
       };
     }
 
@@ -44,7 +47,12 @@ export default class Actions {
       try {
         const txHash: any = await this.config.wallet.sendFromNext(opts);
 
-        return txHash.receipt.status === '0x1';
+        if (txHash.receipt.status === '0x1') {
+          await txRequest.refreshData();
+          return txRequest.isClaimed;
+        }
+        
+        return false;
       } catch (error) {
         this.config.logger.debug(
           `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${error}`
@@ -78,14 +86,13 @@ export default class Actions {
       to: txRequest.address,
       value: 0,
       gas: gasToExecute,
-      // TODO estimate gas above
-      gasPrice: 12,
-      data: executeData,
+      gasPrice: txRequest.gasPrice,
+      data: executeData
     };
 
     if (await hasPending(this.config, txRequest)) {
       return {
-        ignore: true,
+        ignore: true
       };
     }
 
@@ -93,9 +100,15 @@ export default class Actions {
       this.config.logger.debug(
         'Actions::execute()::Wallet with index 0 able to send tx.'
       );
-      const txHash = await this.config.wallet.sendFromIndex(0, opts);
+      const txHash: any = await this.config.wallet.sendFromIndex(0, opts);
 
-      return true;
+      if (txHash.receipt.status === '0x1') {
+        await txRequest.refreshData();
+
+        return txRequest.wasSuccessful;
+      }
+
+      return false;
     } else {
       this.config.logger.debug(
         'Actions::execute()::Wallet with index 0 is not able to send tx.'
@@ -131,7 +144,7 @@ export default class Actions {
         value: 0,
         gas: gasToCancel + 21000,
         gasPrice: currentGasPrice,
-        data: txRequest.cancelData, // TODO make constant
+        data: txRequest.cancelData // TODO make constant
       };
 
       let transactionHash;

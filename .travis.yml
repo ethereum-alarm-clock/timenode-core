@@ -16,5 +16,5 @@ script:
   - npm run test
   - npm run clean-backups
 before_script:
-  - ganache-cli -b 1 -m "shove afford modify census bridge good random error fault floor fringe oblige" -i 1002 > /dev/null &
+  - ganache-cli -m "shove afford modify census bridge good random error fault floor fringe oblige" -i 1002 > /dev/null &
   - sleep 5

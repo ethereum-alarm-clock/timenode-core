@@ -10,7 +10,7 @@
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
     "fmt": "node scripts/fmt.js",
-    "test": "mocha --timeout 500000 -r ts-node/register test/*.ts --exit",
+    "test": "mocha --timeout 50000 -r ts-node/register test/*.ts --exit",
     "test-noexit": "mocha -r ts-node/register test/*.ts",
     "lint": "eslint .",
     "deploy-eac": "sh scripts/deploy_eac.sh"

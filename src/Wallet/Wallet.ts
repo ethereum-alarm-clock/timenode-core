@@ -205,7 +205,7 @@ export default class Wallet {
         gas: this.web3.toHex(opts.gas),
         gasPrice: this.web3.toHex(opts.gasPrice),
         value: this.web3.toHex(opts.value),
-        data: opts.data,
+        data: opts.data
       };
 
       const ethTx = require('ethereumjs-tx');
@@ -276,7 +276,6 @@ export default class Wallet {
       receipt = await this.getTransactionReceipt(hash, from);
       console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
-      console.log('Wallet::sendFromIndex(): Error.', error);
       throw error;
     } finally {
       this.walletStates[from].sendingTxInProgress = false;

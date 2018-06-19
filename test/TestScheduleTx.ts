@@ -7,17 +7,72 @@ import calcEndowment from './helpers/calcEndowment';
 // import { createWallet } from './helpers/createWallet';
 import { providerUrl } from './helpers/network';
 
+const CLAIM_WINDOW_SIZE = 255;
+
+export const getHelperMethods = (web3 : any) => {
+  function sendRpc(method : any, params? : any) {
+    return new Promise(function (resolve) {
+      web3.currentProvider.sendAsync({
+        jsonrpc: '2.0',
+        method: method,
+        params: params || [],
+        id: new Date().getTime()
+      }, function (err : any, res : any) {
+        resolve(res);
+      });
+    });
+  }
+
+  function waitUntilBlock(seconds : any, targetBlock : any) {
+    return new Promise(function (resolve) {
+      var asyncIterator = function asyncIterator() {
+        return web3.eth.getBlock('latest', function (e : any, _ref : any) {
+          var number = _ref.number;
+
+          if (number >= targetBlock - 1) {
+            return sendRpc('evm_increaseTime', [seconds]).then(function () {
+              return sendRpc('evm_mine');
+            }).then(resolve);
+          }
+          return sendRpc('evm_mine').then(asyncIterator);
+        });
+      };
+      asyncIterator();
+    });
+  }
+
+  return { waitUntilBlock };
+};
+
+export const SCHEDULED_TX_PARAMS = {
+  callValue: new BigNumber(Math.pow(10, 18))
+};
+
 export const scheduleTestTx = async () => {
-  const provider = new Web3.providers.HttpProvider(providerUrl);
+    const provider = new Web3.providers.HttpProvider(providerUrl);
     const web3 = new Web3(provider);
     const eac = EAC(web3);
 
+    const { waitUntilBlock } = getHelperMethods(web3);
+
     const scheduler = await eac.scheduler();
 
-    const latestBlock = await Bb.fromCallback((callback) => web3.eth.getBlockNumber(callback));
+    let latestBlock = await Bb.fromCallback((callback) => web3.eth.getBlockNumber(callback));
+
+    /*
+     * Since in transaction request library there's check that subtracts
+     * claimWindowSize from current block then this block should be higher than claimWindowSize
+     * to make sure calculations work fine
+     */
+    if (latestBlock < CLAIM_WINDOW_SIZE + 1) {
+      await waitUntilBlock(0, CLAIM_WINDOW_SIZE);
+    }
+
+    latestBlock = await Bb.fromCallback((callback) => web3.eth.getBlockNumber(callback));
+
+    const { callValue } = SCHEDULED_TX_PARAMS;
 
     const callGas = new BigNumber(1000000);
-    const callValue = new BigNumber(1);
     const gasPrice = new BigNumber(1);
     const fee = new BigNumber(0);
     const bounty = new BigNumber(0);
@@ -40,7 +95,7 @@ export const scheduleTestTx = async () => {
       '', // callData
       callValue,
       '255', // windowSize
-      latestBlock + 200, // windowStart
+      latestBlock + 270, // windowStart
       1, // gasPrice
       fee,
       bounty,
