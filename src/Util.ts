@@ -28,7 +28,7 @@ export default class W3Util {
       this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => {
         if (e) reject(e);
         else resolve(r);
-      })
-    })
+      });
+    });
   }
 }
