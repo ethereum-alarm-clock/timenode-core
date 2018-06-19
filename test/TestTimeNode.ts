@@ -17,6 +17,7 @@ describe('TimeNode', () => {
   it('starts a basic timenode', () => {
     timenode = new TimeNode(config);
     expect(timenode).to.exist;
+    expect(timenode.scanner.scanning).to.be.false;
   }).timeout(200000);
 
   it('starts scanning', async () => {
@@ -24,24 +25,6 @@ describe('TimeNode', () => {
     expect(timenode.scanner.scanning).to.be.true;
   });
 
-  /**
-   * HOW TO RELIABLY RUN THIS TEST:
-   *
-   * CHANGE EAC.JS-LIB ENTRY TO ../eac.js-lib
-   *
-   * START GANACHE-CLI WITH NEW BLOCK TIME 1 SECOND
-   *
-   * IN eac.js-lib add line to deploy.sh
-   * cp lib/assets/development.json lib/assets/tester.json
-   * before done
-   *
-   * IN EAC.JS COMPILE AND RUN: `sh deploy.sh`
-   *
-   * NOW THIS TEST SHOULD PASS
-   *
-   * IF THIS WON'T PASS TRY TO RESTART TEST - SOMETIMES TIMENODE MIGHT NOT FIND SCHEDULED TX
-   * PROBABLY THIS IS BECAUSE OF BUCKET ISSUES
-   */
   it('claims transaction', async () => {
     const { eac } = timenode.config;
 
@@ -132,5 +115,76 @@ describe('TimeNode', () => {
     });
 
     assert.ok(executionLogged, `Execution of ${TEST_TX_ADDRESS} hasn't been logged.`);
+  }).timeout(400000);
+
+  it('executes 20 transactions', async () => {
+    const TRANSACTIONS_TO_SCHEDULE = 30;
+    const scheduledTransactionsMap = {};
+
+    for (let i = 0; i < TRANSACTIONS_TO_SCHEDULE; i++) {
+      const transactionAddress : string = await scheduleTestTx();
+
+      scheduledTransactionsMap[transactionAddress] = {
+        executionLogged: false
+      };
+    }
+
+    const firstScheduledTransactionAddress = Object.keys(scheduledTransactionsMap)[0];
+    const firstScheduledTransaction = await eac.transactionRequest(firstScheduledTransactionAddress);
+
+    await firstScheduledTransaction.fillData();
+
+    const firstExecutionBlock = firstScheduledTransaction.windowStart.toNumber() + firstScheduledTransaction.freezePeriod.toNumber() + 100;
+
+    await waitUntilBlock(0, firstExecutionBlock);
+
+    console.log('SCHEDULED TX ADDRESSES TO EXECUTE', scheduledTransactionsMap);
+
+    timenode.startScanning();
+
+    const originalLoggerInfoMethod = timenode.config.logger.info;
+
+    timenode.config.logger.info = (msg: string) => {
+      if (msg.includes('executed')) {
+        const executedTransactionAddress = msg.split(' executed')[0];
+
+        if (scheduledTransactionsMap[executedTransactionAddress]) {
+          scheduledTransactionsMap[executedTransactionAddress].executionLogged = true;
+        }
+      }
+      originalLoggerInfoMethod(msg);
+    }
+
+    let allExecutionsLogged = false;
+
+    await new Promise(resolve => {
+      const allExecutionsLoggedCheckInterval = setInterval(async () => {
+
+        for (const txAddress in scheduledTransactionsMap) {
+          allExecutionsLogged = scheduledTransactionsMap[txAddress] && scheduledTransactionsMap[txAddress].executionLogged;
+        }
+
+        if (allExecutionsLogged) {
+          timenode.stopScanning();
+
+          for (const transactionAddress in scheduledTransactionsMap) {
+            const transactionRequest = await eac.transactionRequest(transactionAddress);
+
+            await transactionRequest.fillData();
+
+            assert.ok(transactionRequest.wasCalled, `${transactionAddress} hasn't been called!`);
+            assert.ok(transactionRequest.wasSuccessful, `${transactionAddress} isn't successful!`);
+          }
+
+          clearInterval(allExecutionsLoggedCheckInterval);
+
+          resolve();
+        }
+      }, 1000);
+    });
+
+    assert.ok(allExecutionsLogged, `All transactions' executions should be logged, but they weren't.`);
+
+    console.log('FINAL STATUS OF MASS TX EXECUTION:', scheduledTransactionsMap);
   }).timeout(400000);
 })
