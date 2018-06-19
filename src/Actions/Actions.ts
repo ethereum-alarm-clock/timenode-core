@@ -28,14 +28,11 @@ export default class Actions {
       data: claimData
     });
 
-    const estGasPrice =
-      (await this.config.util.networkGasPrice()) * gasEstimate;
-
     const opts = {
       to: txRequest.address,
       value: requiredDeposit,
-      gas: gasEstimate,
-      gasPrice: estGasPrice,
+      gas: gasEstimate + 50000,
+      gasPrice: await this.config.util.networkGasPrice(),
       data: claimData
     };
 
