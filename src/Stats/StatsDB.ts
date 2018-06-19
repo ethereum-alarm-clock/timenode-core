@@ -41,7 +41,7 @@ export class StatsDB {
           executed: 0,
           bounties: new BigNumber(0),
           costs: new BigNumber(0),
-          executedTransactions: [],
+          executedTransactions: []
         });
       }
     });

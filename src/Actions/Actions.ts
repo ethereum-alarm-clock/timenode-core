@@ -30,12 +30,12 @@ export default class Actions {
       gas: 3000000,
       //TODO estimate gas above
       gasPrice: 12,
-      data: claimData,
+      data: claimData
     };
 
     if (await hasPending(this.config, txRequest, {type: 'claim'})) {
       return {
-        ignore: true,
+        ignore: true
       };
     }
 
@@ -49,7 +49,13 @@ export default class Actions {
       try {
         const txHash: any = await this.config.wallet.sendFromIndex(0, opts);
 
-        return txHash.receipt.status === '0x1';
+        if (txHash.receipt.status === '0x1') {
+          await txRequest.refreshData();
+
+          return txRequest.isClaimed;
+        }
+
+        return false;
       } catch (error) {
         this.config.logger.debug(
           `Actions::claim(${shortenAddress(
@@ -87,14 +93,13 @@ export default class Actions {
       to: txRequest.address,
       value: 0,
       gas: gasToExecute,
-      // TODO estimate gas above
-      gasPrice: 12,
-      data: executeData,
+      gasPrice: txRequest.gasPrice,
+      data: executeData
     };
 
     if (await hasPending(this.config, txRequest, {type: 'execute', checkGasPrice: false})) {
       return {
-        ignore: true,
+        ignore: true
       };
     }
 
@@ -102,9 +107,15 @@ export default class Actions {
       this.config.logger.debug(
         'Actions::execute()::Wallet with index 0 able to send tx.'
       );
-      const txHash = await this.config.wallet.sendFromIndex(0, opts);
+      const txHash: any = await this.config.wallet.sendFromIndex(0, opts);
 
-      return true;
+      if (txHash.receipt.status === '0x1') {
+        await txRequest.refreshData();
+
+        return txRequest.wasSuccessful;
+      }
+
+      return false;
     } else {
       this.config.logger.debug(
         'Actions::execute()::Wallet with index 0 is not able to send tx.'
@@ -140,7 +151,7 @@ export default class Actions {
         value: 0,
         gas: gasToCancel + 21000,
         gasPrice: currentGasPrice,
-        data: txRequest.cancelData, // TODO make constant
+        data: txRequest.cancelData // TODO make constant
       };
 
       let transactionHash;

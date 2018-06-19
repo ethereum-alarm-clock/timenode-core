@@ -17,7 +17,7 @@ const _hasPendingParity = async (conf: any, txRequest: any, opts: { type: any, c
         jsonrpc: '2.0',
         method: 'parity_pendingTransactions',
         params: [],
-        id: 0o7,
+        id: 0o7
       },
       async (err: Error, res: any) => {
         if (err) reject(err);
@@ -55,7 +55,7 @@ const _hasPendingGeth = (conf: any, txRequest: any, opts: { type: any, checkGasP
         jsonrpc: '2.0',
         method: 'txpool_content',
         params: [],
-        id: 0o7,
+        id: 0o7
       },
       async (err: Error, res: any) => {
         if (err) reject(err)

@@ -10,8 +10,7 @@ const pOpts = {
     arrowParens: 'always',
     semi: true,
     singleQuote: true,
-    trailingComma: 'es5',
-    parser: 'babylon',
+    parser: 'babylon'
 }
 
 const getSourceFiles = (path) => {
