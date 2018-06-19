@@ -33,13 +33,13 @@ export default class Router {
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = (txRequest: any) => {
       console.log('missed: ', txRequest.address);
-      this.config.cache.del(txRequest.address);
+      // this.config.cache.del(txRequest.address);
       return TxStatus.Missed;
     };
 
     this.transitions[TxStatus.Done] = (txRequest: any) => {
       console.log('done: ', txRequest.address);
-      this.config.cache.del(txRequest.address);
+      // this.config.cache.del(txRequest.address);
 
       return TxStatus.Done;
     };
@@ -69,7 +69,7 @@ export default class Router {
       return TxStatus.FreezePeriod;
     }
     if (txRequest.isClaimed) {
-      return TxStatus.ClaimWindow;
+      return TxStatus.FreezePeriod;
     }
 
     const shouldClaim = await shouldClaimTx(txRequest, this.config);

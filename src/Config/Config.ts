@@ -22,6 +22,7 @@ export default class Config implements IConfigParams {
 
   constructor(params: IConfigParams) {
     this.autostart = params.autostart || true;
+    this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;
 
@@ -65,8 +66,6 @@ export default class Config implements IConfigParams {
     } else {
       this.wallet = null;
     }
-
-    this.ms = params.ms;
 
     this.economicStrategy = params.economicStrategy;
   }

@@ -6,7 +6,7 @@ declare const setInterval: any;
 
 import { IBlock, IntervalId, ITxRequest } from '../Types';
 
-import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
+import { IBucketPair, IBuckets, BucketSize } from '../Buckets';
 
 export default class {
   config: Config;
@@ -232,6 +232,9 @@ export default class {
         this.store(request);
       }
     };
+
+    this.config.logger.info(currentBuckets);
+    this.config.logger.info(nextBuckets);
 
     // Start watching the current buckets right away.
     await this.watchRequestsByBucket(
