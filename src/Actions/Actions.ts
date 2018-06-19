@@ -26,7 +26,8 @@ export default class Actions {
       data: claimData
     });
 
-    const estGasPrice = (await this.config.util.networkGasPrice()) * gasEstimate;
+    const estGasPrice =
+      (await this.config.util.networkGasPrice()) * gasEstimate;
 
     const opts = {
       to: txRequest.address,
@@ -108,16 +109,16 @@ export default class Actions {
       accounts.forEach(async (account, idx) => {
         if (account === txRequest.claimedBy) {
           const txHash: any = await this.config.sendFromIndex(idx, opts);
-          
+
           if (txHash.receipt.status === '0x1') {
             await txRequest.refreshData();
-    
+
             return txRequest.wasSuccessful;
           }
-    
+
           return false;
         }
-      })
+      });
     }
 
     if (this.config.wallet.isNextAccountFree()) {
@@ -153,8 +154,8 @@ export default class Actions {
       // Cancel it!
       const gasEstimate = await this.config.util.estimateGas({
         to: txRequest.address,
-        data: txRequest.cancelData,
-      })
+        data: txRequest.cancelData
+      });
 
       // Get latest block gas price.
       const estGasPrice = await this.config.util.networkGasPrice();
