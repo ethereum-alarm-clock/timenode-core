@@ -1,5 +1,6 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
+import {isExecuted} from './Helpers';
 import hasPending from './Pending';
 import W3Util from '../Util';
 
@@ -46,10 +47,17 @@ export default class Actions {
 
     if (this.config.wallet.isNextAccountFree()) {
       try {
-        const txHash: any = await this.config.wallet.sendFromNext(opts);
+        const {receipt, from} = await this.config.wallet.sendFromNext(opts);
 
-        if (txHash.receipt.status === '0x1') {
+        if (receipt.status === '0x1') {
           await txRequest.refreshData();
+          const cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
+
+          this.config.statsDb.updateClaimed(
+            from,
+            cost,
+          );
+
           return txRequest.isClaimed;
         }
 
@@ -102,13 +110,27 @@ export default class Actions {
     }
 
     if (claimIndex !== -1) {
-      const txHash: any = await this.config.wallet.sendFromIndex(
+      const {receipt, from} = await this.config.wallet.sendFromIndex(
         claimIndex,
         opts
       );
 
-      if (txHash.receipt.status === '0x1') {
-        await txRequest.refreshData();
+      if (receipt.status === '0x1') {
+        if (isExecuted(receipt)) {
+          await txRequest.refreshData();
+
+          const data = receipt.logs[0].data
+          const bounty = this.config.web3.toDecimal(data.slice(0, 66))
+
+          this.config.statsDb.updateExecuted(
+            from,
+            bounty,
+            new BigNumber(0),
+          );
+        }
+
+        const cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
+        this.config.statsDb.updateExecuted(from, new BigNumber(0), cost);
 
         return txRequest.wasSuccessful;
       }
@@ -117,10 +139,24 @@ export default class Actions {
     }
 
     if (this.config.wallet.isNextAccountFree()) {
-      const txHash: any = await this.config.wallet.sendFromNext(opts);
+      const {receipt, from} = await this.config.wallet.sendFromNext(opts);
 
-      if (txHash.receipt.status === '0x1') {
-        await txRequest.refreshData();
+      if (receipt.status === '0x1') {
+        if (isExecuted(receipt)) {
+          await txRequest.refreshData();
+
+          const data = receipt.logs[0].data
+          const bounty = this.config.web3.toDecimal(data.slice(0, 66))
+
+          this.config.statsDb.updateExecuted(
+            from,
+            bounty,
+            new BigNumber(0),
+          );
+        }
+
+        const cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
+        this.config.statsDb.updateExecuted(from, new BigNumber(0), cost);
 
         return txRequest.wasSuccessful;
       }
@@ -128,7 +164,7 @@ export default class Actions {
       return false;
     } else {
       this.config.logger.debug(
-        'Actions::execute()::Wallet with index 0 is not able to send tx.'
+        'Actions.execute : No available wallet to send a transaction.'
       );
     }
   }

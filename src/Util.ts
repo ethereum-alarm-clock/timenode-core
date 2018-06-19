@@ -22,4 +22,13 @@ export default class W3Util {
       });
     });
   }
+
+  getReceipt(txHash: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => {
+        if (e) reject(e);
+        else resolve(r);
+      })
+    })
+  }
 }
