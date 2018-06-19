@@ -1,14 +1,20 @@
-const BigNumber = require('bignumber.js');
+import BigNumber from 'bignumber.js';
 
 // / Wrapper over a lokijs persistent storage to keep track of the stats of executing accounts.
-class StatsDB {
+export class StatsDB {
   /**
    * Creates an instance of StatsDB.
    * @param {any} web3
    * @param {any} db Any storage solution that exposes find, update, insert
    * @memberof StatsDB
    */
-  constructor(web3, db) {
+
+  db: any;
+  web3: any;
+  eac: any;
+  stats: any;
+
+  constructor(web3: any, db: any) {
     this.db = db;
     this.web3 = web3;
     this.eac = require('eac.js-lib')(web3);
@@ -19,7 +25,7 @@ class StatsDB {
   }
 
   // / Takes an array of addresses and stores them as new stats objects.
-  initialize(accounts) {
+  initialize(accounts: Array<String>) {
     accounts.forEach(async (account) => {
       const found = this.stats.find({ account })[0];
       if (found) {
@@ -35,14 +41,14 @@ class StatsDB {
           executed: 0,
           bounties: new BigNumber(0),
           costs: new BigNumber(0),
-          executedTransactions: [],
+          executedTransactions: []
         });
       }
     });
   }
 
   // / Takes the account which has claimed a transaction.
-  async updateClaimed(account, cost) {
+  async updateClaimed(account: String, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.claimed += 1;
     found.costs = found.costs.plus(cost);
@@ -51,7 +57,7 @@ class StatsDB {
   }
 
   // / Takes the account which has executed a transaction.
-  async updateExecuted(account, bounty, cost) {
+  async updateExecuted(account: String, bounty: BigNumber, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.executed += 1;
     found.executedTransactions.push({ timestamp: Date.now() });
@@ -68,5 +74,3 @@ class StatsDB {
     return this.stats.data;
   }
 }
-
-module.exports = StatsDB;

@@ -3,23 +3,27 @@ import Wallet from '../Wallet';
 import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
+import { StatsDB } from '../Stats';
 
 export default class Config implements IConfigParams {
   autostart: boolean;
-  cache: any;
+  cache: Cache;
   eac: any;
   economicStrategy?: IEconomicStrategy;
   factory: any;
-  logger: ILogger;
+  logger?: ILogger;
   ms: any;
   provider: any;
   scanSpread: any;
-  wallet: any;
+  statsDb: StatsDB;
+  wallet: Wallet;
   web3: any;
+  walletStoresAsPrivateKeys: boolean;
 
   constructor(params: IConfigParams) {
     this.autostart = params.autostart || true;
     this.scanSpread = params.scanSpread || 50;
+    this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;
 
     this.logger = params.logger || new DefaultLogger();
 
@@ -41,16 +45,29 @@ export default class Config implements IConfigParams {
       params.walletStores.length &&
       params.walletStores.length > 0
     ) {
-      params.walletStores = params.walletStores.map((store, idx) => {
-        if (typeof store === 'object') {
-          return JSON.stringify(store);
-        }
-      });
-
       this.wallet = new Wallet(this.web3);
-      this.wallet.decrypt(params.walletStores, params.password);
+
+      params.walletStores = params.walletStores.map(
+        (store: Object | string) => {
+          if (typeof store === 'object') {
+            return JSON.stringify(store);
+          }
+
+          return store;
+        }
+      );
+
+      if (this.walletStoresAsPrivateKeys) {
+        this.wallet.loadPrivateKeys(params.walletStores);
+      } else {
+        this.wallet.decrypt(params.walletStores, params.password);
+      }
     } else {
-      this.wallet = false;
+      this.wallet = null;
     }
+
+    this.ms = params.ms;
+
+    this.economicStrategy = params.economicStrategy;
   }
 }

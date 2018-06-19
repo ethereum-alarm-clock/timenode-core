@@ -4,7 +4,7 @@
  * @param {TransactionRequest} txRequest
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = async (conf, txRequest) => {
+const _hasPendingParity = async (conf: any, txRequest: any) => {
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -13,15 +13,15 @@ const hasPendingParity = async (conf, txRequest) => {
         jsonrpc: '2.0',
         method: 'parity_pendingTransactions',
         params: [],
-        id: 0o7,
+        id: 0o7
       },
-      (err, res) => {
+      (err: Error, res: any) => {
         if (err) reject(err);
 
         const hasTx =
           res &&
           res.result &&
-          !!res.result.filter((tx) => tx.to === txRequest.address).length;
+          !!res.result.filter((tx: any) => tx.to === txRequest.address).length;
         resolve(hasTx);
       }
     );
@@ -34,7 +34,7 @@ const hasPendingParity = async (conf, txRequest) => {
  * @param {TransactionRequest} txRequest
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingGeth = (conf, txRequest) => {
+const _hasPendingGeth = (conf: any, txRequest: any) => {
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -43,9 +43,9 @@ const hasPendingGeth = (conf, txRequest) => {
         jsonrpc: '2.0',
         method: 'txpool_content',
         params: [],
-        id: 0o7,
+        id: 0o7
       },
-      (err, res) => {
+      (err: Error, res: any) => {
         if (err) reject(err);
         for (const account in res.result.pending) {
           for (const nonce in res.result.pending[account]) {
@@ -66,12 +66,12 @@ const hasPendingGeth = (conf, txRequest) => {
  * @param {Config} conf Config object.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  */
-const hasPending = (conf, txRequest) => {
+const hasPending = (conf: any, txRequest: any) => {
   if (conf.client == 'parity') {
-    return hasPendingParity(conf, txRequest);
+    return _hasPendingParity(conf, txRequest);
   } else if (conf.client == 'geth') {
-    return hasPendingGeth(conf, txRequest);
+    return _hasPendingGeth(conf, txRequest);
   }
 };
 
-module.exports = hasPending;
+export default hasPending;

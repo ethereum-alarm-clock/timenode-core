@@ -1,11 +1,14 @@
 {
     "compilerOptions": {
+        "suppressImplicitAnyIndexErrors": true,
+        "noImplicitAny": true,
         "outDir": "./built",
         "allowJs": true,
         "lib": [
-            "ES2015"
+            "es2015"
         ],
-        "target": "es5"
+        "target": "es6",
+        "moduleResolution": "node"
     },
     "include": [
         "./src/**/*"

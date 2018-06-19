@@ -1,6 +1,7 @@
 import { ILogger } from './ILogger';
+import * as moment from 'moment';
 
-declare const console;
+declare const console: any;
 
 export class DefaultLogger implements ILogger {
   cache(msg: String): void {
@@ -23,7 +24,7 @@ export class DefaultLogger implements ILogger {
     console.log(kind, this.timestamp(), msg);
   }
 
-  timestamp(): number {
-    return Math.floor(Date.now() / 1000);
+  timestamp(): any {
+    return moment().format('HH:mm:ss');
   }
 }
