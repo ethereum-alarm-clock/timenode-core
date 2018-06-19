@@ -69,6 +69,7 @@ export default class Config implements IConfigParams {
       this.wallet = null;
     }
 
+    this.statsDb = params.statsDb;
     this.util = new W3Util(this.web3);
     this.economicStrategy = params.economicStrategy;
   }
