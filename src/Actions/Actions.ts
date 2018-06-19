@@ -21,15 +21,18 @@ export default class Actions {
     // TODO make this a constant
     const claimData = txRequest.claimData;
 
-    // TODO: estimate gas
-    // const estimateGas = await Util.estimateGas()
+    const gasEstimate = await this.config.util.estimateGas({
+      to: txRequest.address,
+      data: claimData,
+    })
+
+    const estGasPrice = this.config.util.networkGasPrice() * gasEstimate;
+
     const opts = {
       to: txRequest.address,
       value: requiredDeposit,
-      //TODO estimate gas above
-      gas: 3000000,
-      //TODO estimate gas above
-      gasPrice: 12121212121,
+      gas: gasEstimate,
+      gasPrice: estGasPrice,
       data: claimData,
     };
 
