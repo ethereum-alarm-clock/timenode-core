@@ -16,6 +16,7 @@ export default class Config implements IConfigParams {
   provider: any;
   scanSpread: any;
   statsDb: StatsDB;
+  util: any;
   wallet: Wallet;
   web3: any;
   walletStoresAsPrivateKeys: boolean;

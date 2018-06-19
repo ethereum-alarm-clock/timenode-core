@@ -4,6 +4,7 @@ import { Networks } from './Enum';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
+import Util from './Util';
 
 export default class TimeNode {
   actions: Actions;
@@ -14,6 +15,7 @@ export default class TimeNode {
   constructor(config: Config) {
     this.actions = new Actions(config);
     this.config = config;
+    this.config.util = new Util(config);
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
 

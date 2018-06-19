@@ -23,8 +23,8 @@ export default class Actions {
 
     const gasEstimate = await this.config.util.estimateGas({
       to: txRequest.address,
-      data: claimData,
-    })
+      data: claimData
+    });
 
     const estGasPrice = this.config.util.networkGasPrice() * gasEstimate;
 
@@ -33,7 +33,7 @@ export default class Actions {
       value: requiredDeposit,
       gas: gasEstimate,
       gasPrice: estGasPrice,
-      data: claimData,
+      data: claimData
     };
 
     if (await hasPending(this.config, txRequest)) {
@@ -54,16 +54,20 @@ export default class Actions {
           await txRequest.refreshData();
           return txRequest.isClaimed;
         }
-        
+
         return false;
       } catch (error) {
         this.config.logger.debug(
-          `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${error}`
+          `Actions::claim(${shortenAddress(
+            txRequest.address
+          )})::sendFromIndex error: ${error}`
         );
       }
     } else {
       this.config.logger.debug(
-        `Actions::claim(${shortenAddress(txRequest.address)})::Wallet with index 0 is not able to send tx.`
+        `Actions::claim(${shortenAddress(
+          txRequest.address
+        )})::Wallet with index 0 is not able to send tx.`
       );
     }
 
