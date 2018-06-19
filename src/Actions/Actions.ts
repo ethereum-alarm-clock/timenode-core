@@ -26,7 +26,7 @@ export default class Actions {
       data: claimData
     });
 
-    const estGasPrice = this.config.util.networkGasPrice() * gasEstimate;
+    const estGasPrice = (await this.config.util.networkGasPrice()) * gasEstimate;
 
     const opts = {
       to: txRequest.address,
@@ -103,11 +103,25 @@ export default class Actions {
       };
     }
 
-    if (this.config.wallet.isWalletAbleToSendTx(0)) {
-      this.config.logger.debug(
-        'Actions::execute()::Wallet with index 0 able to send tx.'
-      );
-      const txHash: any = await this.config.wallet.sendFromIndex(0, opts);
+    if (await txRequest.inReservedWindow()) {
+      const accounts = this.config.wallet.getAccounts();
+      accounts.forEach(async (account, idx) => {
+        if (account === txRequest.claimedBy) {
+          const txHash: any = await this.config.sendFromIndex(idx, opts);
+          
+          if (txHash.receipt.status === '0x1') {
+            await txRequest.refreshData();
+    
+            return txRequest.wasSuccessful;
+          }
+    
+          return false;
+        }
+      })
+    }
+
+    if (this.config.wallet.isNextAccountFree()) {
+      const txHash: any = await this.config.wallet.sendFromNext(opts);
 
       if (txHash.receipt.status === '0x1') {
         await txRequest.refreshData();
@@ -137,20 +151,21 @@ export default class Actions {
       return true;
     } else {
       // Cancel it!
-      // TODO estimate gas here
-      const gasToCancel = 12;
+      const gasEstimate = await this.config.util.estimateGas({
+        to: txRequest.address,
+        data: txRequest.cancelData,
+      })
 
       // Get latest block gas price.
-      const currentGasPrice = new BigNumber(12);
+      const estGasPrice = await this.config.util.networkGasPrice();
 
-      // TODO real numbers
-      const gasCostToCancel = currentGasPrice.times(gasToCancel);
+      const gasCostToCancel = estGasPrice.times(gasEstimate);
 
       const opts = {
         to: txRequest.address,
         value: 0,
-        gas: gasToCancel + 21000,
-        gasPrice: currentGasPrice,
+        gas: gasEstimate + 21000,
+        gasPrice: estGasPrice,
         data: txRequest.cancelData // TODO make constant
       };
 
