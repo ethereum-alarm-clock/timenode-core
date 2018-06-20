@@ -90,6 +90,7 @@ export default class Actions {
     const claimIndex = this.config.wallet
       .getAddresses()
       .indexOf(txRequest.claimedBy);
+    this.config.logger.debug(`Claim Index ${claimIndex}`);
 
     const opts = {
       to: txRequest.address,
@@ -98,6 +99,8 @@ export default class Actions {
       gasPrice: txRequest.gasPrice,
       data: executeData
     };
+
+    this.config.logger.debug(`Opts: ${JSON.stringify(opts)}`);
 
     if (await hasPending(this.config, txRequest)) {
       return {

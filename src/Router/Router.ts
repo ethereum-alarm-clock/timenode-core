@@ -101,7 +101,7 @@ export default class Router {
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
     }
-    if (this.isTransactionMissed(txRequest)) {
+    if (await this.isTransactionMissed(txRequest)) {
       return TxStatus.Missed;
     }
 
@@ -157,7 +157,7 @@ export default class Router {
 
   async isTransactionMissed(txRequest: any): Promise<boolean> {
     const afterExecutionWindow =
-      txRequest.executionWindowEnd >= (await txRequest.now());
+      parseInt(txRequest.executionWindowEnd) <= parseInt(await txRequest.now());
     return Boolean(afterExecutionWindow && !txRequest.wasCalled);
   }
 
