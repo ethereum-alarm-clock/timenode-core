@@ -73,6 +73,9 @@ export default class Router {
         // TODO handle gracefully?
         throw new Error(e);
       }
+    } else {
+      this.config.logger.info(`[${txRequest.address}] not profitable to claim.`);
+      this.config.logger.debug(`ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`);
     }
 
     return TxStatus.ClaimWindow;
@@ -99,7 +102,7 @@ export default class Router {
     }
 
     const reserved = await txRequest.inReservedWindow();
-    if (reserved && !this.isLocalClaim(txRequest)) {
+    if (reserved && txRequest.isClaimed && !this.isLocalClaim(txRequest)) {
       return TxStatus.ExecutionWindow;
     }
 
