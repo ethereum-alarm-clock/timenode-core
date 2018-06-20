@@ -31,16 +31,10 @@ export default class Router {
       this
     );
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
-    this.transitions[TxStatus.Missed] = (txRequest: any) => {
-      console.log('missed: ', txRequest.address);
-      // this.config.cache.del(txRequest.address);
-      return TxStatus.Missed;
-    };
-
+    this.transitions[TxStatus.Missed] = this.missed.bind(this);
     this.transitions[TxStatus.Done] = (txRequest: any) => {
-      console.log('done: ', txRequest.address);
-      // this.config.cache.del(txRequest.address);
-
+      this.config.logger.info(`[${txRequest.address}] Finished. Deleting from cache...`);
+      this.config.cache.del(txRequest.address);
       return TxStatus.Done;
     };
   }
@@ -107,6 +101,9 @@ export default class Router {
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
     }
+    if (this.isTransactionMissed(txRequest)) {
+      return TxStatus.Missed;
+    }
 
     const reserved = await txRequest.inReservedWindow();
     if (reserved && !this.isLocalClaim(txRequest)) {
@@ -153,34 +150,14 @@ export default class Router {
     return TxStatus.Done;
   }
 
-  isTxUnitTimestamp(transaction: any) {
-    if (!transaction || !transaction.temporalUnit) {
-      return false;
-    }
-
-    let temporalUnit = transaction.temporalUnit;
-
-    if (transaction.temporalUnit.toNumber) {
-      temporalUnit = transaction.temporalUnit.toNumber();
-    }
-
-    return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
+  async missed(txRequest: any): Promise<TxStatus> {
+    // TODO cleanup
+    return TxStatus.Done;
   }
 
-  async isTransactionMissed(transaction: any): Promise<boolean> {
-    let afterExecutionWindow;
-
-    if (this.isTxUnitTimestamp(transaction)) {
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
-        moment().unix()
-      );
-    } else {
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
-        await this.getBlockNumber()
-      );
-    }
-
-    return Boolean(afterExecutionWindow && !transaction.wasCalled);
+  async isTransactionMissed(txRequest: any): Promise<boolean> {
+    const afterExecutionWindow = txRequest.executionWindowEnd >= await txRequest.now();
+    return Boolean(afterExecutionWindow && !txRequest.wasCalled);
   }
 
   isLocalClaim(txRequest: any) {
