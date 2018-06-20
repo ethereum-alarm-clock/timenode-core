@@ -33,13 +33,13 @@ export default class Router {
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = (txRequest: any) => {
       console.log('missed: ', txRequest.address);
-      this.config.cache.del(txRequest.address);
+      // this.config.cache.del(txRequest.address);
       return TxStatus.Missed;
     };
 
     this.transitions[TxStatus.Done] = (txRequest: any) => {
       console.log('done: ', txRequest.address);
-      this.config.cache.del(txRequest.address);
+      // this.config.cache.del(txRequest.address);
 
       return TxStatus.Done;
     };
@@ -69,7 +69,7 @@ export default class Router {
       return TxStatus.FreezePeriod;
     }
     if (txRequest.isClaimed) {
-      return TxStatus.ClaimWindow;
+      return TxStatus.FreezePeriod;
     }
 
     const shouldClaim = await shouldClaimTx(txRequest, this.config);
@@ -103,6 +103,56 @@ export default class Router {
     return TxStatus.FreezePeriod;
   }
 
+  async executionWindow(txRequest: any): Promise<TxStatus> {
+    if (txRequest.wasCalled) {
+      return TxStatus.Executed;
+    }
+
+    const reserved = await txRequest.inReservedWindow();
+    if (reserved && !this.isLocalClaim(txRequest)) {
+      return TxStatus.ExecutionWindow;
+    }
+
+    try {
+      const executed = await this.actions.execute(txRequest);
+
+      if (executed === true) {
+        this.config.logger.info(`${txRequest.address} executed`);
+
+        return TxStatus.Executed;
+      }
+    } catch (e) {
+      this.config.logger.error(`${txRequest.address} execution failed`);
+
+      //TODO handle gracefully?
+      throw new Error(e);
+    }
+
+    return TxStatus.ExecutionWindow;
+  }
+
+  isExecuted(receipt: any): Boolean {
+    if (receipt) {
+      const executedEvent =
+        '0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9';
+      return receipt.logs[0].topics.indexOf(executedEvent) > -1;
+    }
+
+    return false;
+  }
+
+  async executed(txRequest: any): Promise<TxStatus> {
+    /**
+     * We don't cleanup because cleanup needs refactor according to latest logic in EAC
+     * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
+     *
+     * await this.actions.cleanup(txRequest);
+     */
+    //
+
+    return TxStatus.Done;
+  }
+
   isTxUnitTimestamp(transaction: any) {
     if (!transaction || !transaction.temporalUnit) {
       return false;
@@ -131,42 +181,6 @@ export default class Router {
     }
 
     return Boolean(afterExecutionWindow && !transaction.wasCalled);
-  }
-
-  async executionWindow(txRequest: any): Promise<TxStatus> {
-    if (txRequest.wasCalled) {
-      return TxStatus.Executed;
-    }
-
-    const reserved = await txRequest.inReservedWindow();
-    if (reserved && !this.isLocalClaim(txRequest)) {
-      return TxStatus.ExecutionWindow;
-    }
-
-    try {
-      const executed = await this.actions.execute(txRequest);
-
-      if (executed === true) {
-        return TxStatus.Executed;
-      }
-    } catch (e) {
-      //TODO handle gracefully?
-      throw new Error(e);
-    }
-
-    return TxStatus.ExecutionWindow;
-  }
-
-  async executed(txRequest: any): Promise<TxStatus> {
-    /**
-     * We don't cleanup because cleanup needs refactor according to latest logic in EAC
-     * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
-     *
-     * await this.actions.cleanup(txRequest);
-     */
-    //
-
-    return TxStatus.Done;
   }
 
   isLocalClaim(txRequest: any) {

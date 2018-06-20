@@ -43,6 +43,10 @@ export const getHelperMethods = (web3 : any) => {
   return { waitUntilBlock };
 };
 
+export const SCHEDULED_TX_PARAMS = {
+  callValue: new BigNumber(Math.pow(10, 18))
+};
+
 export const scheduleTestTx = async () => {
     const provider = new Web3.providers.HttpProvider(providerUrl);
     const web3 = new Web3(provider);
@@ -65,8 +69,9 @@ export const scheduleTestTx = async () => {
 
     latestBlock = await Bb.fromCallback((callback) => web3.eth.getBlockNumber(callback));
 
+    const { callValue } = SCHEDULED_TX_PARAMS;
+
     const callGas = new BigNumber(1000000);
-    const callValue = new BigNumber(1);
     const gasPrice = new BigNumber(1);
     const fee = new BigNumber(0);
     const bounty = new BigNumber(0);
