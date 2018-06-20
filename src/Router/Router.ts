@@ -74,8 +74,12 @@ export default class Router {
         throw new Error(e);
       }
     } else {
-      this.config.logger.info(`[${txRequest.address}] not profitable to claim.`);
-      this.config.logger.debug(`ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`);
+      this.config.logger.info(
+        `[${txRequest.address}] not profitable to claim.`
+      );
+      this.config.logger.debug(
+        `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
+      );
     }
 
     return TxStatus.ClaimWindow;

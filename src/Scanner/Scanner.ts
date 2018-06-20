@@ -233,9 +233,6 @@ export default class {
       }
     };
 
-    this.config.logger.info(buckets.currentBuckets);
-    this.config.logger.info(buckets.nextBuckets);
-
     // Start watching the current buckets right away.
     await this.watchRequestsByBucket(
       buckets.currentBuckets.blockBucket,
