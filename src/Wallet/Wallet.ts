@@ -1,6 +1,8 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 
+import IWalletReceipt from './IWalletReceipt';
+
 declare const Buffer: any;
 declare const setTimeout: any;
 
@@ -160,7 +162,7 @@ export default class Wallet {
     });
   }
 
-  async getTransactionReceipt(hash: any, from: String) {
+  async getTransactionReceipt(hash: any, from: String): Promise<any> {
     let transactionReceiptAsync: any;
     const _this = this;
     transactionReceiptAsync = async function(
@@ -229,13 +231,11 @@ export default class Wallet {
     );
   }
 
-  /**
-   * sendFromIndex will send a transaction from the account index specified
-   * @param {number} idx The index of the account to send a transaction from.
-   * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
-   * @returns {Promise<string>} A promise which will resolve to the transaction hash
-   */
-  async sendFromIndex(idx: number, opts: any) {
+  isNextAccountFree() {
+    return this.isWalletAbleToSendTx(this.nonce % this.length);
+  }
+
+  async sendFromIndex(idx: number, opts: any): Promise<any> {
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -270,6 +270,7 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
+      console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
       throw error;
     } finally {
