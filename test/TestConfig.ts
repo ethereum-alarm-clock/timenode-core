@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { mockConfig } from './helpers/mockConfig';
+import { mockConfig } from './helpers';
 
 describe('Config', () => {
   it('creates a config from standard params', () => {

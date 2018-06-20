@@ -1,6 +1,6 @@
 import { assert, expect } from 'chai';
 import { TimeNode } from '../src/index';
-import { mockConfig } from './helpers/mockConfig';
+import { mockConfig } from './helpers';
 import { scheduleTestTx, getHelperMethods } from './TestScheduleTx';
 
 describe('TimeNode', () => {

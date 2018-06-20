@@ -9,7 +9,8 @@
             "args": [
                 "-r",
                 "ts-node/register",
-                "${workspaceFolder}/test/*.ts"
+                // "${workspaceFolder}/test/*.ts",
+                "${workspaceFolder}/test/unit/*.ts"
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen"
