@@ -175,10 +175,8 @@ export default class Router {
         moment().unix()
       );
     } else {
-      const bl = await this.getBlockNumber()
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
-        bl
-      );
+      const bl = await this.getBlockNumber();
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(bl);
     }
 
     return Boolean(afterExecutionWindow && !transaction.wasCalled);

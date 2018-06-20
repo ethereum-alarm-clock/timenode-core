@@ -289,8 +289,6 @@ export default class Wallet {
   }
 
   isKnownAddress(address: String) {
-    return this.getAddresses().some(
-      (addr) => addr === address
-    );
+    return this.getAddresses().some((addr) => addr === address);
   }
 }
