@@ -9,8 +9,23 @@
             "args": [
                 "-r",
                 "ts-node/register",
-                // "${workspaceFolder}/test/*.ts",
-                "${workspaceFolder}/test/unit/*.ts"
+                "${workspaceFolder}/test/*.ts",
+                "${workspaceFolder}/test/unit/*.ts",
+                "--exit"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Mocha Unit Tests",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "args": [
+                "-r",
+                "ts-node/register",
+                "${workspaceFolder}/test/unit/*.ts",
+                "--exit"
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen"

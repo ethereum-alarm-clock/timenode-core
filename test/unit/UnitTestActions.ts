@@ -1,12 +1,12 @@
 import { expect } from 'chai';
 
 import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest } from '../helpers';
+import { mockConfig, MockTxRequestTimestamp } from '../helpers';
 import Actions from '../../src/Actions';
 
 describe('Actions Unit Tests', () => {
     const config: Config = mockConfig();
-    const tx: any = MockTxRequest();
+    const tx: any = MockTxRequestTimestamp();
     let actions: Actions;
 
     it('initializes the Actions with a Config', () => {

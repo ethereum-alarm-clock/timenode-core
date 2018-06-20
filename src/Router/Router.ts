@@ -175,8 +175,9 @@ export default class Router {
         moment().unix()
       );
     } else {
+      const bl = await this.getBlockNumber()
       afterExecutionWindow = transaction.executionWindowEnd.lessThan(
-        await this.getBlockNumber()
+        bl
       );
     }
 
@@ -189,7 +190,7 @@ export default class Router {
     if (this.config.wallet) {
       localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
     } else {
-      localClaim = txRequest.isClaimedBy(this.config.web3.defaultAccount);
+      localClaim = txRequest.isClaimedBy(this.config.web3.eth.accounts[0]);
     }
 
     if (!localClaim) {
@@ -213,7 +214,7 @@ export default class Router {
   }
 
   // TODO do not return void
-  async route(txRequest: any): Promise<any> {
+  async route(txRequest: any): Promise<TxStatus> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
 
