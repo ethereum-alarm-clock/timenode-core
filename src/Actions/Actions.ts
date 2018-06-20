@@ -23,15 +23,13 @@ export default class Actions {
     // TODO make this a constant
     const claimData = txRequest.claimData;
 
-    const gasEstimate = await this.config.util.estimateGas({
-      to: txRequest.address,
-      data: claimData
-    });
+    // Gas needed ~ 89k, this provides a buffer... just in case
+    const gasEstimate = 120000;
 
     const opts = {
       to: txRequest.address,
       value: requiredDeposit,
-      gas: gasEstimate + 50000,
+      gas: gasEstimate,
       gasPrice: await this.config.util.networkGasPrice(),
       data: claimData
     };
@@ -44,7 +42,9 @@ export default class Actions {
 
     if (this.config.wallet.isNextAccountFree()) {
       try {
+        // this.config.logger.debug(`[${txRequest.address}] Sending claim transactions with opts: ${JSON.stringify(opts)}`);
         const { receipt, from } = await this.config.wallet.sendFromNext(opts);
+        // this.config.logger.debug(`[${txRequest.address}] Received receipt: ${JSON.stringify(receipt)}\n And from: ${from}`);
 
         if (receipt.status === '0x1') {
           await txRequest.refreshData();
