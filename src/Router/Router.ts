@@ -97,6 +97,11 @@ export default class Router {
     return TxStatus.FreezePeriod;
   }
 
+  async inReservedWindowAndNotClaimedLocally(txRequest: any): Promise<Boolean> {
+    const inReserved = await txRequest.inReservedWindow();
+    return inReserved && txRequest.isClaimed && !this.isLocalClaim(txRequest);
+  }
+
   async executionWindow(txRequest: any): Promise<TxStatus> {
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
@@ -105,8 +110,7 @@ export default class Router {
       return TxStatus.Missed;
     }
 
-    const reserved = await txRequest.inReservedWindow();
-    if (reserved && txRequest.isClaimed && !this.isLocalClaim(txRequest)) {
+    if (await this.inReservedWindowAndNotClaimedLocally(txRequest)) {
       return TxStatus.ExecutionWindow;
     }
 
