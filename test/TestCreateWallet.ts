@@ -9,7 +9,7 @@ const web3 = new Web3(provider);
 const filename = 'wallet.txt';
 const password = 'password123';
 
-if (!process.env.RUN_ONLY_OPTIONAL_TESTS) {
+if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
     describe('CreateWallet', () => {
         it('creates a new wallet', () => {
             const wallet = createWallet(web3, 1, filename, password);

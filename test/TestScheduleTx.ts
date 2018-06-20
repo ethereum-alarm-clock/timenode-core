@@ -106,7 +106,7 @@ export const scheduleTestTx = async () => {
     return eac.Util.getTxRequestFromReceipt(receipt);
 };
 
-if (!process.env.RUN_ONLY_OPTIONAL_TESTS) {
+if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('ScheduleTx', () => {
     it('schedules a basic transaction', async () => {
       const receipt = await scheduleTestTx();

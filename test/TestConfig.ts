@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { mockConfig } from './helpers/mockConfig';
 
-if (!process.env.RUN_ONLY_OPTIONAL_TESTS) {
+if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('Config', () => {
     it('creates a config from standard params', () => {
       const config = mockConfig();

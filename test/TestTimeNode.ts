@@ -25,7 +25,7 @@ describe('TimeNode', () => {
     expect(timenode.scanner.scanning).to.be.true;
   });
 
-  if (process.env.RUN_ONLY_OPTIONAL_TESTS) {
+  if (process.env.RUN_ONLY_OPTIONAL_TESTS === 'true') {
     it('executes 20 transactions', async () => {
       const TRANSACTIONS_TO_SCHEDULE = 30;
       const scheduledTransactionsMap = {};
