@@ -144,8 +144,8 @@ describe('TimeNode', () => {
 
     const originalLoggerInfoMethod = timenode.config.logger.info;
 
-    timenode.config.logger.info = (msg: string) => {
-      if (msg.includes('executed')) {
+    timenode.config.logger.info = (msg: any) => {
+      if (msg.includes && msg.includes('executed')) {
         const executedTransactionAddress = msg.split(' executed')[0];
 
         if (scheduledTransactionsMap[executedTransactionAddress]) {
