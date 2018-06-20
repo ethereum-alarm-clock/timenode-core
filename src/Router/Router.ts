@@ -3,9 +3,6 @@ import Config from '../Config';
 import { TxStatus } from '../Enum';
 import { shouldClaimTx } from '../EconomicStrategy';
 
-import * as Bb from 'bluebird';
-import * as moment from 'moment';
-
 export class TEMPORAL_UNIT {
   static BLOCK = 1;
   static TIMESTAMP = 2;
@@ -33,16 +30,12 @@ export default class Router {
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = this.missed.bind(this);
     this.transitions[TxStatus.Done] = (txRequest: any) => {
-      this.config.logger.info(`[${txRequest.address}] Finished. Deleting from cache...`);
+      this.config.logger.info(
+        `[${txRequest.address}] Finished. Deleting from cache...`
+      );
       this.config.cache.del(txRequest.address);
       return TxStatus.Done;
     };
-  }
-
-  async getBlockNumber() {
-    return Bb.fromCallback((callback: any) =>
-      this.config.web3.eth.getBlockNumber(callback)
-    );
   }
 
   async beforeClaimWindow(txRequest: any): Promise<TxStatus> {
@@ -156,7 +149,8 @@ export default class Router {
   }
 
   async isTransactionMissed(txRequest: any): Promise<boolean> {
-    const afterExecutionWindow = txRequest.executionWindowEnd >= await txRequest.now();
+    const afterExecutionWindow =
+      txRequest.executionWindowEnd >= (await txRequest.now());
     return Boolean(afterExecutionWindow && !txRequest.wasCalled);
   }
 
