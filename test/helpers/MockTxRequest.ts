@@ -4,7 +4,7 @@ import * as Bb from 'bluebird';
 
 const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
     const claimedBy = '0x0000000000000000000000000000000000000000';
-    const requiredDeposit = new BigNumber(Math.pow(10, 16));
+    const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
 
     const hoursLater = (number: number) => moment().add(number, 'hour').unix();
     const daysLater = (number: number) => moment().add(number, 'day').unix();
@@ -19,7 +19,9 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
 
     return {
         'address': '0x74f8e3501b00bd219e864650f5625cd4f9272a75',
-        'bounty': new BigNumber(Math.pow(10, 16)),
+        'bounty': new BigNumber(web3.toWei(0.1, 'ether')),
+        'callGas': new BigNumber(Math.pow(10, 6)),
+        'gasPrice': new BigNumber(web3.toWei(21, 'gwei')),
         claimedBy,
         'claimData': {
             claimedBy,
@@ -36,6 +38,7 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
         'freezePeriod': oneHourWindowSize, // ~1h
         'reservedWindowSize': oneHourWindowSize,
         'receipt': {},
+        'wasCalled': false,
         get claimWindowEnd() {
             return this.windowStart.minus(this.freezePeriod);
         },
