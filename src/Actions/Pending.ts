@@ -4,12 +4,14 @@ import { FnSignatures } from '../Enum';
  * Uses the Parity specific RPC request `parity_pendingTransactions` to search
  * for pending transactions in the transaction pool.
  * @param {TransactionRequest} txRequest
- * @param {any} type (optional) Type of pending request: claim,execute.
+ * @param {string} type (optional) Type of pending request: claim,execute.
+ * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
+ * @param {number} validPrice (optional) Expected gasPrice to compare.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const _hasPendingParity = async (conf: any, txRequest: any, opts: { type: any, checkGasPrice?: boolean }) => {
+const _hasPendingParity = async (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, validPrice?: any}) => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
-  const provider = conf.web3.currentProvider
+  const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
     provider.sendAsync(
@@ -27,7 +29,7 @@ const _hasPendingParity = async (conf: any, txRequest: any, opts: { type: any, c
           res.result &&
           !!await res.result.filter(async (tx: any) => {
             if (tx.to === txRequest.address) {
-              const withValidGasPrice = tx && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, tx));
+              const withValidGasPrice = tx && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, tx, opts.validPrice));
               return tx && isOfType(tx, opts.type) && withValidGasPrice;
             }
           }).length;
@@ -41,11 +43,11 @@ const _hasPendingParity = async (conf: any, txRequest: any, opts: { type: any, c
  * Uses the Geth specific RPC request `txpool_content` to search
  * for pending transactions in the transaction pool.
  * @param {TransactionRequest} txRequest
- * @param {any} type (optional) Type of pending request: claim,execute.
- * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network when (type: claim).
+ * @param {string} type (optional) Type of pending request: claim,execute.
+ * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const _hasPendingGeth = (conf: any, txRequest: any, opts: { type: any, checkGasPrice?: boolean }) => {
+const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, validPrice?: any}) => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider
 
@@ -80,28 +82,32 @@ const _hasPendingGeth = (conf: any, txRequest: any, opts: { type: any, checkGasP
  * for pending transactions in the transaction pool.
  * @param {Web3} web3 the Web3 instance to use
  * @param {TransactionReceipt} transaction Ethereum transaction receipt
- * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
+ * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = async (web3: any, transaction: any) => {
-  const spread = 0.2;
+const hasValidGasPrice = async (web3: any, transaction: any, validPrice?: any) => {
+  if (validPrice) {
+    return validPrice.valueOf() == transaction.gasPrice.valueOf();
+  }
+  const spread = 0.3;
   let currentGasPrice: number;
-  await web3.eth.getGasPrice((err: Error, res: any) => {
-    if (err)
-      return Promise.reject(err);
+  await new Promise((resolve, reject) => {
+    web3.eth.getGasPrice((err: Error, res: any) => {
+      if (err) reject(err);
       currentGasPrice = res;
+      resolve(true);
+    })      
   });
-
-  return currentGasPrice && currentGasPrice.valueOf() >= (1 - spread) * transaction.gasPrice.valueOf();
+  return currentGasPrice && ( spread * currentGasPrice.valueOf() ) <= transaction.gasPrice.valueOf();
 }
 
 /**
  * Uses the Geth specific RPC request `txpool_content` to search
  * for pending transactions in the transaction pool.
  * @param {TransactionReceipt} transaction Ethereum transaction receipt
- * @param {any} type Type of pending request: claim,execute.
+ * @param {string} type Type of pending request: claim,execute.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const isOfType = (transaction: any, type: any) => {
+const isOfType = (transaction: any, type?: string) => {
   if (transaction && !type) {
     return true;
   }
@@ -113,10 +119,10 @@ const isOfType = (transaction: any, type: any) => {
  * a TransactionRequest has a pending transaction in the transaction pool.
  * @param {Config} conf Config object.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
- * @param {any} type (optional) Type of pending request: claim,execute.                                
- * @param {bool} checkGasPrice (default: true) Check if transaction's gasPrice is sufficient for Network.
+ * @param {string} type (optional) Type of pending request: claim,execute.                                
+ * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
  */
-const hasPending = (conf: any, txRequest: any, opts: { type: any, checkGasPrice?: boolean}) => {
+const hasPending = (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, validPrice?: any}) => {
   if (conf.client == 'parity') {
     return _hasPendingParity(conf, txRequest, opts)
   } else if (conf.client == 'geth') {
