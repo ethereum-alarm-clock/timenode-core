@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import { isExecuted } from './Helpers';
+import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import W3Util from '../Util';
 
@@ -52,7 +52,7 @@ export default class Actions {
           return;
         }
 
-        if (receipt.status === '0x1') {
+        if (isTransactionStatusSuccessful(receipt.status)) {
           await txRequest.refreshData();
           const cost = new BigNumber(receipt.gasUsed).mul(
             new BigNumber(txRequest.data.txData.gasPrice)
@@ -124,7 +124,7 @@ export default class Actions {
         return;
       }
 
-      if (receipt.status === '0x1') {
+      if (isTransactionStatusSuccessful(receipt.status)) {
         if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
@@ -154,7 +154,7 @@ export default class Actions {
         return;
       }
 
-      if (receipt.status === '0x1') {
+      if (isTransactionStatusSuccessful(receipt.status)) {
         if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
