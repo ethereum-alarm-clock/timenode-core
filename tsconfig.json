@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "suppressImplicitAnyIndexErrors": true,
+        "noImplicitAny": true,
+        "outDir": "./built",
+        "allowJs": true,
+        "lib": [
+            "es2015"
+        ],
+        "target": "es6",
+        "moduleResolution": "node"
+    },
+    "include": [
+        "./src/**/*"
+    ]
+}
