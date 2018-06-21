@@ -4,6 +4,7 @@ import { TxStatus } from '../Enum';
 import { shouldClaimTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
+import { ITxRequest } from '../Types';
 
 export class TEMPORAL_UNIT {
   static BLOCK = 1;
@@ -189,7 +190,7 @@ export default class Router {
     return localClaim;
   }
 
-  async route(txRequest: any): Promise<any> {
+  async route(txRequest: ITxRequest): Promise<any> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
 
