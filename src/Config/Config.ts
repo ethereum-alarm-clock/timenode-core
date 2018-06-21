@@ -4,6 +4,7 @@ import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
+import W3Util from '../Util';
 
 export default class Config implements IConfigParams {
   autostart: boolean;
@@ -16,12 +17,14 @@ export default class Config implements IConfigParams {
   provider: any;
   scanSpread: any;
   statsDb: StatsDB;
+  util: any;
   wallet: Wallet;
   web3: any;
   walletStoresAsPrivateKeys: boolean;
 
   constructor(params: IConfigParams) {
     this.autostart = params.autostart || true;
+    this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;
 
@@ -45,7 +48,7 @@ export default class Config implements IConfigParams {
       params.walletStores.length &&
       params.walletStores.length > 0
     ) {
-      this.wallet = new Wallet(this.web3);
+      this.wallet = new Wallet(this.web3, this.logger);
 
       params.walletStores = params.walletStores.map(
         (store: Object | string) => {
@@ -66,8 +69,8 @@ export default class Config implements IConfigParams {
       this.wallet = null;
     }
 
-    this.ms = params.ms;
-
+    this.statsDb = params.statsDb;
+    this.util = new W3Util(this.web3);
     this.economicStrategy = params.economicStrategy;
   }
 }

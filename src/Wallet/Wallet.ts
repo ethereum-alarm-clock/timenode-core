@@ -1,5 +1,8 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
+import { ILogger } from '../Logger';
+
+import IWalletReceipt from './IWalletReceipt';
 
 declare const Buffer: any;
 declare const setTimeout: any;
@@ -14,12 +17,14 @@ interface AccountStateMap {
 
 export default class Wallet {
   length: number;
+  logger: ILogger;
   nonce: number;
   web3: any;
   walletStates: AccountStateMap;
 
-  constructor(web3: any) {
+  constructor(web3: any, logger?: ILogger) {
     this.length = 0;
+    this.logger = logger;
     this.nonce = 0;
     this.web3 = web3;
     this.walletStates = {};
@@ -160,7 +165,7 @@ export default class Wallet {
     });
   }
 
-  async getTransactionReceipt(hash: any, from: String) {
+  async getTransactionReceipt(hash: any, from: String): Promise<any> {
     let transactionReceiptAsync: any;
     const _this = this;
     transactionReceiptAsync = async function(
@@ -205,7 +210,7 @@ export default class Wallet {
         gas: this.web3.toHex(opts.gas),
         gasPrice: this.web3.toHex(opts.gasPrice),
         value: this.web3.toHex(opts.value),
-        data: opts.data,
+        data: opts.data
       };
 
       const ethTx = require('ethereumjs-tx');
@@ -229,13 +234,11 @@ export default class Wallet {
     );
   }
 
-  /**
-   * sendFromIndex will send a transaction from the account index specified
-   * @param {number} idx The index of the account to send a transaction from.
-   * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
-   * @returns {Promise<string>} A promise which will resolve to the transaction hash
-   */
-  async sendFromIndex(idx: number, opts: any) {
+  isNextAccountFree() {
+    return this.isWalletAbleToSendTx(this.nonce % this.length);
+  }
+
+  async sendFromIndex(idx: number, opts: any): Promise<any> {
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -245,7 +248,12 @@ export default class Wallet {
     const balance = await this.getBalanceOf(from);
 
     if (balance.eq(0)) {
-      throw `Account ${from} has not enough funds to send transaction.`;
+      if (this.logger) {
+        this.logger.info(
+          `Account ${from} has not enough funds to send transaction.`
+        );
+      }
+      return { ignore: true };
     }
 
     const nonce = await this.getNonce(from);
@@ -256,7 +264,12 @@ export default class Wallet {
       this.walletStates[from] &&
       this.walletStates[from].sendingTxInProgress
     ) {
-      throw `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`;
+      if (this.logger) {
+        this.logger.debug(
+          `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`
+        );
+      }
+      return { ignore: true };
     }
 
     let receipt;
@@ -270,9 +283,8 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
-      console.log('Wallet::sendFromIndex(): receipt', receipt);
+      // console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
-      console.log('Wallet::sendFromIndex(): Error.', error);
       throw error;
     } finally {
       this.walletStates[from].sendingTxInProgress = false;
@@ -290,8 +302,6 @@ export default class Wallet {
   }
 
   isKnownAddress(address: String) {
-    return this.getAccounts().some(
-      (account) => account.getAddressString() === address
-    );
+    return this.getAddresses().some((addr) => addr === address);
   }
 }
