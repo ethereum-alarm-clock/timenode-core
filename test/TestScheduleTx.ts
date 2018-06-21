@@ -105,10 +105,12 @@ export const scheduleTestTx = async () => {
     return eac.Util.getTxRequestFromReceipt(receipt);
 };
 
-describe('ScheduleTx', () => {
-  it('schedules a basic transaction', async () => {
-    const receipt = await scheduleTestTx();
+if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
+  describe('ScheduleTx', () => {
+    it('schedules a basic transaction', async () => {
+      const receipt = await scheduleTestTx();
 
-    expect(receipt).to.exist;
-  }).timeout(20000);
-})
+      expect(receipt).to.exist;
+    }).timeout(20000);
+  })
+}

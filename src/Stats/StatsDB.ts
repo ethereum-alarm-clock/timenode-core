@@ -59,6 +59,11 @@ export class StatsDB {
   // / Takes the account which has executed a transaction.
   async updateExecuted(account: String, bounty: BigNumber, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
+
+    if (!found) {
+      return;
+    }
+
     found.executed += 1;
     found.executedTransactions.push({ timestamp: Date.now() });
 
