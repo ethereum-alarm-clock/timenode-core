@@ -127,9 +127,9 @@ const isOfType = (transaction: any, type?: string) => {
  */
 const hasPending = (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, exactPrice?: any}) => {
   if (conf.client == 'parity') {
-    return _hasPendingParity(conf, txRequest, opts)
+    return _hasPendingParity(conf, txRequest, opts);
   } else if (conf.client == 'geth') {
-    return _hasPendingGeth(conf, txRequest, opts)
+    return _hasPendingGeth(conf, txRequest, opts);
   }
 };
 
