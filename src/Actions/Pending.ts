@@ -16,12 +16,12 @@ const _hasPendingParity = async (conf: any, txRequest: any) => {
         id: 0o7
       },
       (err: Error, res: any) => {
-        if (err) reject(err);
+        if (err) {
+          reject(err);
+        }
 
         const hasTx =
-          res &&
-          res.result &&
-          !!res.result.filter((tx: any) => tx.to === txRequest.address).length;
+          res && res.result && !!res.result.filter((tx: any) => tx.to === txRequest.address).length;
         resolve(hasTx);
       }
     );
@@ -46,7 +46,9 @@ const _hasPendingGeth = (conf: any, txRequest: any) => {
         id: 0o7
       },
       (err: Error, res: any) => {
-        if (err) reject(err);
+        if (err) {
+          reject(err);
+        }
         for (const account in res.result.pending) {
           for (const nonce in res.result.pending[account]) {
             if (res.result.pending[account][nonce].to === txRequest.address) {

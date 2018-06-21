@@ -9,10 +9,10 @@ export class StatsDB {
    * @memberof StatsDB
    */
 
-  db: any;
-  web3: any;
-  eac: any;
-  stats: any;
+  public db: any;
+  public web3: any;
+  public eac: any;
+  public stats: any;
 
   constructor(web3: any, db: any) {
     this.db = db;
@@ -20,13 +20,12 @@ export class StatsDB {
     this.eac = require('eac.js-lib')(web3);
 
     const fetchedStats = this.db.getCollection('stats');
-    this.stats =
-      fetchedStats !== null ? fetchedStats : this.db.addCollection('stats');
+    this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats');
   }
 
   // / Takes an array of addresses and stores them as new stats objects.
-  initialize(accounts: Array<String>) {
-    accounts.forEach(async (account) => {
+  public initialize(accounts: String[]) {
+    accounts.forEach(async account => {
       const found = this.stats.find({ account })[0];
       if (found) {
         const bounties = found.bounties || 0;
@@ -48,7 +47,7 @@ export class StatsDB {
   }
 
   // / Takes the account which has claimed a transaction.
-  async updateClaimed(account: String, cost: BigNumber) {
+  public async updateClaimed(account: String, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.claimed += 1;
     found.costs = found.costs.plus(cost);
@@ -57,7 +56,7 @@ export class StatsDB {
   }
 
   // / Takes the account which has executed a transaction.
-  async updateExecuted(account: String, bounty: BigNumber, cost: BigNumber) {
+  public async updateExecuted(account: String, bounty: BigNumber, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
 
     if (!found) {
@@ -75,7 +74,7 @@ export class StatsDB {
 
   // / Gets the stats
   // @returns an array of the DB objs
-  getStats() {
+  public getStats() {
     return this.stats.data;
   }
 }
