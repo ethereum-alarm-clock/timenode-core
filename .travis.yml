@@ -9,12 +9,20 @@ cache:
     - node_modules
 before_install: npm install -g truffle mocha typescript ganache-cli
 install: npm install
+
+before_script:
+  - ganache-cli -m "shove afford modify census bridge good random error fault floor fringe oblige" -i 1002 > /dev/null &
+  - sleep 5
 script:
   - npm run deploy-eac
   - npm run fmt
   - npm run build
   - npm run test
   - npm run clean-backups
-before_script:
-  - ganache-cli -m "shove afford modify census bridge good random error fault floor fringe oblige" -i 1002 > /dev/null &
-  - sleep 5
+
+matrix:
+  include:
+  - env: RUN_ONLY_OPTIONAL_TESTS=false
+  - env: RUN_ONLY_OPTIONAL_TESTS=true
+  allow_failures:
+  - env: RUN_ONLY_OPTIONAL_TESTS=true

@@ -7,9 +7,11 @@ declare const setInterval: any;
 import { IBlock, IntervalId, ITxRequest } from '../Types';
 
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
+import W3Util from '../Util';
 
 export default class {
   config: Config;
+  util: W3Util;
   scanning: boolean;
   router: any;
   requestFactory: Promise<any>;
@@ -39,53 +41,50 @@ export default class {
    */
   constructor(config: Config, router: any) {
     this.config = config;
+    this.util = config.util;
     this.scanning = false;
     this.router = router;
     this.requestFactory = config.eac.requestFactory();
   }
 
-  runAndSetInterval(fn: () => void, interval: number): IntervalId {
-    fn();
-    return setInterval(fn, interval);
+  async runAndSetInterval(
+    fn: () => void,
+    interval: number
+  ): Promise<IntervalId> {
+    const wrapped = async () => {
+      try {
+        await fn();
+      } catch (e) {
+        this.config.logger.error(e);
+      }
+    };
+
+    await wrapped();
+
+    return setInterval(wrapped, interval);
   }
 
   async start(): Promise<boolean> {
-    // TODO: extract this to a utils file perhaps
-    //
-    // Helper function to determine if we're on a provider which allows
-    // us to use the `eth_getFilerLogs` method, and thereby are allowed
-    // to watch events.
-    const watchingEnabled = await new Promise<boolean>((resolve) => {
-      this.config.web3.currentProvider.sendAsync(
-        {
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'eth_getFilterLogs',
-          params: []
-        },
-        (err: any) => {
-          if (err !== null) {
-            resolve(false);
-          }
-          resolve(true);
-        }
-      );
-    });
-
-    if (watchingEnabled) {
+    if (await this.util.isWatchingEnabled()) {
       // Watching is enabled! start watching the chain.
       this.config.logger.info('Watching ENABLED');
-      this.chainScanner = await this.watchBlockchain();
+      this.chainScanner = await this.runAndSetInterval(
+        () => this.watchBlockchain(),
+        5 * 60 * 1000
+      );
     } else {
       // Watchin disabled. We use old-school methods.
       this.config.logger.info('Watching DISABLED');
       this.config.logger.info('-Initiating Backup Scanner-');
-      this.chainScanner = await this.backupScanBlockchain();
+      this.chainScanner = await this.runAndSetInterval(
+        () => this.backupScanBlockchain(),
+        this.config.ms
+      );
     }
 
     // Create the interval for processing the transaction requests in cache.
-    this.cacheScanner = this.runAndSetInterval(
-      () => this.scanCache().catch((err) => this.config.logger.error(err)),
+    this.cacheScanner = await this.runAndSetInterval(
+      () => this.scanCache(),
       this.config.ms
     );
 
@@ -150,16 +149,17 @@ export default class {
   }
 
   async getBuckets(): Promise<IBuckets> {
-    const latest: IBlock = await this.getBlock('latest');
+    const latest: IBlock = await this.util.getBlock('latest');
     return {
       currentBuckets: await this.getCurrentBuckets(latest),
       nextBuckets: await this.getNextBuckets(latest)
     };
   }
 
-  // TODO shouldn't return void
   handleRequest(request: any): void {
-    if (!this.isValid(request.address)) return;
+    if (!this.isValid(request.address)) {
+      throw new Error(`[${request.address}] NOT VALID`);
+    }
 
     this.config.logger.info(`[${request.address}] Discovered`);
     if (!this.config.cache.has(request.address)) {
@@ -167,30 +167,25 @@ export default class {
     }
   }
 
-  async backupScanBlockchain(): Promise<IntervalId> {
+  async backupScanBlockchain(): Promise<void> {
     // TODO only init reqFactory once, so check here with a function before calling again
     const reqFactory = await this.requestFactory;
     const { currentBuckets, nextBuckets } = await this.getBuckets();
+    const handleRequest = this.handleRequest.bind(this);
 
     // TODO: extract this out
     (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(
-      this.handleRequest
+      handleRequest
     );
     (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(
-      this.handleRequest
+      handleRequest
     );
     (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(
-      this.handleRequest
+      handleRequest
     );
     (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(
-      this.handleRequest
+      handleRequest
     );
-    //
-
-    // Set a recursive interval to continue this "scan" every ms/1000 seconds.
-    return setInterval(() => {
-      this.backupScanBlockchain().catch((err) => this.config.logger.error(err));
-    }, this.config.ms);
   }
 
   async stopWatcher(bucket: Bucket) {
@@ -203,12 +198,10 @@ export default class {
     }
   }
 
-  async watchRequestsByBucket(
-    bucket: Bucket,
-    previousBucket: Bucket,
-    handleRequest: (request: any) => void
-  ) {
+  async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket) {
     const reqFactory = await this.requestFactory;
+    const handleRequest = this.handleRequest.bind(this);
+
     if (bucket !== previousBucket) {
       this.stopWatcher(previousBucket);
       const watcher = await reqFactory.watchRequestsByBucket(
@@ -219,56 +212,29 @@ export default class {
     }
   }
 
-  async watchBlockchain(): Promise<IntervalId> {
+  async watchBlockchain(): Promise<void> {
     const buckets = await this.getBuckets();
-
-    const handleRequest = (request: any): void => {
-      if (!this.isValid(request.address)) {
-        throw new Error(`[${request.address}] NOT VALID`);
-      }
-
-      this.config.logger.info(`[${request.address}] Discovered`);
-      if (!this.config.cache.has(request.address)) {
-        this.store(request);
-      }
-    };
-
-    this.config.logger.info(buckets.currentBuckets);
-    this.config.logger.info(buckets.nextBuckets);
 
     // Start watching the current buckets right away.
     await this.watchRequestsByBucket(
       buckets.currentBuckets.blockBucket,
-      this.buckets.currentBuckets.blockBucket,
-      handleRequest
+      this.buckets.currentBuckets.blockBucket
     );
     await this.watchRequestsByBucket(
       buckets.nextBuckets.blockBucket,
-      this.buckets.nextBuckets.blockBucket,
-      handleRequest
+      this.buckets.nextBuckets.blockBucket
     );
 
     await this.watchRequestsByBucket(
       buckets.currentBuckets.timestampBucket,
-      this.buckets.currentBuckets.timestampBucket,
-      handleRequest
+      this.buckets.currentBuckets.timestampBucket
     );
     await this.watchRequestsByBucket(
       buckets.nextBuckets.timestampBucket,
-      this.buckets.nextBuckets.timestampBucket,
-      handleRequest
+      this.buckets.nextBuckets.timestampBucket
     );
 
     this.buckets = buckets;
-
-    // Needed?
-    this.config.logger.info(`Watching STARTED`);
-
-    // Set an timeout for every hour
-    return setInterval(() => {
-      // We only really need to watch the next buckets, but this is convienence & clarity.
-      this.watchBlockchain();
-    }, 5 * 60 * 1000); //scan every 5min, so we also support chains with faster blocks than assumed 250blocks/1h
   }
 
   isValid(requestAddress: String): boolean {
@@ -288,32 +254,18 @@ export default class {
 
   // TODO meaningful return value
   async scanCache(): Promise<void> {
-    // Check if the cache is empty.
-    if (this.config.cache.len() === 0) return;
+    if (this.config.cache.isEmpty()) return;
 
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.config.cache
       .stored()
-      .filter((address: String) => this.config.cache.get(address) > 0)
-      .map((address: String) => this.config.eac.transactionRequest(address));
+      .filter((address: string) => this.config.cache.get(address) > 0)
+      .map((address: string) => this.config.eac.transactionRequest(address));
 
-    // Get fresh data on our transaction requests and route them into appropiate action.
-    Promise.all(allTxRequests).then((txRequests) => {
-      txRequests.forEach((txRequest: ITxRequest) => {
-        txRequest.refreshData().then(() => this.router.route(txRequest));
-      });
-    });
-  }
-
-  // TODO extract to a utils?
-  getBlock(number = 'latest'): Promise<IBlock> {
-    return new Promise((resolve, reject) => {
-      this.config.web3.eth.getBlock(number, (err: any, block: IBlock) => {
-        if (!err)
-          if (block) resolve(block);
-          else reject(`Returned block ${number} is null`);
-        else reject(err);
-      });
+    // Get fresh data on our transaction requests and route them into appropriate action.
+    const requests = await Promise.all(allTxRequests);
+    requests.forEach((txRequest: ITxRequest) => {
+      txRequest.refreshData().then(() => this.router.route(txRequest));
     });
   }
 

@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import { isExecuted } from './Helpers';
+import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import W3Util from '../Util';
 
@@ -23,15 +23,13 @@ export default class Actions {
     // TODO make this a constant
     const claimData = txRequest.claimData;
 
-    const gasEstimate = await this.config.util.estimateGas({
-      to: txRequest.address,
-      data: claimData
-    });
+    // Gas needed ~ 89k, this provides a buffer... just in case
+    const gasEstimate = 120000;
 
     const opts = {
       to: txRequest.address,
       value: requiredDeposit,
-      gas: gasEstimate + 50000,
+      gas: gasEstimate,
       gasPrice: await this.config.util.networkGasPrice(),
       data: claimData
     };
@@ -44,9 +42,17 @@ export default class Actions {
 
     if (this.config.wallet.isNextAccountFree()) {
       try {
-        const { receipt, from } = await this.config.wallet.sendFromNext(opts);
+        // this.config.logger.debug(`[${txRequest.address}] Sending claim transactions with opts: ${JSON.stringify(opts)}`);
+        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(
+          opts
+        );
+        // this.config.logger.debug(`[${txRequest.address}] Received receipt: ${JSON.stringify(receipt)}\n And from: ${from}`);
 
-        if (receipt.status === '0x1') {
+        if (ignore) {
+          return;
+        }
+
+        if (isTransactionStatusSuccessful(receipt.status)) {
           await txRequest.refreshData();
           const cost = new BigNumber(receipt.gasUsed).mul(
             new BigNumber(txRequest.data.txData.gasPrice)
@@ -90,6 +96,7 @@ export default class Actions {
     const claimIndex = this.config.wallet
       .getAddresses()
       .indexOf(txRequest.claimedBy);
+    this.config.logger.debug(`Claim Index ${claimIndex}`);
 
     const opts = {
       to: txRequest.address,
@@ -99,6 +106,8 @@ export default class Actions {
       data: executeData
     };
 
+    this.config.logger.debug(`Opts: ${JSON.stringify(opts)}`);
+
     if (await hasPending(this.config, txRequest)) {
       return {
         ignore: true
@@ -106,12 +115,16 @@ export default class Actions {
     }
 
     if (claimIndex !== -1) {
-      const { receipt, from } = await this.config.wallet.sendFromIndex(
+      const { receipt, from, ignore } = await this.config.wallet.sendFromIndex(
         claimIndex,
         opts
       );
 
-      if (receipt.status === '0x1') {
+      if (ignore) {
+        return;
+      }
+
+      if (isTransactionStatusSuccessful(receipt.status)) {
         if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
@@ -133,9 +146,15 @@ export default class Actions {
     }
 
     if (this.config.wallet.isNextAccountFree()) {
-      const { receipt, from } = await this.config.wallet.sendFromNext(opts);
+      const { receipt, from, ignore } = await this.config.wallet.sendFromNext(
+        opts
+      );
 
-      if (receipt.status === '0x1') {
+      if (ignore) {
+        return;
+      }
+
+      if (isTransactionStatusSuccessful(receipt.status)) {
         if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
@@ -199,17 +218,26 @@ export default class Actions {
         .getAddresses()
         .indexOf(txRequest.owner);
       if (ownerIndex !== -1) {
-        transactionHash = await this.config.wallet.sendFromIndex(
-          ownerIndex,
-          opts
-        );
+        const {
+          receipt,
+          from,
+          ignore
+        } = await this.config.wallet.sendFromIndex(ownerIndex, opts);
+        if (ignore) {
+          return;
+        }
       } else {
         if (gasCostToCancel.greaterThan(txRequestBalance)) {
           // The txRequest doesn't have high enough balance to compensate.
           // It's now considered dust.
           return true;
         }
-        transactionHash = await this.config.wallet.sendFromNext(opts);
+        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(
+          opts
+        );
+        if (ignore) {
+          return;
+        }
       }
 
       //TODO get tx Obj from hash
