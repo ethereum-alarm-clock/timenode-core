@@ -22,7 +22,7 @@ export default class Wallet {
   web3: any;
   walletStates: AccountStateMap;
 
-  constructor(web3: any, logger: ILogger) {
+  constructor(web3: any, logger?: ILogger) {
     this.length = 0;
     this.logger = logger;
     this.nonce = 0;
@@ -248,9 +248,11 @@ export default class Wallet {
     const balance = await this.getBalanceOf(from);
 
     if (balance.eq(0)) {
-      this.logger.info(
-        `Account ${from} has not enough funds to send transaction.`
-      );
+      if (this.logger) {
+        this.logger.info(
+          `Account ${from} has not enough funds to send transaction.`
+        );
+      }
       return { ignore: true };
     }
 
@@ -262,9 +264,11 @@ export default class Wallet {
       this.walletStates[from] &&
       this.walletStates[from].sendingTxInProgress
     ) {
-      this.logger.debug(
-        `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`
-      );
+      if (this.logger) {
+        this.logger.debug(
+          `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`
+        );
+      }
       return { ignore: true };
     }
 
