@@ -160,7 +160,7 @@ export default class Router {
     return Boolean(afterExecutionWindow && !txRequest.wasCalled);
   }
 
-  isLocalClaim(txRequest: any) {
+  isLocalClaim(txRequest: any): boolean {
     const localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
 
     if (!localClaim) {
