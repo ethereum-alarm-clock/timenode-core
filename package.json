@@ -20,7 +20,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "tslint --fix",
+      "tslint --fix --force",
       "prettier --write --config ./.prettierrc --config-precedence file-override",
       "git add"
     ]
