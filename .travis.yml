@@ -20,10 +20,12 @@ script:
   - npm run clean-backups
 
 matrix:
+  fast_finish: true
   include:
   - env: RUN_ONLY_OPTIONAL_TESTS=false
   - env: RUN_ONLY_OPTIONAL_TESTS=true
-  - script: npm run lint
+  - env: JUST_LINT=true
+    script: npm run lint
   allow_failures:
   - env: RUN_ONLY_OPTIONAL_TESTS=true
-  - script: npm run lint
+  - env: JUST_LINT=true
