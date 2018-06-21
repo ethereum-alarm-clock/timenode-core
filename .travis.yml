@@ -25,6 +25,8 @@ matrix:
   - env: RUN_ONLY_OPTIONAL_TESTS=false
   - env: RUN_ONLY_OPTIONAL_TESTS=true
   - env: JUST_LINT=true
+    before_install: true
+    before_script: true
     script: npm run lint
   allow_failures:
   - env: RUN_ONLY_OPTIONAL_TESTS=true
