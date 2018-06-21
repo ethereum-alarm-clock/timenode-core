@@ -55,14 +55,14 @@ export default class W3Util {
     });
   }
 
-  public getBlock(number = 'latest'): Promise<IBlock> {
+  public getBlock(blockNumber = 'latest'): Promise<IBlock> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getBlock(number, (err: any, block: IBlock) => {
+      this.web3.eth.getBlock(blockNumber, (err: any, block: IBlock) => {
         if (!err) {
           if (block) {
             resolve(block);
           } else {
-            reject(`Returned block ${number} is null`);
+            reject(`Returned block ${blockNumber} is null`);
           }
         } else {
           reject(err);

@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import * as EAC from 'eac.js-lib';
 
 // / Wrapper over a lokijs persistent storage to keep track of the stats of executing accounts.
 export class StatsDB {
@@ -17,14 +18,14 @@ export class StatsDB {
   constructor(web3: any, db: any) {
     this.db = db;
     this.web3 = web3;
-    this.eac = require('eac.js-lib')(web3);
+    this.eac = EAC(web3);
 
     const fetchedStats = this.db.getCollection('stats');
     this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats');
   }
 
   // / Takes an array of addresses and stores them as new stats objects.
-  public initialize(accounts: String[]) {
+  public initialize(accounts: string[]) {
     accounts.forEach(async account => {
       const found = this.stats.find({ account })[0];
       if (found) {
@@ -47,7 +48,7 @@ export class StatsDB {
   }
 
   // / Takes the account which has claimed a transaction.
-  public async updateClaimed(account: String, cost: BigNumber) {
+  public async updateClaimed(account: string, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.claimed += 1;
     found.costs = found.costs.plus(cost);
@@ -56,7 +57,7 @@ export class StatsDB {
   }
 
   // / Takes the account which has executed a transaction.
-  public async updateExecuted(account: String, bounty: BigNumber, cost: BigNumber) {
+  public async updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
 
     if (!found) {

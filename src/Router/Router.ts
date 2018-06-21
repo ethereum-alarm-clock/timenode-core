@@ -6,18 +6,18 @@ import { shouldClaimTx } from '../EconomicStrategy';
 import W3Util from '../Util';
 import { ITxRequest } from '../Types';
 
-export class TEMPORAL_UNIT {
-  public static BLOCK = 1;
-  public static TIMESTAMP = 2;
+export enum TEMPORAL_UNIT {
+  BLOCK = 1,
+  TIMESTAMP = 2
 }
 
 export default class Router {
   public actions: Actions;
   public config: Config;
   public util: W3Util;
-  public txRequestStates: Object = {};
+  public txRequestStates: object = {};
 
-  public transitions: Object = {};
+  public transitions: object = {};
 
   constructor(config: Config, actions: any) {
     this.actions = actions;
@@ -94,7 +94,7 @@ export default class Router {
     return TxStatus.FreezePeriod;
   }
 
-  public async inReservedWindowAndNotClaimedLocally(txRequest: any): Promise<Boolean> {
+  public async inReservedWindowAndNotClaimedLocally(txRequest: any): Promise<boolean> {
     const inReserved = await txRequest.inReservedWindow();
     return inReserved && txRequest.isClaimed && !this.isLocalClaim(txRequest);
   }
@@ -148,7 +148,7 @@ export default class Router {
 
   public async isTransactionMissed(txRequest: any): Promise<boolean> {
     const afterExecutionWindow =
-      parseInt(txRequest.executionWindowEnd) <= parseInt(await txRequest.now());
+      parseInt(txRequest.executionWindowEnd, 10) <= parseInt(await txRequest.now(), 10);
     return Boolean(afterExecutionWindow && !txRequest.wasCalled);
   }
 

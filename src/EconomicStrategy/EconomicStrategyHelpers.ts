@@ -22,7 +22,8 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) 
  */
 const isAboveMinBalanceLimit = async (economicStrategy: IEconomicStrategy, config: Config) => {
   const minBalance = economicStrategy.minBalance;
-  const currentBalance = await Bb.fromCallback(callback =>
+
+  const currentBalance = await Bb.fromCallback((callback: (err: any, result?: {}) => void) =>
     config.web3.eth.getBalance(config.wallet.getAddresses()[0], callback)
   );
 
