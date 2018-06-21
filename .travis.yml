@@ -15,7 +15,6 @@ before_script:
   - sleep 5
 script:
   - npm run deploy-eac
-  - npm run fmt
   - npm run build
   - npm run test
   - npm run clean-backups
@@ -24,5 +23,6 @@ matrix:
   include:
   - env: RUN_ONLY_OPTIONAL_TESTS=false
   - env: RUN_ONLY_OPTIONAL_TESTS=true
+  - script: npm run lint
   allow_failures:
   - env: RUN_ONLY_OPTIONAL_TESTS=true
