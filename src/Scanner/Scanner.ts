@@ -7,9 +7,11 @@ declare const setInterval: any;
 import { IBlock, IntervalId, ITxRequest } from '../Types';
 
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
+import W3Util from '../Util';
 
 export default class {
   config: Config;
+  util: W3Util;
   scanning: boolean;
   router: any;
   requestFactory: Promise<any>;
@@ -39,6 +41,7 @@ export default class {
    */
   constructor(config: Config, router: any) {
     this.config = config;
+    this.util = config.util;
     this.scanning = false;
     this.router = router;
     this.requestFactory = config.eac.requestFactory();
@@ -50,29 +53,7 @@ export default class {
   }
 
   async start(): Promise<boolean> {
-    // TODO: extract this to a utils file perhaps
-    //
-    // Helper function to determine if we're on a provider which allows
-    // us to use the `eth_getFilerLogs` method, and thereby are allowed
-    // to watch events.
-    const watchingEnabled = await new Promise<boolean>((resolve) => {
-      this.config.web3.currentProvider.sendAsync(
-        {
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'eth_getFilterLogs',
-          params: []
-        },
-        (err: any) => {
-          if (err !== null) {
-            resolve(false);
-          }
-          resolve(true);
-        }
-      );
-    });
-
-    if (watchingEnabled) {
+    if (this.util.isWatchingEnabled()) {
       // Watching is enabled! start watching the chain.
       this.config.logger.info('Watching ENABLED');
       this.chainScanner = await this.watchBlockchain();
@@ -150,7 +131,7 @@ export default class {
   }
 
   async getBuckets(): Promise<IBuckets> {
-    const latest: IBlock = await this.getBlock('latest');
+    const latest: IBlock = await this.util.getBlock('latest');
     return {
       currentBuckets: await this.getCurrentBuckets(latest),
       nextBuckets: await this.getNextBuckets(latest)
@@ -263,7 +244,7 @@ export default class {
 
     // Set an timeout for every hour
     return setInterval(() => {
-      // We only really need to watch the next buckets, but this is convienence & clarity.
+      // We only really need to watch the next buckets, but this is convenience & clarity.
       this.watchBlockchain();
     }, 5 * 60 * 1000); //scan every 5min, so we also support chains with faster blocks than assumed 250blocks/1h
   }
@@ -286,7 +267,7 @@ export default class {
   // TODO meaningful return value
   async scanCache(): Promise<void> {
     // Check if the cache is empty.
-    if (this.config.cache.len() === 0) return;
+    if (this.config.cache.isEmpty()) return;
 
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.config.cache
@@ -294,22 +275,10 @@ export default class {
       .filter((address: String) => this.config.cache.get(address) > 0)
       .map((address: String) => this.config.eac.transactionRequest(address));
 
-    // Get fresh data on our transaction requests and route them into appropiate action.
+    // Get fresh data on our transaction requests and route them into appropriate action.
     Promise.all(allTxRequests).then((txRequests) => {
       txRequests.forEach((txRequest: ITxRequest) => {
         txRequest.refreshData().then(() => this.router.route(txRequest));
-      });
-    });
-  }
-
-  // TODO extract to a utils?
-  getBlock(number = 'latest'): Promise<IBlock> {
-    return new Promise((resolve, reject) => {
-      this.config.web3.eth.getBlock(number, (err: any, block: IBlock) => {
-        if (!err)
-          if (block) resolve(block);
-          else reject(`Returned block ${number} is null`);
-        else reject(err);
       });
     });
   }

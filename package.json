@@ -13,7 +13,8 @@
     "test": "mocha --timeout 50000 -r ts-node/register test/*.ts --exit",
     "test-noexit": "mocha -r ts-node/register test/*.ts",
     "lint": "eslint .",
-    "deploy-eac": "sh scripts/deploy_eac.sh"
+    "deploy-eac": "sh scripts/deploy_eac.sh",
+    "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002"
   },
   "repository": {
     "type": "git",

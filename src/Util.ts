@@ -1,3 +1,5 @@
+import { IBlock } from './Types';
+
 export default class W3Util {
   web3: any;
 
@@ -38,6 +40,36 @@ export default class W3Util {
         if (e) reject(e);
         else resolve(r);
       });
+    });
+  }
+
+  getBlock(number = 'latest'): Promise<IBlock> {
+    return new Promise((resolve, reject) => {
+      this.web3.eth.getBlock(number, (err: any, block: IBlock) => {
+        if (!err)
+          if (block) resolve(block);
+          else reject(`Returned block ${number} is null`);
+        else reject(err);
+      });
+    });
+  }
+
+  isWatchingEnabled(): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      this.web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_getFilterLogs',
+          params: []
+        },
+        (err: any) => {
+          if (err !== null) {
+            resolve(false);
+          }
+          resolve(true);
+        }
+      );
     });
   }
 }

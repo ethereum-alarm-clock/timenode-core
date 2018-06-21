@@ -3,6 +3,8 @@ import Config from '../Config';
 import { TxStatus } from '../Enum';
 import { shouldClaimTx } from '../EconomicStrategy';
 
+import W3Util from '../Util';
+
 export class TEMPORAL_UNIT {
   static BLOCK = 1;
   static TIMESTAMP = 2;
@@ -11,6 +13,7 @@ export class TEMPORAL_UNIT {
 export default class Router {
   actions: Actions;
   config: Config;
+  util: W3Util;
   txRequestStates: Object = {};
 
   transitions: Object = {};
@@ -18,6 +21,7 @@ export default class Router {
   constructor(config: Config, actions: any) {
     this.actions = actions;
     this.config = config;
+    this.util = config.util;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(
       this
@@ -185,16 +189,6 @@ export default class Router {
     return localClaim;
   }
 
-  async isProfitableClaim(txRequest: any) {
-    const claimPaymentModifier = await txRequest.claimPaymentModifier();
-    const paymentWhenClaimed = txRequest.bounty
-      .times(claimPaymentModifier)
-      .dividedToIntegerBy(100);
-
-    // TODO
-  }
-
-  // TODO do not return void
   async route(txRequest: any): Promise<any> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
