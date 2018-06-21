@@ -99,7 +99,7 @@ export default class Actions {
       data: executeData
     };
 
-    if (await hasPending(this.config, txRequest, {type: 'execute', checkGasPrice: false})) {
+    if (await hasPending(this.config, txRequest, {type: 'execute', exactPrice: opts.gasPrice})) {
       return {
         ignore: true
       };
