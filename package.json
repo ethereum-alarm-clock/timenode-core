@@ -55,7 +55,7 @@
     "mocha-typescript": "1.1.16",
     "moment": "2.22.2",
     "parcel": "1.8.1",
-    "prettier": "1.13.4",
+    "prettier": "1.13.5",
     "ts-node": "6.1.2",
     "typescript": "2.9.1",
     "typings": "2.1.1",
