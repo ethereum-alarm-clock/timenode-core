@@ -1,5 +1,4 @@
 import { ILogger } from './ILogger';
-import * as moment from 'moment';
 
 declare const console: any;
 
@@ -26,6 +25,5 @@ export class DefaultLogger implements ILogger {
 
   timestamp(): any {
     return Math.floor(Date.now() / 1000);
-    // return moment().format('HH:mm:ss');
   }
 }

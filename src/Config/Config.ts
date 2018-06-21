@@ -48,7 +48,7 @@ export default class Config implements IConfigParams {
       params.walletStores.length &&
       params.walletStores.length > 0
     ) {
-      this.wallet = new Wallet(this.web3);
+      this.wallet = new Wallet(this.web3, this.logger);
 
       params.walletStores = params.walletStores.map(
         (store: Object | string) => {
