@@ -137,16 +137,6 @@ export default class Router {
     return TxStatus.ExecutionWindow;
   }
 
-  isExecuted(receipt: any): Boolean {
-    if (receipt) {
-      const executedEvent =
-        '0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9';
-      return receipt.logs[0].topics.indexOf(executedEvent) > -1;
-    }
-
-    return false;
-  }
-
   async executed(txRequest: any): Promise<TxStatus> {
     /**
      * We don't cleanup because cleanup needs refactor according to latest logic in EAC
@@ -171,13 +161,7 @@ export default class Router {
   }
 
   isLocalClaim(txRequest: any) {
-    let localClaim;
-    // TODO add function on config `hasWallet(): boolean`
-    if (this.config.wallet) {
-      localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
-    } else {
-      localClaim = txRequest.isClaimedBy(this.config.web3.defaultAccount);
-    }
+    const localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
 
     if (!localClaim) {
       this.config.logger.debug(
