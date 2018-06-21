@@ -1,7 +1,10 @@
 import { expect } from 'chai';
-import { createWallet, createWalletKeystore } from './helpers/createWallet';
+import {
+    createWallet,
+    createWalletKeystore,
+    providerUrl
+} from './helpers';
 import * as Web3 from 'web3';
-import { providerUrl } from './helpers/network';
 
 const provider = new Web3.providers.HttpProvider(providerUrl);
 const web3 = new Web3(provider);

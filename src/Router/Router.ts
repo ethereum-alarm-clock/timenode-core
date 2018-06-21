@@ -176,7 +176,7 @@ export default class Router {
     if (this.config.wallet) {
       localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
     } else {
-      localClaim = txRequest.isClaimedBy(this.config.web3.defaultAccount);
+      localClaim = txRequest.isClaimedBy(this.config.web3.eth.accounts[0]);
     }
 
     if (!localClaim) {
