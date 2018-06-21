@@ -1,12 +1,12 @@
 import { expect } from 'chai';
 
 import { Config } from '../../src/index';
-import { mockConfig, MockTxRequestTimestamp } from '../helpers';
+import { mockConfig, MockTxRequest } from '../helpers';
 import Actions from '../../src/Actions';
 
-describe('Actions Unit Tests', () => {
+describe('Actions Unit Tests', async () => {
     const config: Config = mockConfig();
-    const tx: any = MockTxRequestTimestamp();
+    const tx: any = await MockTxRequest(config.web3);
     let actions: Actions;
 
     it('initializes the Actions with a Config', () => {

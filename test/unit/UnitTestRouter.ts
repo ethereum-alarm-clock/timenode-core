@@ -5,8 +5,7 @@ import * as moment from 'moment';
 import { Config } from '../../src/index';
 import {
   mockConfig,
-  MockTxRequestTimestamp,
-  MockTxRequestBlock
+  MockTxRequest
 } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
@@ -19,8 +18,8 @@ describe('Router Unit Tests', () => {
   
   const reset = async () => {
     config = mockConfig();
-    txTimestamp = MockTxRequestTimestamp();
-    txBlock = await MockTxRequestBlock(config.web3);
+    txTimestamp = await MockTxRequest(config.web3);
+    txBlock = await MockTxRequest(config.web3, true);
 
     actions = new Actions(config);
     router = new Router(config, actions);
