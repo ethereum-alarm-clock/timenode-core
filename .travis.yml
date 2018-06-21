@@ -26,3 +26,4 @@ matrix:
   - script: npm run lint
   allow_failures:
   - env: RUN_ONLY_OPTIONAL_TESTS=true
+  - script: npm run lint
