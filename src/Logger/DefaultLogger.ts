@@ -25,6 +25,7 @@ export class DefaultLogger implements ILogger {
   }
 
   timestamp(): any {
-    return moment().format('HH:mm:ss');
+    return Math.floor(Date.now() / 1000);
+    // return moment().format('HH:mm:ss');
   }
 }

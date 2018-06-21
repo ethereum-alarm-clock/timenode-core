@@ -1,6 +1,8 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
+import { isExecuted } from './Helpers';
 import hasPending from './Pending';
+import W3Util from '../Util';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(
@@ -21,15 +23,16 @@ export default class Actions {
     // TODO make this a constant
     const claimData = txRequest.claimData;
 
-    // TODO: estimate gas
-    // const estimateGas = await Util.estimateGas()
+    const gasEstimate = await this.config.util.estimateGas({
+      to: txRequest.address,
+      data: claimData
+    });
+
     const opts = {
       to: txRequest.address,
       value: requiredDeposit,
-      //TODO estimate gas above
-      gas: 3000000,
-      //TODO estimate gas above
-      gasPrice: 12,
+      gas: gasEstimate + 50000,
+      gasPrice: await this.config.util.networkGasPrice(),
       data: claimData
     };
 
@@ -39,18 +42,17 @@ export default class Actions {
       };
     }
 
-    if (this.config.wallet.isWalletAbleToSendTx(0)) {
-      this.config.logger.debug(
-        `Actions::claim(${shortenAddress(
-          txRequest.address
-        )})::Wallet with index 0 able to send tx.`
-      );
-
+    if (this.config.wallet.isNextAccountFree()) {
       try {
-        const txHash: any = await this.config.wallet.sendFromIndex(0, opts);
+        const { receipt, from } = await this.config.wallet.sendFromNext(opts);
 
-        if (txHash.receipt.status === '0x1') {
+        if (receipt.status === '0x1') {
           await txRequest.refreshData();
+          const cost = new BigNumber(receipt.gasUsed).mul(
+            new BigNumber(txRequest.data.txData.gasPrice)
+          );
+
+          this.config.statsDb.updateClaimed(from, cost);
 
           return txRequest.isClaimed;
         }
@@ -103,14 +105,50 @@ export default class Actions {
       };
     }
 
-    if (this.config.wallet.isWalletAbleToSendTx(0)) {
-      this.config.logger.debug(
-        'Actions::execute()::Wallet with index 0 able to send tx.'
+    if (claimIndex !== -1) {
+      const { receipt, from } = await this.config.wallet.sendFromIndex(
+        claimIndex,
+        opts
       );
-      const txHash: any = await this.config.wallet.sendFromIndex(0, opts);
 
-      if (txHash.receipt.status === '0x1') {
-        await txRequest.refreshData();
+      if (receipt.status === '0x1') {
+        if (isExecuted(receipt)) {
+          await txRequest.refreshData();
+
+          const data = receipt.logs[0].data;
+          const bounty = this.config.web3.toDecimal(data.slice(0, 66));
+
+          this.config.statsDb.updateExecuted(from, bounty, new BigNumber(0));
+        }
+
+        const cost = new BigNumber(receipt.gasUsed).mul(
+          new BigNumber(txRequest.data.txData.gasPrice)
+        );
+        this.config.statsDb.updateExecuted(from, new BigNumber(0), cost);
+
+        return txRequest.wasSuccessful;
+      }
+
+      return false;
+    }
+
+    if (this.config.wallet.isNextAccountFree()) {
+      const { receipt, from } = await this.config.wallet.sendFromNext(opts);
+
+      if (receipt.status === '0x1') {
+        if (isExecuted(receipt)) {
+          await txRequest.refreshData();
+
+          const data = receipt.logs[0].data;
+          const bounty = this.config.web3.toDecimal(data.slice(0, 66));
+
+          this.config.statsDb.updateExecuted(from, bounty, new BigNumber(0));
+        }
+
+        const cost = new BigNumber(receipt.gasUsed).mul(
+          new BigNumber(txRequest.data.txData.gasPrice)
+        );
+        this.config.statsDb.updateExecuted(from, new BigNumber(0), cost);
 
         return txRequest.wasSuccessful;
       }
@@ -118,7 +156,7 @@ export default class Actions {
       return false;
     } else {
       this.config.logger.debug(
-        'Actions::execute()::Wallet with index 0 is not able to send tx.'
+        'Actions.execute : No available wallet to send a transaction.'
       );
     }
   }
@@ -137,20 +175,21 @@ export default class Actions {
       return true;
     } else {
       // Cancel it!
-      // TODO estimate gas here
-      const gasToCancel = 12;
+      const gasEstimate = await this.config.util.estimateGas({
+        to: txRequest.address,
+        data: txRequest.cancelData
+      });
 
       // Get latest block gas price.
-      const currentGasPrice = new BigNumber(12);
+      const estGasPrice = await this.config.util.networkGasPrice();
 
-      // TODO real numbers
-      const gasCostToCancel = currentGasPrice.times(gasToCancel);
+      const gasCostToCancel = estGasPrice.times(gasEstimate);
 
       const opts = {
         to: txRequest.address,
         value: 0,
-        gas: gasToCancel + 21000,
-        gasPrice: currentGasPrice,
+        gas: gasEstimate + 21000,
+        gasPrice: estGasPrice,
         data: txRequest.cancelData // TODO make constant
       };
 

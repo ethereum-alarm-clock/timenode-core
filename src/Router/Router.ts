@@ -33,13 +33,13 @@ export default class Router {
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = (txRequest: any) => {
       console.log('missed: ', txRequest.address);
-      this.config.cache.del(txRequest.address);
+      // this.config.cache.del(txRequest.address);
       return TxStatus.Missed;
     };
 
     this.transitions[TxStatus.Done] = (txRequest: any) => {
       console.log('done: ', txRequest.address);
-      this.config.cache.del(txRequest.address);
+      // this.config.cache.del(txRequest.address);
 
       return TxStatus.Done;
     };
@@ -69,7 +69,7 @@ export default class Router {
       return TxStatus.FreezePeriod;
     }
     if (txRequest.isClaimed) {
-      return TxStatus.ClaimWindow;
+      return TxStatus.FreezePeriod;
     }
 
     const shouldClaim = await shouldClaimTx(txRequest, this.config);
@@ -103,36 +103,6 @@ export default class Router {
     return TxStatus.FreezePeriod;
   }
 
-  isTxUnitTimestamp(transaction: any) {
-    if (!transaction || !transaction.temporalUnit) {
-      return false;
-    }
-
-    let temporalUnit = transaction.temporalUnit;
-
-    if (transaction.temporalUnit.toNumber) {
-      temporalUnit = transaction.temporalUnit.toNumber();
-    }
-
-    return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
-  }
-
-  async isTransactionMissed(transaction: any): Promise<boolean> {
-    let afterExecutionWindow;
-
-    if (this.isTxUnitTimestamp(transaction)) {
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
-        moment().unix()
-      );
-    } else {
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
-        await this.getBlockNumber()
-      );
-    }
-
-    return Boolean(afterExecutionWindow && !transaction.wasCalled);
-  }
-
   async executionWindow(txRequest: any): Promise<TxStatus> {
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
@@ -161,6 +131,16 @@ export default class Router {
     return TxStatus.ExecutionWindow;
   }
 
+  isExecuted(receipt: any): Boolean {
+    if (receipt) {
+      const executedEvent =
+        '0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9';
+      return receipt.logs[0].topics.indexOf(executedEvent) > -1;
+    }
+
+    return false;
+  }
+
   async executed(txRequest: any): Promise<TxStatus> {
     /**
      * We don't cleanup because cleanup needs refactor according to latest logic in EAC
@@ -171,6 +151,36 @@ export default class Router {
     //
 
     return TxStatus.Done;
+  }
+
+  isTxUnitTimestamp(transaction: any) {
+    if (!transaction || !transaction.temporalUnit) {
+      return false;
+    }
+
+    let temporalUnit = transaction.temporalUnit;
+
+    if (transaction.temporalUnit.toNumber) {
+      temporalUnit = transaction.temporalUnit.toNumber();
+    }
+
+    return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
+  }
+
+  async isTransactionMissed(transaction: any): Promise<boolean> {
+    let afterExecutionWindow;
+
+    if (this.isTxUnitTimestamp(transaction)) {
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
+        moment().unix()
+      );
+    } else {
+      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
+        await this.getBlockNumber()
+      );
+    }
+
+    return Boolean(afterExecutionWindow && !transaction.wasCalled);
   }
 
   isLocalClaim(txRequest: any) {
