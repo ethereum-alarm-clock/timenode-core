@@ -4,18 +4,26 @@
   "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
-    "prepare": "npm run build",
     "build": "tsc && npm run parcel && npm run clean-built",
-    "parcel": "./node_modules/.bin/parcel build built/index.js -d .",
     "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
-    "fmt": "node scripts/fmt.js",
-    "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
-    "test-noexit": "mocha -r ts-node/register test/*.ts",
-    "lint": "eslint .",
     "deploy-eac": "sh scripts/deploy_eac.sh",
-    "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002"
+    "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002",
+    "lint": "tslint --project .",
+    "lint-fix": "tslint --fix --project .",
+    "parcel": "./node_modules/.bin/parcel build built/index.js -d .",
+    "precommit": "lint-staged",
+    "prepare": "npm run build",
+    "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
+    "test-noexit": "mocha -r ts-node/register test/*.ts"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "tslint --fix --force",
+      "prettier --write --config ./.prettierrc --config-precedence file-override",
+      "git add"
+    ]
   },
   "repository": {
     "type": "git",
@@ -50,20 +58,19 @@
     "bluebird": "3.5.1",
     "chai": "4.1.2",
     "ganache-core": "2.1.2",
-    "husky": "1.0.0-rc.8",
+    "husky": "0.14.3",
+    "lint-staged": "7.2.0",
     "mocha": "5.1.1",
     "mocha-typescript": "1.1.16",
     "moment": "2.22.2",
     "parcel": "1.8.1",
     "prettier": "1.13.5",
     "ts-node": "6.1.2",
+    "tslint": "5.10.0",
+    "tslint-config-prettier": "1.13.0",
+    "tslint-microsoft-contrib": "5.0.3",
     "typescript": "2.9.1",
     "typings": "2.1.1",
     "web3": "0.20.6"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run fmt"
-    }
   }
 }
