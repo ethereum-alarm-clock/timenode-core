@@ -1,5 +1,6 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
+import { ILogger } from '../Logger';
 
 import IWalletReceipt from './IWalletReceipt';
 
@@ -16,12 +17,14 @@ interface AccountStateMap {
 
 export default class Wallet {
   length: number;
+  logger: ILogger;
   nonce: number;
   web3: any;
   walletStates: AccountStateMap;
 
-  constructor(web3: any) {
+  constructor(web3: any, logger?: ILogger) {
     this.length = 0;
+    this.logger = logger;
     this.nonce = 0;
     this.web3 = web3;
     this.walletStates = {};
@@ -245,7 +248,12 @@ export default class Wallet {
     const balance = await this.getBalanceOf(from);
 
     if (balance.eq(0)) {
-      throw `Account ${from} has not enough funds to send transaction.`;
+      if (this.logger) {
+        this.logger.info(
+          `Account ${from} has not enough funds to send transaction.`
+        );
+      }
+      return { ignore: true };
     }
 
     const nonce = await this.getNonce(from);
@@ -256,7 +264,12 @@ export default class Wallet {
       this.walletStates[from] &&
       this.walletStates[from].sendingTxInProgress
     ) {
-      throw `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`;
+      if (this.logger) {
+        this.logger.debug(
+          `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`
+        );
+      }
+      return { ignore: true };
     }
 
     let receipt;
@@ -270,7 +283,7 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
-      console.log('Wallet::sendFromIndex(): receipt', receipt);
+      // console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
       throw error;
     } finally {
