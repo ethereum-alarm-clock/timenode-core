@@ -56,6 +56,7 @@
     "husky": "1.0.0-rc.8",
     "mocha": "5.1.1",
     "mocha-typescript": "1.1.16",
+    "moment": "^2.22.2",
     "parcel": "1.8.1",
     "prettier": "1.13.4",
     "ts-node": "6.1.0",

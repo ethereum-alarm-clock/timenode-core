@@ -90,12 +90,32 @@ describe('Router Unit Tests', () => {
     assert.equal(await router.beforeClaimWindow(txTimestamp), TxStatus.ClaimWindow);
   });
 
-  it('beforeClaimWindow() when tx executed', async () => {
+  it('beforeClaimWindow() when tx cancelled', async () => {
     txBlock.isCancelled = true;
     txTimestamp.isCancelled = true;
 
     assert.equal(await router.beforeClaimWindow(txBlock), TxStatus.Executed);
     assert.equal(await router.beforeClaimWindow(txTimestamp), TxStatus.Executed);
+  });
+
+  it('claimWindow() when claim window not started', async () => {
+    assert.equal(await router.claimWindow(txBlock), TxStatus.FreezePeriod);
+    assert.equal(await router.claimWindow(txTimestamp), TxStatus.FreezePeriod);
+  });
+
+  it('claimWindow() when claim window started', async () => {
+    txBlock.claimWindowStart = new BigNumber(10);
+    txTimestamp.claimWindowStart = new BigNumber(moment().subtract(1, 'hour').unix());
+
+    assert.equal(await router.claimWindow(txBlock), TxStatus.ClaimWindow);
+    assert.equal(await router.claimWindow(txTimestamp), TxStatus.ClaimWindow);
+  });
+
+  it('claimWindow() when tx is already claimed', async () => {
+    txBlock.isClaimed = true;
+    txBlock.txTimestamp = true;
+    assert.equal(await router.claimWindow(txBlock), TxStatus.FreezePeriod);
+    assert.equal(await router.claimWindow(txTimestamp), TxStatus.FreezePeriod);
   });
 
   it('route()', async () => {
