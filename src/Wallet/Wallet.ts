@@ -251,7 +251,7 @@ export default class Wallet {
       this.logger.info(
         `Account ${from} has not enough funds to send transaction.`
       );
-      return;
+      return { ignore: true };
     }
 
     const nonce = await this.getNonce(from);
@@ -265,7 +265,7 @@ export default class Wallet {
       this.logger.debug(
         `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`
       );
-      return;
+      return { ignore: true };
     }
 
     let receipt;
