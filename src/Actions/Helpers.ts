@@ -8,8 +8,8 @@ const isExecuted = (receipt: any) => {
   return false;
 };
 
-const isTransactionStatusSuccessful = (status : string | number) => {
-  return status && ([1, '0x1', '0x01'].indexOf(status) !== -1);
-}
+const isTransactionStatusSuccessful = (status: string | number) => {
+  return status && [1, '0x1', '0x01'].indexOf(status) !== -1;
+};
 
 export { isExecuted, isTransactionStatusSuccessful };
