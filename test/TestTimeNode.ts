@@ -1,6 +1,6 @@
 import { assert, expect } from 'chai';
 import { TimeNode } from '../src/index';
-import { mockConfig } from './helpers/mockConfig';
+import { mockConfig } from './helpers';
 import { scheduleTestTx, getHelperMethods } from './TestScheduleTx';
 
 const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';

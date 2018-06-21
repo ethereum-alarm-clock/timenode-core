@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { mockConfig } from './helpers/mockConfig';
+import { mockConfig } from './helpers';
 
 if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('Config', () => {
