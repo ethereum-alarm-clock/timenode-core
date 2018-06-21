@@ -17,7 +17,7 @@ export default class TimeNode {
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
 
-    this.config.statsDb.initialize(this.config.wallet.getAccounts());
+    this.config.statsDb.initialize(this.config.wallet.getAddresses());
 
     this.startupMessage();
   }

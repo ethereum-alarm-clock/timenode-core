@@ -3,8 +3,8 @@ import Config from '../Config';
 import { TxStatus } from '../Enum';
 import { shouldClaimTx } from '../EconomicStrategy';
 
-import * as Bb from 'bluebird';
-import * as moment from 'moment';
+import W3Util from '../Util';
+import { ITxRequest } from '../Types';
 
 export class TEMPORAL_UNIT {
   static BLOCK = 1;
@@ -14,6 +14,7 @@ export class TEMPORAL_UNIT {
 export default class Router {
   actions: Actions;
   config: Config;
+  util: W3Util;
   txRequestStates: Object = {};
 
   transitions: Object = {};
@@ -21,6 +22,7 @@ export default class Router {
   constructor(config: Config, actions: any) {
     this.actions = actions;
     this.config = config;
+    this.util = config.util;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(
       this
@@ -31,24 +33,14 @@ export default class Router {
       this
     );
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
-    this.transitions[TxStatus.Missed] = (txRequest: any) => {
-      console.log('missed: ', txRequest.address);
-      // this.config.cache.del(txRequest.address);
-      return TxStatus.Missed;
-    };
-
+    this.transitions[TxStatus.Missed] = this.missed.bind(this);
     this.transitions[TxStatus.Done] = (txRequest: any) => {
-      console.log('done: ', txRequest.address);
-      // this.config.cache.del(txRequest.address);
-
+      this.config.logger.info(
+        `[${txRequest.address}] Finished. Deleting from cache...`
+      );
+      this.config.cache.del(txRequest.address);
       return TxStatus.Done;
     };
-  }
-
-  async getBlockNumber() {
-    return Bb.fromCallback((callback: any) =>
-      this.config.web3.eth.getBlockNumber(callback)
-    );
   }
 
   async beforeClaimWindow(txRequest: any): Promise<TxStatus> {
@@ -86,6 +78,13 @@ export default class Router {
         // TODO handle gracefully?
         throw new Error(e);
       }
+    } else {
+      this.config.logger.info(
+        `[${txRequest.address}] not profitable to claim.`
+      );
+      this.config.logger.debug(
+        `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
+      );
     }
 
     return TxStatus.ClaimWindow;
@@ -103,13 +102,20 @@ export default class Router {
     return TxStatus.FreezePeriod;
   }
 
+  async inReservedWindowAndNotClaimedLocally(txRequest: any): Promise<Boolean> {
+    const inReserved = await txRequest.inReservedWindow();
+    return inReserved && txRequest.isClaimed && !this.isLocalClaim(txRequest);
+  }
+
   async executionWindow(txRequest: any): Promise<TxStatus> {
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
     }
+    if (await this.isTransactionMissed(txRequest)) {
+      return TxStatus.Missed;
+    }
 
-    const reserved = await txRequest.inReservedWindow();
-    if (reserved && !this.isLocalClaim(txRequest)) {
+    if (await this.inReservedWindowAndNotClaimedLocally(txRequest)) {
       return TxStatus.ExecutionWindow;
     }
 
@@ -153,33 +159,15 @@ export default class Router {
     return TxStatus.Done;
   }
 
-  isTxUnitTimestamp(transaction: any) {
-    if (!transaction || !transaction.temporalUnit) {
-      return false;
-    }
-
-    let temporalUnit = transaction.temporalUnit;
-
-    if (transaction.temporalUnit.toNumber) {
-      temporalUnit = transaction.temporalUnit.toNumber();
-    }
-
-    return temporalUnit === TEMPORAL_UNIT.TIMESTAMP;
+  async missed(txRequest: any): Promise<TxStatus> {
+    // TODO cleanup
+    return TxStatus.Done;
   }
 
-  async isTransactionMissed(transaction: any): Promise<boolean> {
-    let afterExecutionWindow;
-
-    if (this.isTxUnitTimestamp(transaction)) {
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(
-        moment().unix()
-      );
-    } else {
-      const bl = await this.getBlockNumber();
-      afterExecutionWindow = transaction.executionWindowEnd.lessThan(bl);
-    }
-
-    return Boolean(afterExecutionWindow && !transaction.wasCalled);
+  async isTransactionMissed(txRequest: any): Promise<boolean> {
+    const afterExecutionWindow =
+      parseInt(txRequest.executionWindowEnd) <= parseInt(await txRequest.now());
+    return Boolean(afterExecutionWindow && !txRequest.wasCalled);
   }
 
   isLocalClaim(txRequest: any) {
@@ -202,17 +190,7 @@ export default class Router {
     return localClaim;
   }
 
-  async isProfitableClaim(txRequest: any) {
-    const claimPaymentModifier = await txRequest.claimPaymentModifier();
-    const paymentWhenClaimed = txRequest.bounty
-      .times(claimPaymentModifier)
-      .dividedToIntegerBy(100);
-
-    // TODO
-  }
-
-  // TODO do not return void
-  async route(txRequest: any): Promise<TxStatus> {
+  async route(txRequest: ITxRequest): Promise<any> {
     let status: TxStatus =
       this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
 
