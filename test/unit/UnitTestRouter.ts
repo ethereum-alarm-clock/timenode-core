@@ -52,23 +52,10 @@ describe('Router Unit Tests', () => {
   it('isLocalClaim() when different address', async () => {
     assert.isNotTrue(await router.isLocalClaim(txBlock));
     assert.isNotTrue(await router.isLocalClaim(txTimestamp));
-
-    router.config.wallet = null;
-    assert.isNotTrue(await router.isLocalClaim(txBlock));
-    assert.isNotTrue(await router.isLocalClaim(txTimestamp));
   });
 
   it('isLocalClaim() when same address', async () => {
     let myAccount = router.config.wallet.getAddresses()[0];
-    txBlock.claimedBy = myAccount;
-    txTimestamp.claimedBy = myAccount;
-
-    assert.isTrue(await router.isLocalClaim(txBlock));
-    assert.isTrue(await router.isLocalClaim(txTimestamp));
-
-    router.config.wallet = null;
-
-    myAccount = router.config.web3.eth.accounts[0];
     txBlock.claimedBy = myAccount;
     txTimestamp.claimedBy = myAccount;
 
