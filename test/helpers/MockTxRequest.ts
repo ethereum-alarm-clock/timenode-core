@@ -31,8 +31,11 @@ const MockTxRequestBlock = async (web3: any) => {
             return this.claimedBy === address;
         },
         beforeClaimWindow: function () {
-            return this.claimWindowStart.greaterThan(this.currentBlockNumber);
+            return this.claimWindowStart.greaterThan(this.now());
         },
+        now: function () {
+            return this.currentBlockNumber;
+        }
     };
 }
 
@@ -57,8 +60,11 @@ const MockTxRequestTimestamp = () => {
             return this.claimedBy === address;
         },
         beforeClaimWindow: function () {
-            return this.claimWindowStart.greaterThan(moment().unix());
+            return this.claimWindowStart.greaterThan(this.now());
         },
+        now: function () {
+            return moment().unix();
+        }
     };
 }
 

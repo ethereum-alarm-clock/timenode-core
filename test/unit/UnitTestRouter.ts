@@ -36,20 +36,6 @@ describe('Router Unit Tests', () => {
     router = new Router(config, actions);
     expect(router).to.exist;
   });
-  
-  it('isTxUnitTimestamp()', async () => {
-    const { isTxUnitTimestamp } = router;
-
-    assert.isNotTrue(isTxUnitTimestamp(null));
-    assert.isTrue(isTxUnitTimestamp(txTimestamp));
-    assert.isNotTrue(isTxUnitTimestamp(txBlock));
-
-    txTimestamp.temporalUnit = null;
-    assert.isNotTrue(isTxUnitTimestamp(txTimestamp));
-
-    txTimestamp.temporalUnit = undefined;
-    assert.isNotTrue(isTxUnitTimestamp(txTimestamp));
-  });
 
   it('isTransactionMissed() when scheduled for future', async () => {
     assert.isNotTrue(await router.isTransactionMissed(txBlock));
