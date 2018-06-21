@@ -24,16 +24,15 @@ const _hasPendingParity = async (conf: any, txRequest: any, opts: { type?: strin
       async (err: Error, res: any) => {
         if (err) reject(err);
 
-        const hasTx =
-          res &&
-          res.result &&
-          !!await res.result.filter(async (tx: any) => {
-            if (tx.to === txRequest.address) {
-              const withValidGasPrice = tx && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, tx, opts.exactPrice));
-              return tx && isOfType(tx, opts.type) && withValidGasPrice;
+        for(const count in res.result ) {
+          if ( res.result[count].to === txRequest.address) {
+            const withValidGasPrice = res.result[count] && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, res.result[count], opts.exactPrice));
+            if ( res.result[count] && isOfType(res.result[count], opts.type) && withValidGasPrice) {
+              resolve(true);
             }
-          }).length;
-        resolve(hasTx);
+          }
+        }
+        resolve(false);
       }
     );
   });
