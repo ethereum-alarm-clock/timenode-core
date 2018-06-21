@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 
-export default function calcEndowment(
+export function calcEndowment(
   eac: any,
   gasAmount: BigNumber = new BigNumber(0),
   amountToSend: BigNumber = new BigNumber(0),
