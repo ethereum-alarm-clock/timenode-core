@@ -217,7 +217,7 @@ export default class {
     this.buckets = buckets;
   }
 
-  public isValid(requestAddress: String): boolean {
+  public isValid(requestAddress: string): boolean {
     if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
       this.config.logger.debug('Warning.. Transaction Request with NULL_ADDRESS found.');
       return false;
@@ -244,8 +244,10 @@ export default class {
 
     // Get fresh data on our transaction requests and route them into appropriate action.
     const requests = await Promise.all(allTxRequests);
-    requests.forEach((txRequest: ITxRequest) => {
-      txRequest.refreshData().then(() => this.router.route(txRequest));
+    requests.forEach(async (txRequest: ITxRequest) => {
+      await txRequest.refreshData();
+
+      this.router.route(txRequest);
     });
   }
 

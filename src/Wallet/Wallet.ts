@@ -1,6 +1,7 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import { ILogger } from '../Logger';
+const ethTx = require('ethereumjs-tx');
 
 import IWalletReceipt from './IWalletReceipt';
 
@@ -103,13 +104,13 @@ export default class Wallet {
     return this;
   }
 
-  public encrypt(password: String, opts: Object) {
+  public encrypt(password: string, opts: object) {
     const indexes = this._currentIndexes();
 
     return indexes.map(idx => this[idx].toV3(password, opts));
   }
 
-  public loadPrivateKeys(privateKeys: String[]) {
+  public loadPrivateKeys(privateKeys: string[]) {
     privateKeys.forEach(privateKey => {
       const wallet = ethWallet.fromPrivateKey(Buffer.from(privateKey, 'hex'));
 
@@ -121,7 +122,7 @@ export default class Wallet {
     });
   }
 
-  public decrypt(encryptedKeystores: (String | Object)[], password: String) {
+  public decrypt(encryptedKeystores: (string | object)[], password: string) {
     encryptedKeystores.forEach(keystore => {
       const wallet = ethWallet.fromV3(keystore, password, true);
 
@@ -144,7 +145,7 @@ export default class Wallet {
     return this.sendFromIndex(next, opts);
   }
 
-  public getNonce(account: String) {
+  public getNonce(account: string) {
     return new Promise<string>((resolve, reject) => {
       this.web3.eth.getTransactionCount(account, (err: Error, res: any) => {
         if (err) {
@@ -169,34 +170,25 @@ export default class Wallet {
     });
   }
 
-  public async getTransactionReceipt(hash: any, from: String): Promise<any> {
-    let transactionReceiptAsync: any;
-    const _this = this;
-    transactionReceiptAsync = async function(hash: any, resolve: any, reject: any) {
+  public async getTransactionReceipt(hash: any, from: string): Promise<any> {
+    return new Promise((resolve, reject) => {
       try {
-        const getTransactionReceipt = (hash: any) => {
-          return new Promise(resolve => {
-            _this.web3.eth.getTransactionReceipt(hash, (err: Error, res: any) => {
-              if (!err) {
-                resolve(res);
-              }
-            });
-          });
-        };
-        const receipt = await getTransactionReceipt(hash);
-        if (receipt == null) {
-          setTimeout(function() {
-            transactionReceiptAsync(hash, resolve, reject);
-          }, 500);
-        } else {
-          resolve({ receipt, from });
-        }
+        this.web3.eth.getTransactionReceipt(hash, (err: Error, receipt: any) => {
+          if (err) {
+            return;
+          }
+
+          if (receipt === null) {
+            setTimeout(() => {
+              resolve(this.getTransactionReceipt(hash, from));
+            }, 500);
+          } else {
+            resolve({ receipt, from });
+          }
+        });
       } catch (e) {
         reject(e);
       }
-    };
-    return new Promise(async (resolve, reject) => {
-      await transactionReceiptAsync(hash, resolve, reject);
     });
   }
 
@@ -212,7 +204,6 @@ export default class Wallet {
         data: opts.data
       };
 
-      const ethTx = require('ethereumjs-tx');
       const tx = new ethTx(params);
       const privKey = this[from].privKey;
       tx.sign(Buffer.from(privKey, 'hex'));
@@ -293,7 +284,7 @@ export default class Wallet {
     return this.getAccounts().map(account => account.getAddressString());
   }
 
-  public isKnownAddress(address: String) {
+  public isKnownAddress(address: string) {
     return this.getAddresses().some(addr => addr === address);
   }
 }
