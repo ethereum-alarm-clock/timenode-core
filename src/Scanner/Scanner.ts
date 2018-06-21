@@ -10,17 +10,17 @@ import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
 
 export default class {
-  config: Config;
-  util: W3Util;
-  scanning: boolean;
-  router: any;
-  requestFactory: Promise<any>;
+  public config: Config;
+  public util: W3Util;
+  public scanning: boolean;
+  public router: any;
+  public requestFactory: Promise<any>;
 
   // Child Scanners, tracked by the ID of their interval
-  cacheScanner: IntervalId;
-  chainScanner: IntervalId;
+  public cacheScanner: IntervalId;
+  public chainScanner: IntervalId;
 
-  buckets: IBuckets = {
+  public buckets: IBuckets = {
     currentBuckets: {
       blockBucket: -1,
       timestampBucket: -1
@@ -30,7 +30,7 @@ export default class {
       timestampBucket: -1
     }
   };
-  eventWatchers: {} = {};
+  public eventWatchers: {} = {};
 
   /**
    * Creates a new Scanner instance. The scanner serves as the top level
@@ -47,10 +47,7 @@ export default class {
     this.requestFactory = config.eac.requestFactory();
   }
 
-  async runAndSetInterval(
-    fn: () => void,
-    interval: number
-  ): Promise<IntervalId> {
+  public async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
     const wrapped = async () => {
       try {
         await fn();
@@ -64,14 +61,11 @@ export default class {
     return setInterval(wrapped, interval);
   }
 
-  async start(): Promise<boolean> {
+  public async start(): Promise<boolean> {
     if (await this.util.isWatchingEnabled()) {
       // Watching is enabled! start watching the chain.
       this.config.logger.info('Watching ENABLED');
-      this.chainScanner = await this.runAndSetInterval(
-        () => this.watchBlockchain(),
-        5 * 60 * 1000
-      );
+      this.chainScanner = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
     } else {
       // Watchin disabled. We use old-school methods.
       this.config.logger.info('Watching DISABLED');
@@ -83,10 +77,7 @@ export default class {
     }
 
     // Create the interval for processing the transaction requests in cache.
-    this.cacheScanner = await this.runAndSetInterval(
-      () => this.scanCache(),
-      this.config.ms
-    );
+    this.cacheScanner = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
 
     // Mark that we've started.
     // this.config.logger.info('Scanner STARTED');
@@ -94,7 +85,7 @@ export default class {
     return this.scanning;
   }
 
-  stop(): boolean {
+  public stop(): boolean {
     if (this.scanning) {
       // Clear scanning intervals.
       clearInterval(this.cacheScanner);
@@ -118,7 +109,7 @@ export default class {
    * and should be stored in a TimeNodes cache.
    * @param txRequest Transaction Request Object
    */
-  async isUpcoming(txRequest: any): Promise<boolean> {
+  public async isUpcoming(txRequest: any): Promise<boolean> {
     return (
       (await txRequest.beforeClaimWindow()) ||
       (await txRequest.inClaimWindow()) ||
@@ -128,7 +119,7 @@ export default class {
   }
 
   //TODO move this to requestFactory instance
-  async getCurrentBuckets(latest: IBlock): Promise<IBucketPair> {
+  public async getCurrentBuckets(latest: IBlock): Promise<IBucketPair> {
     const reqFactory = await this.requestFactory;
 
     return {
@@ -137,7 +128,7 @@ export default class {
     };
   }
 
-  async getNextBuckets(latest: IBlock): Promise<IBucketPair> {
+  public async getNextBuckets(latest: IBlock): Promise<IBucketPair> {
     const reqFactory = await this.requestFactory;
     const nextBlockInterval = latest.number + BucketSize.block;
     const nextTsInterval = latest.timestamp + BucketSize.timestamp;
@@ -148,7 +139,7 @@ export default class {
     };
   }
 
-  async getBuckets(): Promise<IBuckets> {
+  public async getBuckets(): Promise<IBuckets> {
     const latest: IBlock = await this.util.getBlock('latest');
     return {
       currentBuckets: await this.getCurrentBuckets(latest),
@@ -156,7 +147,7 @@ export default class {
     };
   }
 
-  handleRequest(request: any): void {
+  public handleRequest(request: any): void {
     if (!this.isValid(request.address)) {
       throw new Error(`[${request.address}] NOT VALID`);
     }
@@ -167,28 +158,20 @@ export default class {
     }
   }
 
-  async backupScanBlockchain(): Promise<void> {
+  public async backupScanBlockchain(): Promise<void> {
     // TODO only init reqFactory once, so check here with a function before calling again
     const reqFactory = await this.requestFactory;
     const { currentBuckets, nextBuckets } = await this.getBuckets();
     const handleRequest = this.handleRequest.bind(this);
 
     // TODO: extract this out
-    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(
-      handleRequest
-    );
-    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(
-      handleRequest
-    );
-    (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(
-      handleRequest
-    );
-    (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(
-      handleRequest
-    );
+    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(handleRequest);
+    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(handleRequest);
+    (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(handleRequest);
+    (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(handleRequest);
   }
 
-  async stopWatcher(bucket: Bucket) {
+  public async stopWatcher(bucket: Bucket) {
     const watcher = this.eventWatchers[bucket];
     if (watcher !== undefined) {
       const reqFactory = await this.requestFactory;
@@ -198,21 +181,18 @@ export default class {
     }
   }
 
-  async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket) {
+  public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket) {
     const reqFactory = await this.requestFactory;
     const handleRequest = this.handleRequest.bind(this);
 
     if (bucket !== previousBucket) {
       this.stopWatcher(previousBucket);
-      const watcher = await reqFactory.watchRequestsByBucket(
-        bucket,
-        handleRequest
-      );
+      const watcher = await reqFactory.watchRequestsByBucket(bucket, handleRequest);
       this.eventWatchers[bucket] = watcher;
     }
   }
 
-  async watchBlockchain(): Promise<void> {
+  public async watchBlockchain(): Promise<void> {
     const buckets = await this.getBuckets();
 
     // Start watching the current buckets right away.
@@ -237,11 +217,9 @@ export default class {
     this.buckets = buckets;
   }
 
-  isValid(requestAddress: String): boolean {
+  public isValid(requestAddress: String): boolean {
     if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
-      this.config.logger.debug(
-        'Warning.. Transaction Request with NULL_ADDRESS found.'
-      );
+      this.config.logger.debug('Warning.. Transaction Request with NULL_ADDRESS found.');
       return false;
     } else if (!this.config.eac.Util.checkValidAddress(requestAddress)) {
       // This should, conceivably, never happen unless there is a bug in eac.js-lib.
@@ -253,8 +231,10 @@ export default class {
   }
 
   // TODO meaningful return value
-  async scanCache(): Promise<void> {
-    if (this.config.cache.isEmpty()) return;
+  public async scanCache(): Promise<void> {
+    if (this.config.cache.isEmpty()) {
+      return;
+    }
 
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.config.cache
@@ -269,7 +249,7 @@ export default class {
     });
   }
 
-  store(request: any) {
+  public store(request: any) {
     this.config.logger.info(`[${request.address}] Inputting to cache`);
     this.config.cache.set(request.address, request.params[7]);
   }
