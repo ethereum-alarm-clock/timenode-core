@@ -11,6 +11,8 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
 
     const blocksLater = (number: number) => currentBlockNumber + number;
 
+    const oneHourWindowSize = new BigNumber(isBlock ? 255 : 3600);
+
     const currentBlockNumber = await Bb.fromCallback((callback: any) =>
         web3.eth.getBlockNumber(callback)
     );
@@ -26,12 +28,13 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
         },
         'isClaimed': false,
         requiredDeposit,
-        'temporalUnit': 1,
+        'temporalUnit': isBlock ? 1 : 2,
         'currentBlockNumber': new BigNumber(currentBlockNumber),
         'claimWindowStart': new BigNumber(isBlock ? blocksLater(100) : hoursLater(1)),
         'windowStart': new BigNumber(isBlock ? blocksLater(300) : daysLater(1)),
         'executionWindowEnd': new BigNumber(isBlock ? blocksLater(500) : daysLater(2)),
-        'freezePeriod': new BigNumber(isBlock ? 255 : 3600), // ~1h
+        'freezePeriod': oneHourWindowSize, // ~1h
+        'reservedWindowSize': oneHourWindowSize,
         'receipt': {},
         get claimWindowEnd() {
             return this.windowStart.minus(this.freezePeriod);
@@ -39,13 +42,15 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
         get freezePeriodEnd() {
             return this.claimWindowEnd.plus(this.freezePeriod)
         },
+        get reservedWindowEnd() {
+            return this.windowStart.plus(this.reservedWindowSize);
+        },
         claimPaymentModifier: function () {
             return new BigNumber(100);
         },
         isClaimedBy: function (address: string) {
             return this.claimedBy === address;
         },
-        
         beforeClaimWindow: function() {
             return this.claimWindowStart.greaterThan(this.now());
         },
@@ -66,8 +71,15 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
                 this.executionWindowEnd.greaterThanOrEqualTo(now)
             );
         },
+        inReservedWindow: function() {
+            const now = this.now();
+            return (
+                this.windowStart.lessThanOrEqualTo(now) &&
+                this.reservedWindowEnd.greaterThan(now)
+            )
+        },
         now: function() {
-            return isBlock ? this.currentBlockNumber : moment().unix();
+            return new BigNumber(isBlock ? this.currentBlockNumber : moment().unix());
         }
     };
 }

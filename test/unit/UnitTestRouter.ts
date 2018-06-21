@@ -11,6 +11,9 @@ import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus } from '../../src/Enum';
 
+const TIMESTAMP_TX = 'timestamp Tx';
+const BLOCK_TX = 'block Tx';
+
 describe('Router Unit Tests', () => {
   let config: Config;
   let txTimestamp: any;
@@ -37,7 +40,7 @@ describe('Router Unit Tests', () => {
   });
 
   describe('isTransactionMissed()', () => {
-    describe('timestamp Tx', () => {
+    describe(TIMESTAMP_TX, () => {
       it('returns false when scheduled for future', async () => {
         assert.isNotTrue(await router.isTransactionMissed(txTimestamp));
       });
@@ -48,7 +51,7 @@ describe('Router Unit Tests', () => {
       });
     });
 
-    describe('block Tx', () => {
+    describe(BLOCK_TX, () => {
       it('returns false when scheduled for future', async () => {
         assert.isNotTrue(await router.isTransactionMissed(txBlock));
       });
@@ -61,7 +64,7 @@ describe('Router Unit Tests', () => {
   });
 
   describe('isLocalClaim()', () => {
-    describe('timestamp Tx', () => {
+    describe(TIMESTAMP_TX, () => {
       it('returns false when different address', async () => {
         assert.isNotTrue(await router.isLocalClaim(txTimestamp));
       });
@@ -73,7 +76,7 @@ describe('Router Unit Tests', () => {
       });
     });
 
-    describe('block Tx', () => {
+    describe(BLOCK_TX, () => {
       it('returns false when different address', async () => {
         assert.isNotTrue(await router.isLocalClaim(txBlock));
       });
@@ -87,7 +90,7 @@ describe('Router Unit Tests', () => {
   });
 
   describe('beforeClaimWindow()', () => {
-    describe('timestamp Tx', () => {
+    describe(TIMESTAMP_TX, () => {
       it('returns BeforeClaimWindow when claim window not started', async () => {
         assert.equal(await router.beforeClaimWindow(txTimestamp), TxStatus.BeforeClaimWindow);
       });
@@ -103,7 +106,7 @@ describe('Router Unit Tests', () => {
       });
     });
 
-    describe('block Tx', () => {
+    describe(BLOCK_TX, () => {
       it('returns BeforeClaimWindow when claim window not started', async () => {
         assert.equal(await router.beforeClaimWindow(txBlock), TxStatus.BeforeClaimWindow);
       });
@@ -121,7 +124,7 @@ describe('Router Unit Tests', () => {
   });
 
   describe('claimWindow()', () => {
-    describe('timestamp Tx', () => {
+    describe(TIMESTAMP_TX, () => {
       it('returns FreezePeriod when claim window not started', async () => {
         assert.equal(await router.claimWindow(txTimestamp), TxStatus.FreezePeriod);
       });
@@ -137,7 +140,7 @@ describe('Router Unit Tests', () => {
       });
     });
 
-    describe('block Tx', () => {
+    describe(BLOCK_TX, () => {
       it('returns FreezePeriod when claim window not started', async () => {
         assert.equal(await router.claimWindow(txBlock), TxStatus.FreezePeriod);
       });
@@ -155,14 +158,14 @@ describe('Router Unit Tests', () => {
   });
 
   describe('freezePeriod()', () => {
-    describe('timestamp Tx', () => {
+    describe(TIMESTAMP_TX, () => {
       it('returns freezePeriod when in freeze', async () => {
         txTimestamp.claimWindowStart = txTimestamp.claimWindowStart.minus(txTimestamp.freezePeriod);
         assert.equal(await router.freezePeriod(txTimestamp), TxStatus.FreezePeriod);
       });
 
       it('returns ExecutionWindow when in execution window', async () => {
-        txTimestamp.windowStart = new BigNumber(txTimestamp.now());
+        txTimestamp.windowStart = txTimestamp.now();
         assert.equal(await router.freezePeriod(txTimestamp), TxStatus.ExecutionWindow);
       });
 
@@ -172,7 +175,7 @@ describe('Router Unit Tests', () => {
       });
     });
 
-    describe('block Tx', () => {
+    describe(BLOCK_TX, () => {
       it('returns freezePeriod when in freeze', async () => {
         txBlock.claimWindowStart = txBlock.claimWindowStart.minus(txBlock.freezePeriod);
         assert.equal(await router.freezePeriod(txBlock), TxStatus.FreezePeriod);
@@ -187,6 +190,43 @@ describe('Router Unit Tests', () => {
         txBlock.executionWindowEnd = txBlock.currentBlockNumber.minus(100);
         assert.equal(await router.freezePeriod(txBlock), TxStatus.FreezePeriod);
       });
+    });
+  });
+
+  describe('inReservedWindowAndNotClaimedLocally()', () => {
+    describe(TIMESTAMP_TX, () => {
+      it('returns false when not in reserved window and not claimed locally', async () => {
+        txTimestamp.isClaimed = true;
+        assert.isFalse(await router.inReservedWindowAndNotClaimedLocally(txTimestamp));
+      });
+
+      it('returns true when in reserved window and not claimed locally', async () => {
+        txTimestamp.isClaimed = true;
+        txTimestamp.windowStart = txTimestamp.now();
+        assert.isTrue(await router.inReservedWindowAndNotClaimedLocally(txTimestamp));
+      });
+
+      it('returns false when not in reserved window and claimed locally', async () => {
+        txTimestamp.isClaimed = true;
+        let myAccount = router.config.wallet.getAddresses()[0];
+        txTimestamp.claimedBy = myAccount;
+        assert.isFalse(await router.inReservedWindowAndNotClaimedLocally(txTimestamp));
+      });
+
+      it('returns false when in reserved window and claimed locally', async () => {
+        txTimestamp.isClaimed = true;
+        let myAccount = router.config.wallet.getAddresses()[0];
+        txTimestamp.claimedBy = myAccount;
+        txTimestamp.windowStart = txTimestamp.now();
+        assert.isFalse(await router.inReservedWindowAndNotClaimedLocally(txTimestamp));
+      });
+    });
+
+    describe(BLOCK_TX, () => {
+      // it('returns freezePeriod when in freeze', async () => {
+      //   txBlock.claimWindowStart = txBlock.claimWindowStart.minus(txBlock.freezePeriod);
+      //   assert.equal(await router.freezePeriod(txBlock), TxStatus.FreezePeriod);
+      // });
     });
   });
 
