@@ -14,7 +14,11 @@ before_script:
   - ganache-cli -m "shove afford modify census bridge good random error fault floor fringe oblige" -i 1002 > /dev/null &
   - sleep 5
 script:
-  - bash scripts/deploy-build-test.sh
+  - npm run deploy-eac
+  - npm run fmt
+  - npm run build
+  - npm run test
+  - npm run clean-backups
 
 matrix:
   include:
