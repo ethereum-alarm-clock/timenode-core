@@ -52,7 +52,11 @@ export default class {
     interval: number
   ): Promise<IntervalId> {
     const wrapped = async () => {
-      await fn();
+      try {
+        await fn();
+      } catch (e) {
+        this.config.logger.error(e);
+      }
     };
 
     await wrapped();
@@ -64,12 +68,18 @@ export default class {
     if (await this.util.isWatchingEnabled()) {
       // Watching is enabled! start watching the chain.
       this.config.logger.info('Watching ENABLED');
-      this.chainScanner = await this.watchBlockchain();
+      this.chainScanner = await this.runAndSetInterval(
+        () => this.watchBlockchain(),
+        5 * 60 * 1000
+      );
     } else {
       // Watchin disabled. We use old-school methods.
       this.config.logger.info('Watching DISABLED');
       this.config.logger.info('-Initiating Backup Scanner-');
-      this.chainScanner = await this.backupScanBlockchain();
+      this.chainScanner = await this.runAndSetInterval(
+        () => this.backupScanBlockchain(),
+        this.config.ms
+      );
     }
 
     // Create the interval for processing the transaction requests in cache.
@@ -157,7 +167,7 @@ export default class {
     }
   }
 
-  async backupScanBlockchain(): Promise<IntervalId> {
+  async backupScanBlockchain(): Promise<void> {
     // TODO only init reqFactory once, so check here with a function before calling again
     const reqFactory = await this.requestFactory;
     const { currentBuckets, nextBuckets } = await this.getBuckets();
@@ -176,12 +186,6 @@ export default class {
     (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(
       handleRequest
     );
-    //
-
-    // Set a recursive interval to continue this "scan" every ms/1000 seconds.
-    return setInterval(() => {
-      this.backupScanBlockchain().catch((err) => this.config.logger.error(err));
-    }, this.config.ms);
   }
 
   async stopWatcher(bucket: Bucket) {
@@ -208,7 +212,7 @@ export default class {
     }
   }
 
-  async watchBlockchain(): Promise<IntervalId> {
+  async watchBlockchain(): Promise<void> {
     const buckets = await this.getBuckets();
 
     // Start watching the current buckets right away.
@@ -231,15 +235,6 @@ export default class {
     );
 
     this.buckets = buckets;
-
-    // Needed?
-    this.config.logger.info(`Watching STARTED`);
-
-    // Set an timeout for every hour
-    return setInterval(() => {
-      // We only really need to watch the next buckets, but this is convenience & clarity.
-      this.watchBlockchain();
-    }, 5 * 60 * 1000); //scan every 5min, so we also support chains with faster blocks than assumed 250blocks/1h
   }
 
   isValid(requestAddress: String): boolean {
