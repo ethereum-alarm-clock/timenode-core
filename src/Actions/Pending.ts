@@ -61,7 +61,7 @@ const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, check
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err) reject(err)
+        if (err) reject(err);
         for (const account in res.result.pending) {
           for (const nonce in res.result.pending[account]) {
             if (res.result.pending[account][nonce].to === txRequest.address) {
