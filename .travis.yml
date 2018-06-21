@@ -22,10 +22,10 @@ script:
 matrix:
   fast_finish: true
   include:
+    - before_install: true
+      before_script: true
+      script: npm run lint
   - env: RUN_ONLY_OPTIONAL_TESTS=false
   - env: RUN_ONLY_OPTIONAL_TESTS=true
-  - before_install: true
-    before_script: true
-    script: npm run lint
   allow_failures:
   - env: RUN_ONLY_OPTIONAL_TESTS=true
