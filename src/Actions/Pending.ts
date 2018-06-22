@@ -4,7 +4,7 @@
  * @param {TransactionRequest} txRequest
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const _hasPendingParity = async (conf: any, txRequest: any) => {
+const hasPendingParity = async (conf: any, txRequest: any) => {
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -16,12 +16,12 @@ const _hasPendingParity = async (conf: any, txRequest: any) => {
         id: 0o7
       },
       (err: Error, res: any) => {
-        if (err) reject(err);
+        if (err) {
+          reject(err);
+        }
 
         const hasTx =
-          res &&
-          res.result &&
-          !!res.result.filter((tx: any) => tx.to === txRequest.address).length;
+          res && res.result && !!res.result.filter((tx: any) => tx.to === txRequest.address).length;
         resolve(hasTx);
       }
     );
@@ -34,7 +34,7 @@ const _hasPendingParity = async (conf: any, txRequest: any) => {
  * @param {TransactionRequest} txRequest
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const _hasPendingGeth = (conf: any, txRequest: any) => {
+const hasPendingGeth = (conf: any, txRequest: any) => {
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -46,8 +46,11 @@ const _hasPendingGeth = (conf: any, txRequest: any) => {
         id: 0o7
       },
       (err: Error, res: any) => {
-        if (err) reject(err);
-        for (const account in res.result.pending) {
+        if (err) {
+          reject(err);
+        }
+
+        for (const account of Object.keys(res.result.pending)) {
           for (const nonce in res.result.pending[account]) {
             if (res.result.pending[account][nonce].to === txRequest.address) {
               resolve(true);
@@ -67,10 +70,12 @@ const _hasPendingGeth = (conf: any, txRequest: any) => {
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  */
 const hasPending = (conf: any, txRequest: any) => {
-  if (conf.client == 'parity') {
-    return _hasPendingParity(conf, txRequest);
-  } else if (conf.client == 'geth') {
-    return _hasPendingGeth(conf, txRequest);
+  if (conf.client === 'parity') {
+    return hasPendingParity(conf, txRequest);
+  }
+
+  if (conf.client === 'geth') {
+    return hasPendingGeth(conf, txRequest);
   }
 };
 

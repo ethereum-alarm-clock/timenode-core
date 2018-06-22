@@ -1,61 +1,78 @@
 import { IBlock } from './Types';
 
 export default class W3Util {
-  web3: any;
+  public web3: any;
 
   constructor(web3: any) {
     this.web3 = web3;
   }
 
-  estimateGas(opts: any): Promise<any> {
+  public estimateGas(opts: any): Promise<any> {
     return new Promise((resolve, reject) => {
       this.web3.eth.estimateGas(opts, (e: any, r: any) => {
-        if (e) reject(e);
-        else resolve(r);
+        if (e) {
+          reject(e);
+        } else {
+          resolve(r);
+        }
       });
     });
   }
 
-  networkGasPrice(): Promise<any> {
+  public networkGasPrice(): Promise<any> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getGasPrice((e: any, r: any) => {
-        if (e) reject(e);
-        else resolve(r);
+        if (e) {
+          reject(e);
+        } else {
+          resolve(r);
+        }
       });
     });
   }
 
-  getReceipt(txHash: any): Promise<any> {
+  public getReceipt(txHash: any): Promise<any> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => {
-        if (e) reject(e);
-        else resolve(r);
+        if (e) {
+          reject(e);
+        } else {
+          resolve(r);
+        }
       });
     });
   }
 
-  getBlockNumber(): Promise<any> {
+  public getBlockNumber(): Promise<any> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getBlockNumber((e: any, r: any) => {
-        if (e) reject(e);
-        else resolve(r);
+        if (e) {
+          reject(e);
+        } else {
+          resolve(r);
+        }
       });
     });
   }
 
-  getBlock(number = 'latest'): Promise<IBlock> {
+  public getBlock(blockNumber = 'latest'): Promise<IBlock> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getBlock(number, (err: any, block: IBlock) => {
-        if (!err)
-          if (block) resolve(block);
-          else reject(`Returned block ${number} is null`);
-        else reject(err);
+      this.web3.eth.getBlock(blockNumber, (err: any, block: IBlock) => {
+        if (!err) {
+          if (block) {
+            resolve(block);
+          } else {
+            reject(`Returned block ${blockNumber} is null`);
+          }
+        } else {
+          reject(err);
+        }
       });
     });
   }
 
-  isWatchingEnabled(): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+  public isWatchingEnabled(): Promise<boolean> {
+    return new Promise<boolean>(resolve => {
       this.web3.currentProvider.sendAsync(
         {
           jsonrpc: '2.0',

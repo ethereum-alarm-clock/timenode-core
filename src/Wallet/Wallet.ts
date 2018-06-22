@@ -1,6 +1,7 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import { ILogger } from '../Logger';
+const ethTx = require('ethereumjs-tx');
 
 import IWalletReceipt from './IWalletReceipt';
 
@@ -16,11 +17,11 @@ interface AccountStateMap {
 }
 
 export default class Wallet {
-  length: number;
-  logger: ILogger;
-  nonce: number;
-  web3: any;
-  walletStates: AccountStateMap;
+  public length: number;
+  public logger: ILogger;
+  public nonce: number;
+  public web3: any;
+  public walletStates: AccountStateMap;
 
   constructor(web3: any, logger?: ILogger) {
     this.length = 0;
@@ -30,15 +31,15 @@ export default class Wallet {
     this.walletStates = {};
   }
 
-  getBalanceOf(address: string): Promise<BigNumber> {
-    return new Promise((resolve) => {
+  public getBalanceOf(address: string): Promise<BigNumber> {
+    return new Promise(resolve => {
       const balance = this.web3.eth.getBalance(address);
 
       resolve(balance);
     });
   }
 
-  _findSafeIndex(pointer = 0): number {
+  public _findSafeIndex(pointer = 0): number {
     pointer = pointer;
     if (this.hasOwnProperty(pointer)) {
       return this._findSafeIndex(pointer + 1);
@@ -47,16 +48,16 @@ export default class Wallet {
     }
   }
 
-  _currentIndexes() {
+  public _currentIndexes() {
     const keys = Object.keys(this);
     const indexes = keys
-      .map((key) => parseInt(key, 10))
-      .filter((n) => n < 9e20)
+      .map(key => parseInt(key, 10))
+      .filter(n => n < 9e20)
       .slice(0, this.length);
     return indexes;
   }
 
-  create(numAccounts: number) {
+  public create(numAccounts: number) {
     for (let i = 0; i < numAccounts; i++) {
       const wallet = ethWallet.generate();
       this.add(wallet);
@@ -64,7 +65,7 @@ export default class Wallet {
     return this;
   }
 
-  add(wallet: any) {
+  public add(wallet: any) {
     if (!this[wallet.getAddressString()]) {
       const idx = this._findSafeIndex();
       wallet.index = idx;
@@ -79,7 +80,7 @@ export default class Wallet {
     return this[wallet.getAddressString()];
   }
 
-  rm(addressOrIndex: string | number) {
+  public rm(addressOrIndex: string | number) {
     const wallet = this[addressOrIndex];
 
     if (wallet && wallet.getAddressString()) {
@@ -93,24 +94,24 @@ export default class Wallet {
     return false;
   }
 
-  clear() {
+  public clear() {
     const indexes = this._currentIndexes();
 
-    indexes.forEach((idx) => {
+    indexes.forEach(idx => {
       this.rm(idx);
     });
 
     return this;
   }
 
-  encrypt(password: String, opts: Object) {
+  public encrypt(password: string, opts: object) {
     const indexes = this._currentIndexes();
 
-    return indexes.map((idx) => this[idx].toV3(password, opts));
+    return indexes.map(idx => this[idx].toV3(password, opts));
   }
 
-  loadPrivateKeys(privateKeys: Array<String>) {
-    privateKeys.forEach((privateKey) => {
+  public loadPrivateKeys(privateKeys: string[]) {
+    privateKeys.forEach(privateKey => {
       const wallet = ethWallet.fromPrivateKey(Buffer.from(privateKey, 'hex'));
 
       if (wallet) {
@@ -121,8 +122,8 @@ export default class Wallet {
     });
   }
 
-  decrypt(encryptedKeystores: Array<String | Object>, password: String) {
-    encryptedKeystores.forEach((keystore) => {
+  public decrypt(encryptedKeystores: (string | object)[], password: string) {
+    encryptedKeystores.forEach(keystore => {
       const wallet = ethWallet.fromV3(keystore, password, true);
 
       if (wallet) {
@@ -138,71 +139,61 @@ export default class Wallet {
    * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
    * @returns {Promise<string>} A promise which will resolve to the transaction hash
    */
-  sendFromNext(opts: any) {
+  public sendFromNext(opts: any) {
     const next = this.nonce++ % this.length;
 
     return this.sendFromIndex(next, opts);
   }
 
-  getNonce(account: String) {
+  public getNonce(account: string) {
     return new Promise<string>((resolve, reject) => {
       this.web3.eth.getTransactionCount(account, (err: Error, res: any) => {
-        if (err) reject(err);
+        if (err) {
+          reject(err);
+        }
         resolve(res);
       });
     });
   }
 
-  sendRawTransaction(tx: any) {
+  public sendRawTransaction(tx: any) {
     return new Promise((resolve, reject) => {
       this.web3.eth.sendRawTransaction(
         '0x'.concat(tx.serialize().toString('hex')),
         (err: Error, res: any) => {
-          if (err) reject(err);
+          if (err) {
+            reject(err);
+          }
           resolve(res);
         }
       );
     });
   }
 
-  async getTransactionReceipt(hash: any, from: String): Promise<any> {
-    let transactionReceiptAsync: any;
-    const _this = this;
-    transactionReceiptAsync = async function(
-      hash: any,
-      resolve: any,
-      reject: any
-    ) {
+  public async getTransactionReceipt(hash: any, from: string): Promise<any> {
+    return new Promise((resolve, reject) => {
       try {
-        const getTransactionReceipt = (hash: any) => {
-          return new Promise((resolve) => {
-            _this.web3.eth.getTransactionReceipt(
-              hash,
-              (err: Error, res: any) => {
-                if (!err) resolve(res);
-              }
-            );
-          });
-        };
-        var receipt = await getTransactionReceipt(hash);
-        if (receipt == null) {
-          setTimeout(function() {
-            transactionReceiptAsync(hash, resolve, reject);
-          }, 500);
-        } else {
-          resolve({ receipt, from });
-        }
+        this.web3.eth.getTransactionReceipt(hash, (err: Error, receipt: any) => {
+          if (err) {
+            return;
+          }
+
+          if (receipt === null) {
+            setTimeout(() => {
+              resolve(this.getTransactionReceipt(hash, from));
+            }, 500);
+          } else {
+            resolve({ receipt, from });
+          }
+        });
       } catch (e) {
         reject(e);
       }
-    };
-    return new Promise(async (resolve, reject) => {
-      await transactionReceiptAsync(hash, resolve, reject);
     });
   }
 
-  signTransaction(from: string, nonce: number | string, opts: any) {
-    return new Promise((resolve) => {
+  public signTransaction(from: string, nonce: number | string, opts: any) {
+    return new Promise(resolve => {
       const params = {
         nonce,
         from,
@@ -213,7 +204,6 @@ export default class Wallet {
         data: opts.data
       };
 
-      const ethTx = require('ethereumjs-tx');
       const tx = new ethTx(params);
       const privKey = this[from].privKey;
       tx.sign(Buffer.from(privKey, 'hex'));
@@ -222,23 +212,21 @@ export default class Wallet {
     });
   }
 
-  isWalletAbleToSendTx(idx: number) {
+  public isWalletAbleToSendTx(idx: number) {
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
 
     const from: string = this.getAccounts()[idx].getAddressString();
 
-    return (
-      !this.walletStates[from] || !this.walletStates[from].sendingTxInProgress
-    );
+    return !this.walletStates[from] || !this.walletStates[from].sendingTxInProgress;
   }
 
-  isNextAccountFree() {
+  public isNextAccountFree() {
     return this.isWalletAbleToSendTx(this.nonce % this.length);
   }
 
-  async sendFromIndex(idx: number, opts: any): Promise<any> {
+  public async sendFromIndex(idx: number, opts: any): Promise<any> {
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -249,9 +237,7 @@ export default class Wallet {
 
     if (balance.eq(0)) {
       if (this.logger) {
-        this.logger.info(
-          `Account ${from} has not enough funds to send transaction.`
-        );
+        this.logger.info(`Account ${from} has not enough funds to send transaction.`);
       }
       return { ignore: true };
     }
@@ -260,10 +246,7 @@ export default class Wallet {
 
     const signedTx = await this.signTransaction(from, nonce, opts);
 
-    if (
-      this.walletStates[from] &&
-      this.walletStates[from].sendingTxInProgress
-    ) {
+    if (this.walletStates[from] && this.walletStates[from].sendingTxInProgress) {
       if (this.logger) {
         this.logger.debug(
           `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`
@@ -293,15 +276,15 @@ export default class Wallet {
     return receipt;
   }
 
-  getAccounts() {
-    return this._currentIndexes().map((idx) => this[idx]);
+  public getAccounts() {
+    return this._currentIndexes().map(idx => this[idx]);
   }
 
-  getAddresses() {
-    return this.getAccounts().map((account) => account.getAddressString());
+  public getAddresses() {
+    return this.getAccounts().map(account => account.getAddressString());
   }
 
-  isKnownAddress(address: String) {
-    return this.getAddresses().some((addr) => addr === address);
+  public isKnownAddress(address: string) {
+    return this.getAddresses().some(addr => addr === address);
   }
 }
