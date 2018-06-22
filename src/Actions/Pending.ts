@@ -22,9 +22,11 @@ const _hasPendingParity = async (conf: any, txRequest: any, opts: { type?: strin
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err) reject(err);
+        if (err){
+          reject(err);
+        }
 
-        for(const count in res.result ) {
+        for(const count of Object.keys(res.result) ) {
           if ( res.result[count].to === txRequest.address) {
             const withValidGasPrice = res.result[count] && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, res.result[count], opts.exactPrice));
             if ( res.result[count] && isOfType(res.result[count], opts.type) && withValidGasPrice) {
@@ -60,8 +62,11 @@ const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, check
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err) reject(err);
-        for (const account in res.result.pending) {
+        if (err) {
+          reject(err);
+        }
+
+        for (const account of Object.keys(res.result.pending)) {
           for (const nonce in res.result.pending[account]) {
             if (res.result.pending[account][nonce].to === txRequest.address) {
               const withValidGasPrice = res.result.pending[account][nonce] && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, res.result.pending[account][nonce], opts.exactPrice));
@@ -125,9 +130,11 @@ const isOfType = (transaction: any, type?: string) => {
  * @param {number} exactPrice (optional) Expected gasPrice to compare.
  */
 const hasPending = (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, exactPrice?: any}) => {
-  if (conf.client == 'parity') {
+  if (conf.client === 'parity') {
     return _hasPendingParity(conf, txRequest, opts);
-  } else if (conf.client == 'geth') {
+  }
+
+  if (conf.client === 'geth') {
     return _hasPendingGeth(conf, txRequest, opts);
   }
 };
