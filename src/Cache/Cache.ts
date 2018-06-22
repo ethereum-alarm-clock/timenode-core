@@ -1,39 +1,34 @@
-import * as mem_cache from 'memory-cache';
-import * as _ from 'lodash';
+import { ILogger } from '../Logger';
 
 export default class Cache {
-  cache: any;
-  logger: any;
-  mem: any;
+  public cache: {} = {};
+  public logger: any;
 
-  constructor(logger: any) {
-    this.cache = new mem_cache.Cache();
+  constructor(logger: ILogger) {
     this.logger = logger;
-    this.mem = [];
   }
 
-  set(k: String, v: any) {
-    if (_.indexOf(this.mem, k) === -1) {
-      this.mem.push(k);
-    }
-    this.cache.put(k, v); // , timeout, this.del(k))
+  public set(k: string, v: any) {
+    this.cache[k] = v;
     this.logger.cache(`stored ${k} with value ${v}`);
   }
 
-  get(k: String, d?: any) {
-    // / FIXME more elegant error handling for this...
-    if (this.cache.get(k) === null) {
+  public get(k: string, d?: any): any {
+    const value = this.cache[k];
+    if (value === undefined) {
       if (d === undefined) {
-        throw new Error('attempted to access key entry that does not exist');
-      } else return d;
+        throw new Error('attempted to access key entry that does not exist: ' + k);
+      } else {
+        return d;
+      }
     }
 
     this.logger.cache(`accessed ${k}`);
-    return this.cache.get(k);
+    return value;
   }
 
-  has(k: String) {
-    if (this.cache.get(k) === null) {
+  public has(k: string) {
+    if (this.cache[k] === undefined) {
       this.logger.cache(`miss ${k}`);
       return false;
     }
@@ -41,43 +36,23 @@ export default class Cache {
     return true;
   }
 
-  del(k: String) {
-    // mutates the this.mem array to remove the value
-    _.remove(this.mem, (addr) => addr === k);
-    this.cache.del(k);
+  public del(k: string) {
+    delete this.cache[k];
     this.logger.cache(`deleted ${k}`);
   }
 
-  len() {
-    return this.cache.size();
+  public len(): number {
+    return Object.keys(this.cache).length;
   }
 
-  stored() {
-    return this.mem;
+  public stored() {
+    return Object.keys(this.cache);
   }
 
-  isEmpty() {
-    if (this.len() === 0) return true;
-    return false;
-  }
-
-  sweepExpired() {
-    this.mem.forEach((txRequestAddress: String) => {
-      if (this.get(txRequestAddress, 0) === 99) {
-        // expired
-        this.del(txRequestAddress);
-      }
-    });
+  public isEmpty() {
+    return this.len() === 0;
   }
 }
 
 // The cache assigns each key (txRequestAddress) the original value of its WindowStart
-// During certain conditions it will change the value
-// 105 - Failed Execution call (Attempt again)
-// 104 - UNIMPLEMENTED
-// 103 - Failed Claim call (Attempt again)
-// 102 - Attempted Claim call (will not attempt again until result)
-// 101 - UNIMPLEMENTED
-// 100 - Successful Execution call (ready to be expired)
 //  99 - Expired (ready to be swept)
-//  -1 - Failed Execution call (will not attempt again)

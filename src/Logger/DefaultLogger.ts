@@ -1,30 +1,29 @@
 import { ILogger } from './ILogger';
-import * as moment from 'moment';
 
 declare const console: any;
 
 export class DefaultLogger implements ILogger {
-  cache(msg: String): void {
+  public cache(msg: string): void {
     this.formatPrint(msg, 'CACHE');
   }
 
-  debug(msg: String): void {
+  public debug(msg: string): void {
     this.formatPrint(msg, 'DEBUG');
   }
 
-  error(msg: String): void {
+  public error(msg: string): void {
     this.formatPrint(msg, 'ERROR');
   }
 
-  info(msg: String): void {
+  public info(msg: string): void {
     this.formatPrint(msg, 'INFO');
   }
 
-  formatPrint(msg: String, kind: String): void {
+  private formatPrint(msg: string, kind: string): void {
     console.log(kind, this.timestamp(), msg);
   }
 
-  timestamp(): any {
-    return moment().format('HH:mm:ss');
+  private timestamp(): number {
+    return Math.floor(Date.now() / 1000);
   }
 }

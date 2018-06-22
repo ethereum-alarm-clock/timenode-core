@@ -30,7 +30,11 @@ const mockConfig = () => {
     password,
     provider,
     scanSpread: 0,
-    statsDb: new StatsDB(web3, new loki('stats.json')),
+    statsDb: new StatsDB(web3, new loki('stats.db', {
+      autoload: true,
+      autosave: true,
+      autosaveInterval: 4000,
+    })),
     walletStores: wallet,
     walletStoresAsPrivateKeys: true,
     web3

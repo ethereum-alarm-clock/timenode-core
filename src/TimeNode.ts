@@ -6,10 +6,10 @@ import Router from './Router';
 import Version from './Version';
 
 export default class TimeNode {
-  actions: Actions;
-  config: Config;
-  scanner: Scanner;
-  router: Router;
+  public actions: Actions;
+  public config: Config;
+  public scanner: Scanner;
+  public router: Router;
 
   constructor(config: Config) {
     this.actions = new Actions(config);
@@ -17,15 +17,17 @@ export default class TimeNode {
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
 
+    this.config.statsDb.initialize(this.config.wallet.getAddresses());
+
     this.startupMessage();
   }
 
-  startupMessage(): void {
+  public startupMessage(): void {
     this.config.logger.info('EAC-TimeNode');
     this.config.logger.info('Version: ' + Version);
   }
 
-  logNetwork(): void {
+  public logNetwork(): void {
     this.config.web3.version.getNetwork((error: any, result: number) => {
       if (error) {
         throw new Error(error);
@@ -35,7 +37,7 @@ export default class TimeNode {
     });
   }
 
-  async startScanning(): Promise<boolean> {
+  public async startScanning(): Promise<boolean> {
     // If already scanning, hard-reset the Scanner module.
     if (this.scanner.scanning) {
       this.scanner.stop();
@@ -44,7 +46,7 @@ export default class TimeNode {
     return this.scanner.start();
   }
 
-  stopScanning(): boolean {
+  public stopScanning(): boolean {
     return this.scanner.stop();
   }
 }

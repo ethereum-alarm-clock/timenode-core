@@ -5,15 +5,25 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && npm run parcel && npm run clean-built",
-    "parcel": "./node_modules/.bin/parcel build built/index.js -d .",
     "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
-    "fmt": "node scripts/fmt.js",
-    "test": "mocha --timeout 50000 -r ts-node/register test/*.ts --exit",
-    "test-noexit": "mocha -r ts-node/register test/*.ts",
-    "lint": "eslint .",
-    "deploy-eac": "sh scripts/deploy_eac.sh"
+    "deploy-eac": "sh scripts/deploy_eac.sh",
+    "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002",
+    "lint": "tslint --project .",
+    "lint-fix": "tslint --fix --project .",
+    "parcel": "./node_modules/.bin/parcel build built/index.js -d .",
+    "precommit": "lint-staged",
+    "prepare": "npm run build",
+    "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
+    "test-noexit": "mocha -r ts-node/register test/*.ts"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "tslint --fix --force",
+      "prettier --write --config ./.prettierrc --config-precedence file-override",
+      "git add"
+    ]
   },
   "repository": {
     "type": "git",
@@ -32,40 +42,35 @@
   "homepage": "https://github.com/ethereum-alarm-clock/eac.js-client#readme",
   "dependencies": {
     "@types/es6-promise": "3.3.0",
+    "babel-polyfill": "6.26.0",
     "bignumber.js": "5.0.0",
     "eac.js-lib": "2.0.2",
-    "ethereumjs-tx": "1.3.4",
+    "ethereumjs-tx": "1.3.5",
     "ethereumjs-wallet": "0.6.0",
-    "eventemitter3": "3.1.0",
-    "lodash": "4.17.10",
-    "lokijs": "1.5.5",
-    "memory-cache": "0.2.0",
-    "moment": "2.22.2"
+    "lokijs": "1.5.5"
   },
   "devDependencies": {
     "@types/bluebird": "3.5.20",
-    "@types/chai": "4.1.3",
+    "@types/chai": "4.1.4",
     "@types/ethereumjs-tx": "1.0.0",
-    "@types/lodash": "4.14.109",
     "@types/lokijs": "1.5.2",
-    "@types/memory-cache": "0.2.0",
-    "@types/node": "10.3.2",
+    "@types/node": "10.3.4",
     "bluebird": "3.5.1",
     "chai": "4.1.2",
-    "ganache-core": "2.1.0",
-    "husky": "1.0.0-rc.8",
+    "ganache-cli": "6.1.3",
+    "husky": "0.14.3",
+    "lint-staged": "7.2.0",
     "mocha": "5.1.1",
     "mocha-typescript": "1.1.16",
+    "moment": "2.22.2",
     "parcel": "1.9.2",
-    "prettier": "1.13.4",
-    "ts-node": "6.1.0",
+    "prettier": "1.13.5",
+    "ts-node": "6.1.2",
+    "tslint": "5.10.0",
+    "tslint-config-prettier": "1.13.0",
+    "tslint-microsoft-contrib": "5.0.3",
     "typescript": "2.9.1",
     "typings": "2.1.1",
     "web3": "0.20.6"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run fmt"
-    }
   }
 }
