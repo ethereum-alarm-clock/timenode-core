@@ -256,6 +256,7 @@ export default class Wallet {
     }
 
     let receipt;
+    let ignore = false;
     try {
       if (!this.walletStates[from]) {
         this.walletStates[from] = {} as AccountState;
@@ -266,14 +267,16 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
-      // console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
-      throw error;
+      if (this.logger) {
+        this.logger.debug(`Sending transaction failed.`);
+      }
+      ignore = true;
     } finally {
       this.walletStates[from].sendingTxInProgress = false;
     }
 
-    return receipt;
+    return Object.assign(receipt, { ignore });
   }
 
   public getAccounts() {
