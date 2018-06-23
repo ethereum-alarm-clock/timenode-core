@@ -9,6 +9,7 @@ import W3Util from '../Util';
 export default class Config implements IConfigParams {
   public autostart: boolean;
   public cache: Cache;
+  public claiming: boolean;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
   public factory: any;
@@ -24,6 +25,7 @@ export default class Config implements IConfigParams {
 
   constructor(params: IConfigParams) {
     this.autostart = params.autostart || true;
+    this.claiming = true;
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;

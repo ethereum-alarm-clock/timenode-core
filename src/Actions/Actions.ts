@@ -16,6 +16,11 @@ export default class Actions {
   }
 
   public async claim(txRequest: any): Promise<any> {
+    // Check if claiming is turned off.
+    if (!this.config.claiming) {
+      return { ignore: true };
+    }
+
     const requiredDeposit = txRequest.requiredDeposit;
     // TODO make this a constant
     const claimData = txRequest.claimData;
