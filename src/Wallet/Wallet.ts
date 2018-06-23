@@ -266,9 +266,11 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
-      // console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
-      throw error;
+      if (this.logger) {
+        this.logger.debug(error);
+        return { ignore: true };
+      }
     } finally {
       this.walletStates[from].sendingTxInProgress = false;
     }
