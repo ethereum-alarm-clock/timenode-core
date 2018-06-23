@@ -49,4 +49,14 @@ export default class TimeNode {
   public stopScanning(): boolean {
     return this.scanner.stop();
   }
+
+  public startClaiming(): boolean {
+    this.config.claiming = true;
+    return this.config.claiming;
+  }
+
+  public stopClaiming(): boolean {
+    this.config.claiming = false;
+    return this.config.claiming;
+  }
 }

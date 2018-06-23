@@ -145,7 +145,7 @@ export default class Wallet {
     return this.sendFromIndex(next, opts);
   }
 
-  public getNonce(account: string) {
+  public getNonce(account: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       this.web3.eth.getTransactionCount(account, (err: Error, res: any) => {
         if (err) {
@@ -242,7 +242,7 @@ export default class Wallet {
       return { ignore: true };
     }
 
-    const nonce = await this.getNonce(from);
+    const nonce = this.web3.toHex(await this.getNonce(from));
 
     const signedTx = await this.signTransaction(from, nonce, opts);
 
@@ -266,9 +266,13 @@ export default class Wallet {
       const hash = await this.sendRawTransaction(signedTx);
 
       receipt = await this.getTransactionReceipt(hash, from);
-      // console.log('Wallet::sendFromIndex(): receipt', receipt);
     } catch (error) {
-      throw error;
+      if (this.logger) {
+        this.logger.debug(error);
+      } else {
+        console.log(error);
+      }
+      return { ignore: true };
     } finally {
       this.walletStates[from].sendingTxInProgress = false;
     }
