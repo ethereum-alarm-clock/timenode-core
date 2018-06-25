@@ -8,10 +8,7 @@ import Config from '../Config';
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const exceedsMaxDeposit = (
-  txRequest: any,
-  economicStrategy: IEconomicStrategy
-) => {
+const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) => {
   const requiredDeposit = txRequest.requiredDeposit;
   const maxDeposit = economicStrategy.maxDeposit;
 
@@ -23,12 +20,10 @@ const exceedsMaxDeposit = (
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  * @param {Config} config TimeNode configuration object.
  */
-const isAboveMinBalanceLimit = async (
-  economicStrategy: IEconomicStrategy,
-  config: Config
-) => {
+const isAboveMinBalanceLimit = async (economicStrategy: IEconomicStrategy, config: Config) => {
   const minBalance = economicStrategy.minBalance;
-  const currentBalance = await Bb.fromCallback((callback) =>
+
+  const currentBalance = await Bb.fromCallback((callback: (err: any, result?: {}) => void) =>
     config.web3.eth.getBalance(config.wallet.getAddresses()[0], callback)
   );
 
@@ -41,10 +36,7 @@ const isAboveMinBalanceLimit = async (
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const isProfitable = async (
-  txRequest: any,
-  economicStrategy: IEconomicStrategy
-) => {
+const isProfitable = async (txRequest: any, economicStrategy: IEconomicStrategy) => {
   const paymentModifier = await txRequest.claimPaymentModifier();
   const reward = txRequest.bounty.times(paymentModifier);
 
@@ -59,18 +51,16 @@ const isProfitable = async (
 
 const shouldClaimTx = async (txRequest: any, config: Config) => {
   const profitable = await isProfitable(txRequest, config.economicStrategy);
-  if (!profitable) return false;
+  if (!profitable) {
+    return false;
+  }
 
-  const enoughBalance = await isAboveMinBalanceLimit(
-    config.economicStrategy,
-    config
-  );
-  if (!enoughBalance) return false;
+  const enoughBalance = await isAboveMinBalanceLimit(config.economicStrategy, config);
+  if (!enoughBalance) {
+    return false;
+  }
 
-  const exceedsDepositLimit = exceedsMaxDeposit(
-    txRequest,
-    config.economicStrategy
-  );
+  const exceedsDepositLimit = exceedsMaxDeposit(txRequest, config.economicStrategy);
 
   return profitable && enoughBalance && !exceedsDepositLimit;
 };

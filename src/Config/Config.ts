@@ -7,23 +7,25 @@ import { StatsDB } from '../Stats';
 import W3Util from '../Util';
 
 export default class Config implements IConfigParams {
-  autostart: boolean;
-  cache: Cache;
-  eac: any;
-  economicStrategy?: IEconomicStrategy;
-  factory: any;
-  logger?: ILogger;
-  ms: any;
-  provider: any;
-  scanSpread: any;
-  statsDb: StatsDB;
-  util: any;
-  wallet: Wallet;
-  web3: any;
-  walletStoresAsPrivateKeys: boolean;
+  public autostart: boolean;
+  public cache: Cache;
+  public claiming: boolean;
+  public eac: any;
+  public economicStrategy?: IEconomicStrategy;
+  public factory: any;
+  public logger?: ILogger;
+  public ms: any;
+  public provider: any;
+  public scanSpread: any;
+  public statsDb: StatsDB;
+  public util: any;
+  public wallet: Wallet;
+  public web3: any;
+  public walletStoresAsPrivateKeys: boolean;
 
   constructor(params: IConfigParams) {
     this.autostart = params.autostart || true;
+    this.claiming = true;
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;
@@ -43,22 +45,16 @@ export default class Config implements IConfigParams {
       );
     }
 
-    if (
-      params.walletStores &&
-      params.walletStores.length &&
-      params.walletStores.length > 0
-    ) {
+    if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
       this.wallet = new Wallet(this.web3, this.logger);
 
-      params.walletStores = params.walletStores.map(
-        (store: Object | string) => {
-          if (typeof store === 'object') {
-            return JSON.stringify(store);
-          }
-
-          return store;
+      params.walletStores = params.walletStores.map((store: object | string) => {
+        if (typeof store === 'object') {
+          return JSON.stringify(store);
         }
-      );
+
+        return store;
+      });
 
       if (this.walletStoresAsPrivateKeys) {
         this.wallet.loadPrivateKeys(params.walletStores);
