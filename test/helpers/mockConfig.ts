@@ -6,11 +6,11 @@ import { createWalletKeystore } from './createWallet';
 import { providerUrl } from './network';
 import BigNumber from 'bignumber.js';
 
-const mockConfig = () => {
-  const provider = new Web3.providers.HttpProvider(providerUrl);
-  const web3 = new Web3(provider);
-
-  const eac = require('eac.js-lib')(web3);
+const mockConfig = ( preConfig?:any ) => {
+  const provider = preConfig && preConfig.provider ? preConfig.provider : new Web3.providers.HttpProvider(providerUrl);
+  const web3 = preConfig && preConfig.web3 ? preConfig.web3 : new Web3(provider);
+  const eac = preConfig && preConfig.eac ? preConfig.eac : require('eac.js-lib')(web3);
+  const client = preConfig && preConfig.client ? preConfig.client : undefined;
 
   const filename = 'wallet.txt';
   const password = 'password123';
@@ -18,6 +18,7 @@ const mockConfig = () => {
 
   return new Config({
     autostart: true,
+    client,
     eac,
     economicStrategy: {
       maxDeposit: new BigNumber(0),
