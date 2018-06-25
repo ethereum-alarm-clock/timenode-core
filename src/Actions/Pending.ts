@@ -128,13 +128,15 @@ const hasValidGasPrice = async (
   exactPrice?: any
 ) => {
   if (exactPrice) {
-    return exactPrice.valueOf() == transaction.gasPrice.valueOf();
+    return exactPrice.valueOf() === transaction.gasPrice.valueOf();
   }
   const spread = 0.3;
   let currentGasPrice: number;
   await new Promise((resolve, reject) => {
     web3.eth.getGasPrice((err: Error, res: any) => {
-      if (err) reject(err);
+      if (err) {
+        reject(err);
+      }
       currentGasPrice = res;
       resolve(true);
     });
@@ -156,7 +158,7 @@ const isOfType = (transaction: any, type?: string) => {
   if (transaction && !type) {
     return true;
   }
-  return transaction.input == FnSignatures[type];
+  return transaction.input === FnSignatures[type];
 };
 
 /**
