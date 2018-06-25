@@ -4,58 +4,101 @@ import Config from '../../src/Config';
 import { mockConfig } from '../helpers';
 import hasPending from '../../src/Actions/Pending';
 
-const provider = () => {
-    send: (request: any) => {
-        if (request.method == 'parity_pendingTransactions') {
-            return pendingTx({client: 'parity', result: request.expected })
-        } else if (request.method == 'txpool_content') {
-            return pendingTx({client: 'geth', result: request.expected })
-        }
+class provider {
+
+    send = (request?: any, callback?: any) => {
+        return new Promise((reject: any, resolve: any) => {
+            if (request.method == 'parity_pendingTransactions') {
+                callback(null, pendingTx({client: 'parity', result: PENDINGS }));
+            } else if (request.method == 'txpool_content') {
+                callback(null, pendingTx({client: 'geth', result: PENDINGS }));
+            }
+        })
+    }
+    sendAsync = async (request: any, callback: any) => {
+        return await this.send(request, callback)
     }
 }
 
 const pendingTx = (opts?: any) => {
-    let result: object;
+    let result: any = [];
+    let pending: any = [];
     const defaultPending = {
-        blocknumber: 0,
         gas: 21000,
         gasPrice: 10 * 1e12,
         input: '0x',
         value: 0
     }
-    result = opts.client == 'geth' ?
-        opts.result.map( (res: any) => Object.assign(defaultPending, res)) :
+    if(opts.client === 'parity' && opts.result) {
+        result = opts.result.map( (res: any) => Object.assign(defaultPending, res));
+    }
+    if(opts.client === 'geth' && opts.result) {
         opts.result.map( (res: any) => {
-            if (!result[res.from]) {
-                result[res.from] = [];
+            if (!pending[res.from]) {
+                pending[res.from] = [];
             }
-            result[res.from].push(Object.assign(defaultPending, res))
-        })
-    return {result, client: opts.clent};
+            pending[res.from].push(Object.assign(defaultPending, res))
+        });
+        result = { pending };
+    }
+    return {result, client: opts.client};
 }
 
-const preConfig = (opt?: any) => {
+const preConfig = (opt?: any) =>
     Object.assign(
         {
             provider,
-            web3: {},
+            web3: {
+                currentProvider: new provider(),
+                eth: {
+                    getGasPrice: async() => opt.gasPrice
+                }
+            },
             eac: {}
-        }, opt )
-}
+        }, opt );
 
 const mockTx = ( opts: any ) => {
-    opts.address
+    return {
+        address: opts.address,
+        gasPrice: opts.gasPrice
+    }
 }
 
-const clients = ['geth','parity'];
+const CLIENTS = ['geth','parity'];
+const startAddr = '0x2ffd48cc061331d071a1a8178cfc2a3863d56d4e'
+const PENDINGS = [
+    {
+        from: startAddr,
+        to: startAddr
 
-const randomClient = () => clients[Math.floor(Math.random() * clients.length)];
+    },{
+        from: startAddr,
+        to: startAddr+1
+
+    },{
+        from: startAddr+1,
+        to: startAddr
+
+    },{
+        from: startAddr+1,
+        to: startAddr+1
+
+    },
+]
+
+const randomClient = () => CLIENTS[Math.floor(Math.random() * CLIENTS.length)];
 
 describe('Pending Unit Tests', async () => {
     const config: Config = mockConfig(preConfig());
 
-    it('Checks that the right clent is triggerered', () => {
-        const testConfig: Config = mockConfig(preConfig({ client: randomClient() }));
+    it('Detects valid Pending claim requests', () => {
+        const gasPrice = 1 * 1e12;
+        const testConfigs: Config[] = CLIENTS.map( client => mockConfig(preConfig({ client, gasPrice })));
+        testConfigs.map( async(conf) => {
+            console.log(PENDINGS, mockTx({ address: startAddr, gasPrice }))
+            const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), { type: 'claim' });
+            expect(pending).to.equal(true);
+        })
     })
 
     // it('initializes the Actions with a Config', () => {
