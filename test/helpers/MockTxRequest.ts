@@ -92,7 +92,7 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
   };
 };
 
-const getMockTxWithStatus = (tx: any, status: TxStatus) => {
+const mockTxStatus = (tx: any, status: TxStatus) => {
   if (status === TxStatus.BeforeClaimWindow) {
     return tx;
   }
@@ -148,4 +148,4 @@ const getMockTxWithStatus = (tx: any, status: TxStatus) => {
   return tx;
 };
 
-export { MockTxRequest, getMockTxWithStatus };
+export { MockTxRequest, mockTxStatus };

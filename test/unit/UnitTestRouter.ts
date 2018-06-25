@@ -1,9 +1,7 @@
 import { expect, assert } from 'chai';
-import BigNumber from 'bignumber.js';
-import * as moment from 'moment';
 
 import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest, getMockTxWithStatus } from '../helpers';
+import { mockConfig, MockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus } from '../../src/Enum';
@@ -41,22 +39,24 @@ describe('Router Unit Tests', () => {
   describe('isTransactionMissed()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns false when scheduled for future', async () => {
-        assert.isNotTrue(await router.isTransactionMissed(txTimestamp));
+        const tx = mockTxStatus(txTimestamp, TxStatus.BeforeClaimWindow);
+        assert.isNotTrue(await router.isTransactionMissed(tx));
       });
 
       it('returns true when scheduled tx is missed', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.Missed);
+        const tx = mockTxStatus(txTimestamp, TxStatus.Missed);
         assert.isTrue(await router.isTransactionMissed(tx));
       });
     });
 
     describe(BLOCK_TX, () => {
       it('returns false when scheduled for future', async () => {
-        assert.isNotTrue(await router.isTransactionMissed(txBlock));
+        const tx = mockTxStatus(txBlock, TxStatus.BeforeClaimWindow);
+        assert.isNotTrue(await router.isTransactionMissed(tx));
       });
 
       it('returns true when scheduled execution window passed', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.Missed);
+        const tx = mockTxStatus(txBlock, TxStatus.Missed);
         assert.isTrue(await router.isTransactionMissed(tx));
       });
     });
@@ -89,16 +89,17 @@ describe('Router Unit Tests', () => {
   describe('beforeClaimWindow()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns BeforeClaimWindow when claim window not started', async () => {
-        assert.equal(await router.beforeClaimWindow(txTimestamp), TxStatus.BeforeClaimWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.BeforeClaimWindow);
+        assert.equal(await router.beforeClaimWindow(tx), TxStatus.BeforeClaimWindow);
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
         assert.equal(await router.beforeClaimWindow(tx), TxStatus.ClaimWindow);
       });
 
       it('returns Executed when tx cancelled', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.Executed);
+        const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
         tx.isCancelled = true;
         assert.equal(await router.beforeClaimWindow(tx), TxStatus.Executed);
       });
@@ -106,16 +107,17 @@ describe('Router Unit Tests', () => {
 
     describe(BLOCK_TX, () => {
       it('returns BeforeClaimWindow when claim window not started', async () => {
-        assert.equal(await router.beforeClaimWindow(txBlock), TxStatus.BeforeClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.BeforeClaimWindow);
+        assert.equal(await router.beforeClaimWindow(tx), TxStatus.BeforeClaimWindow);
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         assert.equal(await router.beforeClaimWindow(tx), TxStatus.ClaimWindow);
       });
 
       it('returns Executed when tx cancelled', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.Executed);
+        const tx = mockTxStatus(txBlock, TxStatus.Executed);
         tx.isCancelled = true;
         assert.equal(await router.beforeClaimWindow(tx), TxStatus.Executed);
       });
@@ -125,17 +127,17 @@ describe('Router Unit Tests', () => {
   describe('claimWindow()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns FreezePeriod when claim window not started', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.BeforeClaimWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.BeforeClaimWindow);
         assert.equal(await router.claimWindow(tx), TxStatus.FreezePeriod);
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
         assert.equal(await router.claimWindow(tx), TxStatus.ClaimWindow);
       });
 
       it('returns FreezePeriod when tx is already claimed', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
         tx.isClaimed = true;
         assert.equal(await router.claimWindow(tx), TxStatus.FreezePeriod);
       });
@@ -143,17 +145,17 @@ describe('Router Unit Tests', () => {
 
     describe(BLOCK_TX, () => {
       it('returns FreezePeriod when claim window not started', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.BeforeClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.BeforeClaimWindow);
         assert.equal(await router.claimWindow(tx), TxStatus.FreezePeriod);
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         assert.equal(await router.claimWindow(tx), TxStatus.ClaimWindow);
       });
 
       it('returns FreezePeriod when tx is already claimed', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         tx.isClaimed = true;
         assert.equal(await router.claimWindow(tx), TxStatus.FreezePeriod);
       });
@@ -163,34 +165,34 @@ describe('Router Unit Tests', () => {
   describe('freezePeriod()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns freezePeriod when in freeze', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.FreezePeriod);
+        const tx = mockTxStatus(txTimestamp, TxStatus.FreezePeriod);
         assert.equal(await router.freezePeriod(tx), TxStatus.FreezePeriod);
       });
 
       it('returns ExecutionWindow when in execution window', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.ExecutionWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.ExecutionWindow);
         assert.equal(await router.freezePeriod(tx), TxStatus.ExecutionWindow);
       });
 
       it('returns FreezePeriod when execution window passed', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.Executed);
+        const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
         assert.equal(await router.freezePeriod(tx), TxStatus.FreezePeriod);
       });
     });
 
     describe(BLOCK_TX, () => {
       it('returns freezePeriod when in freeze', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.FreezePeriod);
+        const tx = mockTxStatus(txBlock, TxStatus.FreezePeriod);
         assert.equal(await router.freezePeriod(tx), TxStatus.FreezePeriod);
       });
 
       it('returns ExecutionWindow when in execution window', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.ExecutionWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ExecutionWindow);
         assert.equal(await router.freezePeriod(tx), TxStatus.ExecutionWindow);
       });
 
       it('returns FreezePeriod when execution window passed', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.Executed);
+        const tx = mockTxStatus(txBlock, TxStatus.Executed);
         assert.equal(await router.freezePeriod(tx), TxStatus.FreezePeriod);
       });
     });
@@ -253,12 +255,12 @@ describe('Router Unit Tests', () => {
   describe('executionWindow()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns Executed when execution was called', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.Executed);
+        const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
         assert.equal(await router.executionWindow(tx), TxStatus.Executed);
       });
 
       it('returns Missed when tx execution was missed', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.Missed);
+        const tx = mockTxStatus(txTimestamp, TxStatus.Missed);
         assert.equal(await router.executionWindow(tx), TxStatus.Missed);
       });
 
@@ -269,19 +271,19 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns Executed when executes transaction', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.Executed);
+        const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
         assert.equal(await router.executionWindow(tx), TxStatus.Executed);
       });
     });
 
     describe(BLOCK_TX, () => {
       it('returns Executed when execution was called', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.Executed);
+        const tx = mockTxStatus(txBlock, TxStatus.Executed);
         assert.equal(await router.executionWindow(tx), TxStatus.Executed);
       });
 
       it('returns Missed when tx execution was missed', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.Missed);
+        const tx = mockTxStatus(txBlock, TxStatus.Missed);
         assert.equal(await router.executionWindow(tx), TxStatus.Missed);
       });
 
@@ -292,7 +294,7 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns Executed when executes transaction', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.Executed);
+        const tx = mockTxStatus(txBlock, TxStatus.Executed);
         assert.equal(await router.executionWindow(tx), TxStatus.Executed);
       });
     });
@@ -301,55 +303,55 @@ describe('Router Unit Tests', () => {
   describe('route()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns BeforeClaimWindow status', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.BeforeClaimWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.BeforeClaimWindow);
         assert.equal(await router.route(tx), TxStatus.BeforeClaimWindow);
       });
 
       it('returns ClaimWindow status', async () => {
-        const tx = getMockTxWithStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
         assert.equal(await router.route(tx), TxStatus.ClaimWindow);
       });
 
       // THESE TESTS DO NOT PASS FOR SOME REASON
       // it('returns FreezePeriod status', async () => {
-      //   const tx = getMockTxWithStatus(txTimestamp, TxStatus.FreezePeriod);
+      //   const tx = mockTxStatus(txTimestamp, TxStatus.FreezePeriod);
       //   assert.equal(await router.route(tx), TxStatus.FreezePeriod);
       // });
 
       // it('returns ExecutionWindow status', async () => {
-      //   const tx = getMockTxWithStatus(txTimestamp, TxStatus.ExecutionWindow);
+      //   const tx = mockTxStatus(txTimestamp, TxStatus.ExecutionWindow);
       //   assert.equal(await router.route(tx), TxStatus.ExecutionWindow);
       // });
 
       // it('returns Executed status', async () => {
-      //   const tx = getMockTxWithStatus(txTimestamp, TxStatus.Executed);
+      //   const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
       //   assert.equal(await router.route(tx), TxStatus.Executed);
       // });
     });
 
     describe(BLOCK_TX, () => {
       it('returns BeforeClaimWindow status', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.BeforeClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.BeforeClaimWindow);
         assert.equal(await router.route(tx), TxStatus.BeforeClaimWindow);
       });
 
       it('returns ClaimWindow status', async () => {
-        const tx = getMockTxWithStatus(txBlock, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         assert.equal(await router.route(tx), TxStatus.ClaimWindow);
       });
 
       // it('returns FreezePeriod status', async () => {
-      //   const tx = getMockTxWithStatus(txBlock, TxStatus.FreezePeriod);
+      //   const tx = mockTxStatus(txBlock, TxStatus.FreezePeriod);
       //   assert.equal(await router.route(tx), TxStatus.FreezePeriod);
       // });
 
       // it('returns ExecutionWindow status', async () => {
-      //   const tx = getMockTxWithStatus(txBlock, TxStatus.ExecutionWindow);
+      //   const tx = mockTxStatus(txBlock, TxStatus.ExecutionWindow);
       //   assert.equal(await router.route(tx), TxStatus.ExecutionWindow);
       // });
 
       // it('returns Executed status', async () => {
-      //   const tx = getMockTxWithStatus(txBlock, TxStatus.Executed);
+      //   const tx = mockTxStatus(txBlock, TxStatus.Executed);
       //   assert.equal(await router.route(tx), TxStatus.Executed);
       // });
     });
