@@ -10,6 +10,7 @@ export default class Config implements IConfigParams {
   public autostart: boolean;
   public cache: Cache;
   public claiming: boolean;
+  public client?: string;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
   public factory: any;
