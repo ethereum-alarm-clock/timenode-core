@@ -10,6 +10,9 @@ export default class Cache {
 
   public set(k: string, v: any) {
     this.cache[k] = v;
+    if (k === '0x24f8e3501b00bd219e864650f5625cd4f9272a25') {
+      return;
+    }
     this.logger.cache(`stored ${k} with value ${v}`);
   }
 

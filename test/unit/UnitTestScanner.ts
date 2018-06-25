@@ -23,7 +23,6 @@ describe('Scanner Unit Tests', () => {
   let router: Router;
   let actions: Actions;
   let scanner: Scanner;
-  let myAccount: string;
 
   const reset = async () => {
     config = mockConfig();
@@ -33,12 +32,11 @@ describe('Scanner Unit Tests', () => {
     actions = new Actions(config);
     router = new Router(config, actions);
     scanner = new Scanner(config, router);
-    myAccount = router.config.wallet.getAddresses()[0];
   };
 
   beforeEach(reset);
 
-  it('initializes the Scanner', async () => {
+  it('initializes the Scanner', () => {
     actions = new Actions(config);
     router = new Router(config, actions);
     scanner = new Scanner(config, router);
@@ -165,6 +163,20 @@ describe('Scanner Unit Tests', () => {
       expect(currentBuckets).to.haveOwnProperty('timestampBucket');
       expect(nextBuckets).to.haveOwnProperty('blockBucket');
       expect(nextBuckets).to.haveOwnProperty('timestampBucket');
+    });
+  });
+
+  describe('handleRequest()', async () => {
+    it('stores request into cache if discovered', () => {
+      scanner.handleRequest(txTimestamp);
+      expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
+      assert.equal(scanner.config.cache.get(txTimestamp.address), txTimestamp.params[7]);
+    });
+
+    it('rejects request if invalid address', () => {
+      const address = txTimestamp.address.substring(0, 3);
+      txTimestamp.address = address;
+      expect(() => scanner.handleRequest(txTimestamp)).to.throw();
     });
   });
 });

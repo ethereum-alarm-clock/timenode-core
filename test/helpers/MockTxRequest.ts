@@ -4,8 +4,10 @@ import * as Bb from 'bluebird';
 import { TxStatus } from '../../src/Enum';
 
 const MockTxRequest = async (web3: any, isBlock?: boolean) => {
+  const from = '0x74f8e3501b00bd219e864650f5625cd4f9272a75';
   const claimedBy = '0x0000000000000000000000000000000000000000';
   const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
+  const nonce = 156510;
 
   const hoursLater = (num: number) =>
     moment()
@@ -26,7 +28,7 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
 
   return {
     isBlock,
-    address: '0x74f8e3501b00bd219e864650f5625cd4f9272a75',
+    address: '0x24f8e3501b00bd219e864650f5625cd4f9272a25',
     bounty: new BigNumber(web3.toWei(0.1, 'ether')),
     callGas: new BigNumber(Math.pow(10, 6)),
     gasPrice: new BigNumber(web3.toWei(21, 'gwei')),
@@ -34,7 +36,7 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
     claimData: {
       claimedBy,
       requiredDeposit,
-      nonce: 156510
+      nonce
     },
     isClaimed: false,
     requiredDeposit,
@@ -47,6 +49,16 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
     reservedWindowSize: oneHourWindowSize,
     receipt: {},
     wasCalled: false,
+    params: [
+      nonce,
+      from,
+      from,
+      new BigNumber(Math.pow(10, 6)),
+      new BigNumber(web3.toWei(21, 'gwei')),
+      new BigNumber(web3.toWei(0.01, 'ether')),
+      new BigNumber(web3.toWei(0.1, 'ether')),
+      'data'
+    ],
     get claimWindowEnd() {
       return this.windowStart.minus(this.freezePeriod);
     },
