@@ -3,10 +3,7 @@ import BigNumber from 'bignumber.js';
 import * as moment from 'moment';
 
 import { Config } from '../../src/index';
-import {
-  mockConfig,
-  MockTxRequest
-} from '../helpers';
+import { mockConfig, MockTxRequest } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus } from '../../src/Enum';
@@ -18,7 +15,11 @@ describe('Router Unit Tests', () => {
   let config: Config;
   let txTimestamp: any;
   let txBlock: any;
-  
+
+  let router: Router;
+  let actions: Actions;
+  let myAccount: string;
+
   const reset = async () => {
     config = mockConfig();
     txTimestamp = await MockTxRequest(config.web3);
@@ -26,13 +27,11 @@ describe('Router Unit Tests', () => {
 
     actions = new Actions(config);
     router = new Router(config, actions);
+    myAccount = router.config.wallet.getAddresses()[0];
   };
-  
-  let router: Router;
-  let actions: Actions;
 
   beforeEach(reset);
-  
+
   it('initializes the Router', async () => {
     actions = new Actions(config);
     router = new Router(config, actions);
@@ -44,9 +43,13 @@ describe('Router Unit Tests', () => {
       it('returns false when scheduled for future', async () => {
         assert.isNotTrue(await router.isTransactionMissed(txTimestamp));
       });
-    
-      it('returns true when scheduled executionWindowEnd passed', async () => {
-        txTimestamp.executionWindowEnd = new BigNumber(moment().subtract(1, 'week').unix());
+
+      it('returns true when scheduled execution window passed', async () => {
+        txTimestamp.windowStart = new BigNumber(
+          moment()
+            .subtract(1, 'week')
+            .unix()
+        );
         assert.isTrue(await router.isTransactionMissed(txTimestamp));
       });
     });
@@ -56,8 +59,8 @@ describe('Router Unit Tests', () => {
         assert.isNotTrue(await router.isTransactionMissed(txBlock));
       });
 
-      it('returns true when scheduled executionWindowEnd passed', async () => {
-        txBlock.executionWindowEnd = new BigNumber(10);
+      it('returns true when scheduled execution window passed', async () => {
+        txBlock.windowStart = txBlock.currentBlockNumber.minus(txBlock.windowSize.plus(10));
         assert.isTrue(await router.isTransactionMissed(txBlock));
       });
     });
@@ -70,7 +73,6 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns true when same address', async () => {
-        let myAccount = router.config.wallet.getAddresses()[0];
         txTimestamp.claimedBy = myAccount;
         assert.isTrue(await router.isLocalClaim(txTimestamp));
       });
@@ -82,7 +84,6 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns true when same address', async () => {
-        let myAccount = router.config.wallet.getAddresses()[0];
         txBlock.claimedBy = myAccount;
         assert.isTrue(await router.isLocalClaim(txBlock));
       });
@@ -96,7 +97,11 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        txTimestamp.claimWindowStart = new BigNumber(moment().subtract(1, 'hour').unix());
+        txTimestamp.claimWindowStart = new BigNumber(
+          moment()
+            .subtract(1, 'hour')
+            .unix()
+        );
         assert.equal(await router.beforeClaimWindow(txTimestamp), TxStatus.ClaimWindow);
       });
 
@@ -112,7 +117,7 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        txBlock.claimWindowStart = new BigNumber(10);
+        txBlock.claimWindowStart = new BigNumber(0);
         assert.equal(await router.beforeClaimWindow(txBlock), TxStatus.ClaimWindow);
       });
 
@@ -130,7 +135,11 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        txTimestamp.claimWindowStart = new BigNumber(moment().subtract(1, 'hour').unix());
+        txTimestamp.claimWindowStart = new BigNumber(
+          moment()
+            .subtract(1, 'hour')
+            .unix()
+        );
         assert.equal(await router.claimWindow(txTimestamp), TxStatus.ClaimWindow);
       });
 
@@ -146,7 +155,7 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns ClaimWindow when claim window started', async () => {
-        txBlock.claimWindowStart = new BigNumber(10);
+        txBlock.claimWindowStart = new BigNumber(0);
         assert.equal(await router.claimWindow(txBlock), TxStatus.ClaimWindow);
       });
 
@@ -170,7 +179,11 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns FreezePeriod when execution window passed', async () => {
-        txTimestamp.executionWindowEnd = new BigNumber(moment().subtract(1, 'day').unix());
+        txTimestamp.windowStart = new BigNumber(
+          moment()
+            .subtract(1, 'week')
+            .unix()
+        );
         assert.equal(await router.freezePeriod(txTimestamp), TxStatus.FreezePeriod);
       });
     });
@@ -187,7 +200,7 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns FreezePeriod when execution window passed', async () => {
-        txBlock.executionWindowEnd = txBlock.currentBlockNumber.minus(100);
+        txBlock.windowStart = txBlock.currentBlockNumber.minus(txBlock.windowSize.plus(10));
         assert.equal(await router.freezePeriod(txBlock), TxStatus.FreezePeriod);
       });
     });
@@ -208,14 +221,12 @@ describe('Router Unit Tests', () => {
 
       it('returns false when not in reserved window and claimed locally', async () => {
         txTimestamp.isClaimed = true;
-        let myAccount = router.config.wallet.getAddresses()[0];
         txTimestamp.claimedBy = myAccount;
         assert.isFalse(await router.inReservedWindowAndNotClaimedLocally(txTimestamp));
       });
 
       it('returns false when in reserved window and claimed locally', async () => {
         txTimestamp.isClaimed = true;
-        let myAccount = router.config.wallet.getAddresses()[0];
         txTimestamp.claimedBy = myAccount;
         txTimestamp.windowStart = txTimestamp.now();
         assert.isFalse(await router.inReservedWindowAndNotClaimedLocally(txTimestamp));
@@ -236,14 +247,12 @@ describe('Router Unit Tests', () => {
 
       it('returns false when not in reserved window and claimed locally', async () => {
         txBlock.isClaimed = true;
-        let myAccount = router.config.wallet.getAddresses()[0];
         txBlock.claimedBy = myAccount;
         assert.isFalse(await router.inReservedWindowAndNotClaimedLocally(txBlock));
       });
 
       it('returns false when in reserved window and claimed locally', async () => {
         txBlock.isClaimed = true;
-        let myAccount = router.config.wallet.getAddresses()[0];
         txBlock.claimedBy = myAccount;
         txBlock.windowStart = txTimestamp.now();
         assert.isFalse(await router.inReservedWindowAndNotClaimedLocally(txBlock));
@@ -259,7 +268,11 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns Missed when tx execution was missed', async () => {
-        txTimestamp.executionWindowEnd = new BigNumber(moment().subtract(1, 'week').unix());
+        txTimestamp.windowStart = new BigNumber(
+          moment()
+            .subtract(1, 'week')
+            .unix()
+        );
         assert.equal(await router.executionWindow(txTimestamp), TxStatus.Missed);
       });
 
@@ -281,7 +294,7 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns Missed when tx execution was missed', async () => {
-        txBlock.executionWindowEnd = new BigNumber(10);
+        txBlock.windowStart = txBlock.currentBlockNumber.minus(txBlock.windowSize.plus(10));
         assert.equal(await router.executionWindow(txBlock), TxStatus.Missed);
       });
 
@@ -297,12 +310,32 @@ describe('Router Unit Tests', () => {
     });
   });
 
-  // Added only basic test for this, not sure how it works exactly
   describe('route()', () => {
-    it('route()', async () => {
-      assert.equal(await router.route(txBlock), TxStatus.BeforeClaimWindow);
-      assert.equal(await router.route(txTimestamp), TxStatus.BeforeClaimWindow);
+    describe(TIMESTAMP_TX, () => {
+      it('returns BeforeClaimWindow status', async () => {
+        assert.equal(await router.route(txTimestamp), TxStatus.BeforeClaimWindow);
+      });
+
+      it('returns ClaimWindow status', async () => {
+        txTimestamp.claimWindowStart = new BigNumber(
+          moment()
+            .subtract(1, 'hour')
+            .unix()
+        );
+        assert.equal(await router.route(txTimestamp), TxStatus.ClaimWindow);
+      });
+    });
+
+    describe(BLOCK_TX, () => {
+      it('returns BeforeClaimWindow status', async () => {
+        assert.equal(await router.route(txBlock), TxStatus.BeforeClaimWindow);
+      });
+
+      it('returns ClaimWindow status', async () => {
+        txBlock.claimWindowStart = new BigNumber(0);
+        txBlock.windowSize = new BigNumber(0);
+        assert.equal(await router.route(txBlock), TxStatus.ClaimWindow);
+      });
     });
   });
-
 });

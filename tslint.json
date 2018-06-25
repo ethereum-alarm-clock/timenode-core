@@ -21,7 +21,8 @@
       "no-console": false,
       "no-var-requires": false,
       "comment-format": false,
-      "ordered-imports": false
+      "ordered-imports": false,
+      "no-unused-expression": false
     },
     "rulesDirectory": ["node_modules/tslint-microsoft-contrib"]
   }
