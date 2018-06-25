@@ -16,6 +16,11 @@ export default class Actions {
   }
 
   public async claim(txRequest: any): Promise<any> {
+    // Check if claiming is turned off.
+    if (!this.config.claiming) {
+      return { ignore: true };
+    }
+
     const requiredDeposit = txRequest.requiredDeposit;
     // TODO make this a constant
     const claimData = txRequest.claimData;
@@ -116,19 +121,18 @@ export default class Actions {
       }
 
       if (isTransactionStatusSuccessful(receipt.status)) {
+        let bounty = new BigNumber(0);
         if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
           const data = receipt.logs[0].data;
-          const bounty = this.config.web3.toDecimal(data.slice(0, 66));
-
-          this.config.statsDb.updateExecuted(from, bounty, new BigNumber(0));
+          bounty = this.config.web3.toDecimal(data.slice(0, 66));
         }
 
         const cost = new BigNumber(receipt.gasUsed).mul(
           new BigNumber(txRequest.data.txData.gasPrice)
         );
-        this.config.statsDb.updateExecuted(from, new BigNumber(0), cost);
+        this.config.statsDb.updateExecuted(from, bounty, cost);
 
         return txRequest.wasSuccessful;
       }

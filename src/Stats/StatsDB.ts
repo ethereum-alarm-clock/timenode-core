@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import * as EAC from 'eac.js-lib';
+// import * as EAC from 'eac.js-lib';
 
 // / Wrapper over a lokijs persistent storage to keep track of the stats of executing accounts.
 export class StatsDB {
@@ -18,7 +18,8 @@ export class StatsDB {
   constructor(web3: any, db: any) {
     this.db = db;
     this.web3 = web3;
-    this.eac = EAC(web3);
+    // Must instantiate eac.js-lib like this for now for packaging to work.
+    this.eac = require('eac.js-lib')(web3);
 
     const fetchedStats = this.db.getCollection('stats');
     this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats');
