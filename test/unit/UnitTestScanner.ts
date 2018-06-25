@@ -3,10 +3,11 @@ import BigNumber from 'bignumber.js';
 import * as moment from 'moment';
 
 import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest } from '../helpers';
+import { mockConfig, MockTxRequest, getMockTxWithStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
+import { TxStatus } from '../../src/Enum';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
@@ -63,74 +64,55 @@ describe('Scanner Unit Tests', () => {
   describe('isUpcoming()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns true when tx is before claim window', async () => {
-        assert.isTrue(await scanner.isUpcoming(txTimestamp));
+        const tx = getMockTxWithStatus(txTimestamp, TxStatus.BeforeClaimWindow);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in claim window', async () => {
-        txTimestamp.claimWindowStart = new BigNumber(
-          moment()
-            .subtract(1, 'hour')
-            .unix()
-        );
-        assert.isTrue(await scanner.isUpcoming(txTimestamp));
+        const tx = getMockTxWithStatus(txTimestamp, TxStatus.ClaimWindow);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in freeze period', async () => {
-        txTimestamp.claimWindowStart = txTimestamp.claimWindowStart.minus(txTimestamp.freezePeriod);
-        assert.isTrue(await scanner.isUpcoming(txTimestamp));
+        const tx = getMockTxWithStatus(txTimestamp, TxStatus.FreezePeriod);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in execution window', async () => {
-        txTimestamp.isClaimed = true;
-        txTimestamp.windowStart = txTimestamp.now();
-        assert.isTrue(await scanner.isUpcoming(txTimestamp));
+        const tx = getMockTxWithStatus(txTimestamp, TxStatus.ExecutionWindow);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns false when tx is past execution window', async () => {
-        txTimestamp.isClaimed = true;
-        txTimestamp.wasCalled = true;
-        txTimestamp.claimWindowStart = new BigNumber(
-          moment()
-            .subtract(1, 'week')
-            .unix()
-        );
-        txTimestamp.windowStart = new BigNumber(
-          moment()
-            .subtract(1, 'week')
-            .unix()
-        );
-        assert.isFalse(await scanner.isUpcoming(txTimestamp));
+        const tx = getMockTxWithStatus(txTimestamp, TxStatus.Executed);
+        assert.isFalse(await scanner.isUpcoming(tx));
       });
     });
 
     describe(BLOCK_TX, () => {
       it('returns true when tx is before claim window', async () => {
-        assert.isTrue(await scanner.isUpcoming(txBlock));
+        const tx = getMockTxWithStatus(txBlock, TxStatus.BeforeClaimWindow);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in claim window', async () => {
-        txBlock.claimWindowStart = new BigNumber(0);
-        assert.isTrue(await scanner.isUpcoming(txBlock));
+        const tx = getMockTxWithStatus(txBlock, TxStatus.ClaimWindow);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in freeze period', async () => {
-        txBlock.claimWindowStart = txBlock.claimWindowStart.minus(txBlock.freezePeriod);
-        assert.isTrue(await scanner.isUpcoming(txBlock));
+        const tx = getMockTxWithStatus(txBlock, TxStatus.FreezePeriod);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in execution window', async () => {
-        txBlock.isClaimed = true;
-        txBlock.windowStart = txBlock.now();
-        assert.isTrue(await scanner.isUpcoming(txBlock));
+        const tx = getMockTxWithStatus(txBlock, TxStatus.ExecutionWindow);
+        assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns false when tx is past execution window', async () => {
-        txBlock.isClaimed = true;
-        txBlock.wasCalled = true;
-        txBlock.claimWindowStart = new BigNumber(0);
-        txBlock.windowStart = new BigNumber(0);
-        txBlock.windowSize = new BigNumber(0);
-        assert.isFalse(await scanner.isUpcoming(txBlock));
+        const tx = getMockTxWithStatus(txBlock, TxStatus.Executed);
+        assert.isFalse(await scanner.isUpcoming(tx));
       });
     });
   });

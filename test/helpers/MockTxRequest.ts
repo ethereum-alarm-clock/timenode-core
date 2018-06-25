@@ -1,8 +1,9 @@
 import BigNumber from 'bignumber.js';
 import * as moment from 'moment';
 import * as Bb from 'bluebird';
+import { TxStatus } from '../../src/Enum';
 
-const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
+const MockTxRequest = async (web3: any, isBlock?: boolean) => {
   const claimedBy = '0x0000000000000000000000000000000000000000';
   const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
 
@@ -24,6 +25,7 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
   );
 
   return {
+    isBlock,
     address: '0x74f8e3501b00bd219e864650f5625cd4f9272a75',
     bounty: new BigNumber(web3.toWei(0.1, 'ether')),
     callGas: new BigNumber(Math.pow(10, 6)),
@@ -90,4 +92,60 @@ const MockTxRequest = async (web3: any, isBlock?: Boolean) => {
   };
 };
 
-export { MockTxRequest };
+const getMockTxWithStatus = (tx: any, status: TxStatus) => {
+  if (status === TxStatus.BeforeClaimWindow) {
+    return tx;
+  }
+
+  if (status === TxStatus.ClaimWindow) {
+    const claimWindowStart = tx.isBlock
+      ? 0
+      : moment()
+          .subtract(1, 'hour')
+          .unix();
+    tx.claimWindowStart = new BigNumber(claimWindowStart);
+  }
+
+  if (status === TxStatus.FreezePeriod) {
+    tx.claimWindowStart = tx.claimWindowStart.minus(tx.freezePeriod);
+  }
+
+  if (status === TxStatus.ExecutionWindow) {
+    tx.isClaimed = true;
+    tx.windowStart = tx.now();
+  }
+
+  if (status === TxStatus.Executed) {
+    const windowStarts = tx.isBlock
+      ? 0
+      : moment()
+          .subtract(1, 'week')
+          .unix();
+
+    tx.isClaimed = true;
+    tx.wasCalled = true;
+    tx.claimWindowStart = new BigNumber(windowStarts);
+    tx.windowStart = new BigNumber(windowStarts);
+    if (tx.isBlock) {
+      tx.windowSize = new BigNumber(windowStarts);
+    }
+  }
+
+  if (status === TxStatus.Missed) {
+    const windowStarts = tx.isBlock
+      ? 0
+      : moment()
+          .subtract(1, 'week')
+          .unix();
+
+    tx.claimWindowStart = new BigNumber(windowStarts);
+    tx.windowStart = new BigNumber(windowStarts);
+    if (tx.isBlock) {
+      tx.windowSize = new BigNumber(windowStarts);
+    }
+  }
+
+  return tx;
+};
+
+export { MockTxRequest, getMockTxWithStatus };
