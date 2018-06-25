@@ -176,8 +176,78 @@ describe('Scanner Unit Tests', () => {
     });
   });
 
-  // describe('stopWatcher()', () => {
-  //   it('', () => {
-  //   });
-  // });
+  describe('stopWatcher()', () => {
+    it('clears the watcher', async () => {
+      const block = txBlock.now().toNumber();
+      await scanner.stopWatcher(block);
+      expect(scanner.eventWatchers[block]).to.not.exist;
+    });
+  });
+
+  describe('stopWatcher()', () => {
+    it('clears the watcher', async () => {
+      const bucket = txBlock.now().toNumber();
+      await scanner.stopWatcher(bucket);
+      expect(scanner.eventWatchers[bucket]).to.not.exist;
+    });
+  });
+
+  describe('watchRequestsByBucket()', () => {
+    it('starts watchers for a new bucket', async () => {
+      const bucket = txBlock.now().toNumber();
+      const previousBucket = bucket - BucketSize.block;
+
+      await scanner.watchRequestsByBucket(bucket, previousBucket);
+
+      expect(scanner.eventWatchers[bucket]).to.exist;
+      expect(scanner.eventWatchers[previousBucket]).to.not.exist;
+    });
+  });
+
+  describe('watchBlockchain()', () => {
+    it('sets the buckets', async () => {
+      await scanner.watchBlockchain();
+      expect(scanner.buckets).to.haveOwnProperty('currentBuckets');
+      expect(scanner.buckets).to.haveOwnProperty('nextBuckets');
+    });
+  });
+
+  describe('isValid()', () => {
+    it('returns true when correct address format', () => {
+      assert.isTrue(scanner.isValid(txBlock.address));
+    });
+
+    it('errors when an invalid address', () => {
+      expect(() => scanner.isValid(txBlock.address.substring(0, 5))).to.throw();
+    });
+
+    it('returns false when null address', () => {
+      assert.isFalse(scanner.isValid(scanner.config.eac.Constants.NULL_ADDRESS));
+    });
+  });
+
+  describe('isValid()', () => {
+    it('returns true when correct address format', () => {
+      assert.isTrue(scanner.isValid(txBlock.address));
+    });
+
+    it('errors when an invalid address', () => {
+      expect(() => scanner.isValid(txBlock.address.substring(0, 5))).to.throw();
+    });
+
+    it('returns false when null address', () => {
+      assert.isFalse(scanner.isValid(scanner.config.eac.Constants.NULL_ADDRESS));
+    });
+  });
+
+  describe('store()', () => {
+    it('returns true when correct address format', () => {
+      scanner.store(txTimestamp);
+      expect(config.cache.get(txTimestamp.address)).to.exist;
+    });
+  });
+
+  describe('scanCache()', () => {
+    // TO-DO when we have meaningful data returns
+  });
 });
