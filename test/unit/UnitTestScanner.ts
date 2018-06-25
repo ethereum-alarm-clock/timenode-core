@@ -6,9 +6,14 @@ import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { TxStatus } from '../../src/Enum';
+import { BucketSize, IBucketPair } from '../../src/Buckets';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
+
+// Taken from eac.js-lib requestFactory
+const BUCKET_SIZE_BLOCKS = 240;
+const BUCKET_SIZE_SECONDS = 3600;
 
 describe('Scanner Unit Tests', () => {
   let config: Config;
@@ -112,6 +117,54 @@ describe('Scanner Unit Tests', () => {
         const tx = mockTxStatus(txBlock, TxStatus.Executed);
         assert.isFalse(await scanner.isUpcoming(tx));
       });
+    });
+  });
+
+  describe('getCurrentBuckets()', async () => {
+    it('returns the current buckets', async () => {
+      const block = {
+        number: txBlock.now().toNumber(),
+        timestamp: txTimestamp.now().toNumber()
+      };
+
+      const { blockBucket, timestampBucket } = await scanner.getCurrentBuckets(block);
+
+      assert.equal(blockBucket, -1 * (block.number - (block.number % BucketSize.block)));
+      assert.equal(timestampBucket, block.timestamp - (block.timestamp % BucketSize.timestamp));
+    });
+  });
+
+  describe('getNextBuckets()', async () => {
+    it('returns next buckets', async () => {
+      const block = {
+        number: txBlock.now().toNumber(),
+        timestamp: txTimestamp.now().toNumber()
+      };
+
+      const { blockBucket, timestampBucket } = await scanner.getNextBuckets(block);
+
+      const expectedBlockInterval = block.number + BucketSize.block;
+      const expectedTimestampInterval = block.timestamp + BucketSize.timestamp;
+
+      assert.equal(
+        blockBucket,
+        -1 * (expectedBlockInterval - (expectedBlockInterval % BucketSize.block))
+      );
+      assert.equal(
+        timestampBucket,
+        expectedTimestampInterval - (expectedTimestampInterval % BucketSize.timestamp)
+      );
+    });
+  });
+
+  describe('getBuckets()', async () => {
+    it('returns current and next buckets', async () => {
+      const { currentBuckets, nextBuckets } = await scanner.getBuckets();
+
+      expect(currentBuckets).to.haveOwnProperty('blockBucket');
+      expect(currentBuckets).to.haveOwnProperty('timestampBucket');
+      expect(nextBuckets).to.haveOwnProperty('blockBucket');
+      expect(nextBuckets).to.haveOwnProperty('timestampBucket');
     });
   });
 });
