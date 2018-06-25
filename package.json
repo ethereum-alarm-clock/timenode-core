@@ -63,7 +63,7 @@
     "mocha": "5.1.1",
     "mocha-typescript": "1.1.16",
     "moment": "2.22.2",
-    "parcel": "1.8.1",
+    "parcel": "1.9.2",
     "prettier": "1.13.5",
     "ts-node": "6.2.0",
     "tslint": "5.10.0",
