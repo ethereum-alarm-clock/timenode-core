@@ -11,10 +11,6 @@ import { BucketSize, IBucketPair } from '../../src/Buckets';
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
 
-// Taken from eac.js-lib requestFactory
-const BUCKET_SIZE_BLOCKS = 240;
-const BUCKET_SIZE_SECONDS = 3600;
-
 describe('Scanner Unit Tests', () => {
   let config: Config;
   let txTimestamp: any;
@@ -118,7 +114,7 @@ describe('Scanner Unit Tests', () => {
     });
   });
 
-  describe('getCurrentBuckets()', async () => {
+  describe('getCurrentBuckets()', () => {
     it('returns the current buckets', async () => {
       const block = {
         number: txBlock.now().toNumber(),
@@ -155,7 +151,7 @@ describe('Scanner Unit Tests', () => {
     });
   });
 
-  describe('getBuckets()', async () => {
+  describe('getBuckets()', () => {
     it('returns current and next buckets', async () => {
       const { currentBuckets, nextBuckets } = await scanner.getBuckets();
 
@@ -166,7 +162,7 @@ describe('Scanner Unit Tests', () => {
     });
   });
 
-  describe('handleRequest()', async () => {
+  describe('handleRequest()', () => {
     it('stores request into cache if discovered', () => {
       scanner.handleRequest(txTimestamp);
       expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
@@ -179,4 +175,9 @@ describe('Scanner Unit Tests', () => {
       expect(() => scanner.handleRequest(txTimestamp)).to.throw();
     });
   });
+
+  // describe('stopWatcher()', () => {
+  //   it('', () => {
+  //   });
+  // });
 });
