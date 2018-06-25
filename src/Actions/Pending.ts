@@ -9,12 +9,8 @@ import { FnSignatures } from '../Enum';
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-<<<<<<< HEAD
 const _hasPendingParity = async (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, exactPrice?: any}) => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
-=======
-const hasPendingParity = async (conf: any, txRequest: any) => {
->>>>>>> master
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -25,7 +21,6 @@ const hasPendingParity = async (conf: any, txRequest: any) => {
         params: [],
         id: 0o7
       },
-<<<<<<< HEAD
       async (err: Error, res: any) => {
         if (err) reject(err);
 
@@ -38,16 +33,6 @@ const hasPendingParity = async (conf: any, txRequest: any) => {
           }
         }
         resolve(false);
-=======
-      (err: Error, res: any) => {
-        if (err) {
-          reject(err);
-        }
-
-        const hasTx =
-          res && res.result && !!res.result.filter((tx: any) => tx.to === txRequest.address).length;
-        resolve(hasTx);
->>>>>>> master
       }
     );
   });
@@ -62,14 +47,9 @@ const hasPendingParity = async (conf: any, txRequest: any) => {
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-<<<<<<< HEAD
 const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, exactPrice?: any}) => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider
-=======
-const hasPendingGeth = (conf: any, txRequest: any) => {
-  const provider = conf.web3.currentProvider;
->>>>>>> master
 
   return new Promise((resolve, reject) => {
     provider.send(
@@ -79,18 +59,12 @@ const hasPendingGeth = (conf: any, txRequest: any) => {
         params: [],
         id: 0o7
       },
-<<<<<<< HEAD
-      async (err: Error, res: any) => {
-        if (err) reject(err);
-        for (const account in res.result.pending) {
-=======
       (err: Error, res: any) => {
         if (err) {
           reject(err);
         }
 
         for (const account of Object.keys(res.result.pending)) {
->>>>>>> master
           for (const nonce in res.result.pending[account]) {
             if (res.result.pending[account][nonce].to === txRequest.address) {
               const withValidGasPrice = res.result.pending[account][nonce] && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, res.result.pending[account][nonce], opts.exactPrice));
