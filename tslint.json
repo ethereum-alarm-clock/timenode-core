@@ -21,8 +21,9 @@
       "no-console": false,
       "no-var-requires": false,
       "comment-format": false,
-      "ordered-imports": false,
-      "no-unused-expression": false // Messes with the tests when using expect or assert
+      "ordered-imports": false
     },
-    "rulesDirectory": ["node_modules/tslint-microsoft-contrib"]
+    "rulesDirectory": [
+      "node_modules/tslint-microsoft-contrib"
+    ]
   }

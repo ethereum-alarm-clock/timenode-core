@@ -1,3 +1,4 @@
+/* tslint:disable:no-unused-expression */
 import { expect, assert } from 'chai';
 
 import { Config } from '../../src/index';

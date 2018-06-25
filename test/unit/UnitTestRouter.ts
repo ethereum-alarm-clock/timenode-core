@@ -1,3 +1,4 @@
+/* tslint:disable:no-unused-expression */
 import { expect, assert } from 'chai';
 
 import { Config } from '../../src/index';
@@ -313,20 +314,20 @@ describe('Router Unit Tests', () => {
       });
 
       // THESE TESTS DO NOT PASS FOR SOME REASON
-      // it('returns FreezePeriod status', async () => {
-      //   const tx = mockTxStatus(txTimestamp, TxStatus.FreezePeriod);
-      //   assert.equal(await router.route(tx), TxStatus.FreezePeriod);
-      // });
+      xit('returns FreezePeriod status', async () => {
+        const tx = mockTxStatus(txTimestamp, TxStatus.FreezePeriod);
+        assert.equal(await router.route(tx), TxStatus.FreezePeriod);
+      });
 
-      // it('returns ExecutionWindow status', async () => {
-      //   const tx = mockTxStatus(txTimestamp, TxStatus.ExecutionWindow);
-      //   assert.equal(await router.route(tx), TxStatus.ExecutionWindow);
-      // });
+      xit('returns ExecutionWindow status', async () => {
+        const tx = mockTxStatus(txTimestamp, TxStatus.ExecutionWindow);
+        assert.equal(await router.route(tx), TxStatus.ExecutionWindow);
+      });
 
-      // it('returns Executed status', async () => {
-      //   const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
-      //   assert.equal(await router.route(tx), TxStatus.Executed);
-      // });
+      xit('returns Executed status', async () => {
+        const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
+        assert.equal(await router.route(tx), TxStatus.Executed);
+      });
     });
 
     describe(BLOCK_TX, () => {
@@ -340,20 +341,20 @@ describe('Router Unit Tests', () => {
         assert.equal(await router.route(tx), TxStatus.ClaimWindow);
       });
 
-      // it('returns FreezePeriod status', async () => {
-      //   const tx = mockTxStatus(txBlock, TxStatus.FreezePeriod);
-      //   assert.equal(await router.route(tx), TxStatus.FreezePeriod);
-      // });
+      xit('returns FreezePeriod status', async () => {
+        const tx = mockTxStatus(txBlock, TxStatus.FreezePeriod);
+        assert.equal(await router.route(tx), TxStatus.FreezePeriod);
+      });
 
-      // it('returns ExecutionWindow status', async () => {
-      //   const tx = mockTxStatus(txBlock, TxStatus.ExecutionWindow);
-      //   assert.equal(await router.route(tx), TxStatus.ExecutionWindow);
-      // });
+      xit('returns ExecutionWindow status', async () => {
+        const tx = mockTxStatus(txBlock, TxStatus.ExecutionWindow);
+        assert.equal(await router.route(tx), TxStatus.ExecutionWindow);
+      });
 
-      // it('returns Executed status', async () => {
-      //   const tx = mockTxStatus(txBlock, TxStatus.Executed);
-      //   assert.equal(await router.route(tx), TxStatus.Executed);
-      // });
+      xit('returns Executed status', async () => {
+        const tx = mockTxStatus(txBlock, TxStatus.Executed);
+        assert.equal(await router.route(tx), TxStatus.Executed);
+      });
     });
   });
 });
