@@ -129,11 +129,11 @@ const isOfType = (transaction: any, type?: string) => {
  */
 const hasPending = (conf: any, txRequest: any) => {
   if (conf.client === 'parity') {
-    return hasPendingParity(conf, txRequest);
+    return _hasPendingParity(conf, txRequest);
   }
 
   if (conf.client === 'geth') {
-    return hasPendingGeth(conf, txRequest);
+    return _hasPendingGeth(conf, txRequest);
   }
 };
 
