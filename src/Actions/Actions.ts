@@ -36,7 +36,7 @@ export default class Actions {
       data: claimData
     };
 
-    if (await hasPending(this.config, txRequest)) {
+    if (await hasPending(this.config, txRequest, {type: 'claim'})) {
       return {
         ignore: true
       };
@@ -102,9 +102,7 @@ export default class Actions {
       data: executeData
     };
 
-    this.config.logger.debug(`Opts: ${JSON.stringify(opts)}`);
-
-    if (await hasPending(this.config, txRequest)) {
+    if (await hasPending(this.config, txRequest, {type: 'execute', exactPrice: opts.gasPrice})) {
       return {
         ignore: true
       };
