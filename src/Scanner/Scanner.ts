@@ -110,11 +110,12 @@ export default class {
    * @param txRequest Transaction Request Object
    */
   public async isUpcoming(txRequest: any): Promise<boolean> {
-    const beforeClaimWindow = await txRequest.beforeClaimWindow();
-    const inClaimWindow = await txRequest.inClaimWindow();
-    const inFreezePeriod = await txRequest.inFreezePeriod();
-    const inExecutionWindow = await txRequest.inExecutionWindow();
-    return beforeClaimWindow || inClaimWindow || inFreezePeriod || inExecutionWindow;
+    return (
+      (await txRequest.beforeClaimWindow()) ||
+      (await txRequest.inClaimWindow()) ||
+      (await txRequest.inFreezePeriod()) ||
+      (await txRequest.inExecutionWindow())
+    );
   }
 
   //TODO move this to requestFactory instance
