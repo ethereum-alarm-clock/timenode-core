@@ -13,7 +13,6 @@
     "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002",
     "lint": "tslint --project .",
     "lint-fix": "tslint --fix --project .",
-    "parcel": "./node_modules/.bin/parcel build built/index.js -d . --target=node",
     "precommit": "lint-staged",
     "prepare": "npm run build",
     "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
