@@ -9,8 +9,13 @@ import { FnSignatures } from '../Enum';
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const _hasPendingParity = async (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, exactPrice?: any}) => {
-  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
+const _hasPendingParity = async (
+  conf: any,
+  txRequest: any,
+  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
+) => {
+  opts.checkGasPrice =
+    opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -22,12 +27,25 @@ const _hasPendingParity = async (conf: any, txRequest: any, opts: { type?: strin
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err) reject(err);
+        if (err){
+          reject(err);
+        }
 
-        for(const count in res.result ) {
-          if ( res.result[count].to === txRequest.address) {
-            const withValidGasPrice = res.result[count] && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, res.result[count], opts.exactPrice));
-            if ( res.result[count] && isOfType(res.result[count], opts.type) && withValidGasPrice) {
+        for (const count of Object.keys(res.result)) {
+          if (res.result[count].to === txRequest.address) {
+            const withValidGasPrice =
+              res.result[count] &&
+              (!opts.checkGasPrice ||
+                (await hasValidGasPrice(
+                  conf.web3,
+                  res.result[count],
+                  opts.exactPrice
+                )));
+            if (
+              res.result[count] &&
+              isOfType(res.result[count], opts.type) &&
+              withValidGasPrice
+            ) {
               resolve(true);
             }
           }
@@ -47,9 +65,14 @@ const _hasPendingParity = async (conf: any, txRequest: any, opts: { type?: strin
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, checkGasPrice?: boolean, exactPrice?: any}) => {
-  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
-  const provider = conf.web3.currentProvider
+const _hasPendingGeth = (
+  conf: any,
+  txRequest: any,
+  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
+) => {
+  opts.checkGasPrice =
+    opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
+  const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
     provider.send(
@@ -59,7 +82,7 @@ const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, check
         params: [],
         id: 0o7
       },
-      (err: Error, res: any) => {
+      async (err: Error, res: any) => {
         if (err) {
           reject(err);
         }
@@ -67,18 +90,29 @@ const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, check
         for (const account of Object.keys(res.result.pending)) {
           for (const nonce in res.result.pending[account]) {
             if (res.result.pending[account][nonce].to === txRequest.address) {
-              const withValidGasPrice = res.result.pending[account][nonce] && (!opts.checkGasPrice || await hasValidGasPrice(conf.web3, res.result.pending[account][nonce], opts.exactPrice));
-              if (res.result.pending[account][nonce] && isOfType(res.result.pending[account][nonce], opts.type) && withValidGasPrice) {
+              const withValidGasPrice =
+                res.result.pending[account][nonce] &&
+                (!opts.checkGasPrice ||
+                  (await hasValidGasPrice(
+                    conf.web3,
+                    res.result.pending[account][nonce],
+                    opts.exactPrice
+                  )));
+              if (
+                res.result.pending[account][nonce] &&
+                isOfType(res.result.pending[account][nonce], opts.type) &&
+                withValidGasPrice
+              ) {
                 resolve(true);
               }
             }
           }
         }
-        resolve(false)
+        resolve(false);
       }
-    )
-  })
-}
+    );
+  });
+};
 
 /**
  * Uses the Geth specific RPC request `txpool_content` to search
@@ -88,7 +122,11 @@ const _hasPendingGeth = (conf: any, txRequest: any, opts: { type?: string, check
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = async (web3: any, transaction: any, exactPrice?: any) => {
+const hasValidGasPrice = async (
+  web3: any,
+  transaction: any,
+  exactPrice?: any
+) => {
   if (exactPrice) {
     return exactPrice.valueOf() == transaction.gasPrice.valueOf();
   }
@@ -99,10 +137,13 @@ const hasValidGasPrice = async (web3: any, transaction: any, exactPrice?: any) =
       if (err) reject(err);
       currentGasPrice = res;
       resolve(true);
-    })      
+    });
   });
-  return currentGasPrice && ( spread * currentGasPrice.valueOf() ) <= transaction.gasPrice.valueOf();
-}
+  return (
+    currentGasPrice &&
+    spread * currentGasPrice.valueOf() <= transaction.gasPrice.valueOf()
+  );
+};
 
 /**
  * Uses the Geth specific RPC request `txpool_content` to search
@@ -123,17 +164,21 @@ const isOfType = (transaction: any, type?: string) => {
  * a TransactionRequest has a pending transaction in the transaction pool.
  * @param {Config} conf Config object.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
- * @param {string} type (optional) Type of pending request: claim,execute.                                
+ * @param {string} type (optional) Type of pending request: claim,execute.
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
  * @param {number} exactPrice (optional) Expected gasPrice to compare.
  */
-const hasPending = (conf: any, txRequest: any) => {
+const hasPending = (
+  conf: any,
+  txRequest: any,
+  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
+) => {
   if (conf.client === 'parity') {
-    return _hasPendingParity(conf, txRequest);
+    return _hasPendingParity(conf, txRequest, opts);
   }
 
   if (conf.client === 'geth') {
-    return _hasPendingGeth(conf, txRequest);
+    return _hasPendingGeth(conf, txRequest, opts);
   }
 };
 
