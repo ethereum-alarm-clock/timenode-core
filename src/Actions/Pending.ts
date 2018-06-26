@@ -9,12 +9,13 @@ import { FnSignatures } from '../Enum';
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const _hasPendingParity = async (
+const hasPendingParity = async (
   conf: any,
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
 ) => {
-  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
+  opts.checkGasPrice =
+    opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -26,7 +27,7 @@ const _hasPendingParity = async (
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err) {
+        if (err){
           reject(err);
         }
 
@@ -35,8 +36,16 @@ const _hasPendingParity = async (
             const withValidGasPrice =
               res.result[count] &&
               (!opts.checkGasPrice ||
-                (await hasValidGasPrice(conf.web3, res.result[count], opts.exactPrice)));
-            if (res.result[count] && isOfType(res.result[count], opts.type) && withValidGasPrice) {
+                (await hasValidGasPrice(
+                  conf.web3,
+                  res.result[count],
+                  opts.exactPrice
+                )));
+            if (
+              res.result[count] &&
+              isOfType(res.result[count], opts.type) &&
+              withValidGasPrice
+            ) {
               resolve(true);
             }
           }
@@ -56,12 +65,13 @@ const _hasPendingParity = async (
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const _hasPendingGeth = (
+const hasPendingGeth = (
   conf: any,
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
 ) => {
-  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
+  opts.checkGasPrice =
+    opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -112,13 +122,29 @@ const _hasPendingGeth = (
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = async (web3: any, transaction: any, exactPrice?: any) => {
+const hasValidGasPrice = async (
+  web3: any,
+  transaction: any,
+  exactPrice?: any
+) => {
   if (exactPrice) {
-    return exactPrice.valueOf() == transaction.gasPrice.valueOf();
+    return exactPrice.valueOf() === transaction.gasPrice.valueOf();
   }
   const spread = 0.3;
-  const currentGasPrice: number = await web3.eth.getGasPrice();
-  return currentGasPrice && spread * currentGasPrice.valueOf() <= transaction.gasPrice.valueOf();
+  let currentGasPrice: number;
+  await new Promise((resolve, reject) => {
+    web3.eth.getGasPrice((err: Error, res: any) => {
+      if (err) {
+        reject(err);
+      }
+      currentGasPrice = res;
+      resolve(true);
+    });
+  });
+  return (
+    currentGasPrice &&
+    spread * currentGasPrice.valueOf() <= transaction.gasPrice.valueOf()
+  );
 };
 
 /**
@@ -132,7 +158,7 @@ const isOfType = (transaction: any, type?: string) => {
   if (transaction && !type) {
     return true;
   }
-  return transaction.input == FnSignatures[type];
+  return transaction.input === FnSignatures[type];
 };
 
 /**
@@ -150,11 +176,11 @@ const hasPending = (
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
 ) => {
   if (conf.client === 'parity') {
-    return _hasPendingParity(conf, txRequest, opts);
+    return hasPendingParity(conf, txRequest, opts);
   }
 
   if (conf.client === 'geth') {
-    return _hasPendingGeth(conf, txRequest, opts);
+    return hasPendingGeth(conf, txRequest, opts);
   }
 };
 

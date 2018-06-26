@@ -23,5 +23,7 @@
       "comment-format": false,
       "ordered-imports": false
     },
-    "rulesDirectory": ["node_modules/tslint-microsoft-contrib"]
+    "rulesDirectory": [
+      "node_modules/tslint-microsoft-contrib"
+    ]
   }

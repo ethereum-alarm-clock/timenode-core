@@ -1,4 +1,4 @@
-import { expect, assert } from 'chai';
+import { expect } from 'chai';
 
 import Config from '../../src/Config';
 import { mockConfig } from '../helpers';
@@ -8,9 +8,9 @@ class provider {
   public send = (request?: any, callback?: any) => {
     return new Promise((reject: any, resolve: any) => {
       if (request.method == 'parity_pendingTransactions') {
-        callback(null, pendingTx({ client: 'parity', result: PENDINGS }));
+        resolve(callback(null, pendingTx({ client: 'parity', result: PENDINGS })));
       } else if (request.method == 'txpool_content') {
-        callback(null, pendingTx({ client: 'geth', result: PENDINGS }));
+        resolve(callback(null, pendingTx({ client: 'geth', result: PENDINGS })));
       }
     });
   };
@@ -25,7 +25,7 @@ const pendingTx = (opts?: any) => {
   const defaultPending = {
     gas: 21000,
     gasPrice: 10 * 1e12,
-    input: 'claim',
+    input: '0x',
     value: 0
   };
   if (opts.client === 'parity' && opts.result) {
@@ -47,11 +47,16 @@ const preConfig = (opt?: any) =>
   Object.assign(
     {},
     {
-      provider,
+      provider: opt.provider ? opt.provider : new provider(),
       web3: {
-        currentProvider: new provider(),
+        currentProvider: opt.provider ? opt.provider : new provider(),
         eth: {
-          getGasPrice: async () => opt.gasPrice
+          getGasPrice: async (callback?: any) => {
+            if (callback) {
+              callback( null, opt.gasPrice);
+            }
+            return opt.gasPrice;
+          }
         }
       },
       eac: {}
