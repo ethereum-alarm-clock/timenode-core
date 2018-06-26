@@ -36,7 +36,7 @@ export default class Actions {
       data: claimData
     };
 
-    if (await hasPending(this.config, txRequest, {type: 'claim'})) {
+    if (await hasPending(this.config, txRequest, { type: 'claim' })) {
       return {
         ignore: true
       };
@@ -102,7 +102,12 @@ export default class Actions {
       data: executeData
     };
 
-    if (await hasPending(this.config, txRequest, {type: 'execute', exactPrice: opts.gasPrice})) {
+    if (
+      await hasPending(this.config, txRequest, {
+        type: 'execute',
+        exactPrice: opts.gasPrice
+      })
+    ) {
       return {
         ignore: true
       };

@@ -30,6 +30,7 @@ export default class Config implements IConfigParams {
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;
+    this.client = params.client;
 
     this.logger = params.logger || new DefaultLogger();
 
