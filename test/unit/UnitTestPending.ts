@@ -6,17 +6,25 @@ import { FnSignatures } from '../../src/Enum';
 import hasPending from '../../src/Actions/Pending';
 
 class provider {
-  public result
+  public result: any;
 
   constructor (opts?: any) {
-    
+    let found: any = {};
+    opts && opts.gas ? found.gas = opts.gas : undefined;
+    opts && opts.input ? found.input = opts.input : undefined;
+    opts && opts.value ? found.value = opts.value : undefined;
+    opts && opts.gasPrice ? found.gasPrice = opts.gasPrice : undefined;
+
+    this.result = {
+      result: PENDINGS.map( pending => Object.assign( {}, pending, found ))
+    }
   }
   public send = (request?: any, callback?: any) => {
     return new Promise((reject: any, resolve: any) => {
       if (request.method == 'parity_pendingTransactions') {
-        resolve(callback(null, pendingTx({ client: 'parity', result: PENDINGS })));
+        resolve(callback(null, pendingTx(Object.assign( {}, this.result, { client: 'parity' }) )));
       } else if (request.method == 'txpool_content') {
-        resolve(callback(null, pendingTx({ client: 'geth', result: PENDINGS })));
+        resolve(callback(null, pendingTx(Object.assign( {}, this.result, { client: 'geth' }) )));
       }
     });
   };
@@ -58,10 +66,11 @@ const preConfig = (opt?: any) =>
         currentProvider: opt.provider ? opt.provider : new provider(),
         eth: {
           getGasPrice: async (callback?: any) => {
+            const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
             if (callback) {
-              callback( null, opt.gasPrice);
+              callback( null, gasPrice);
             }
-            return opt.gasPrice;
+            return gasPrice;
           }
         }
       },
