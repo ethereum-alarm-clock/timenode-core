@@ -5,7 +5,7 @@ import { StatsDB } from '../Stats';
 //TODO remove factory
 export interface IConfigParams {
   autostart: boolean;
-  client?: string,
+  client?: string;
   eac: any;
   economicStrategy?: IEconomicStrategy;
   factory?: any;
