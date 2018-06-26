@@ -1,74 +1,231 @@
-/* tslint:disable:no-unused-expression */
-import { expect } from 'chai';
+import { expect, assert } from 'chai';
 
 import Config from '../../src/Config';
 import { mockConfig } from '../helpers';
+import { FnSignatures } from '../../src/Enum';
 import hasPending from '../../src/Actions/Pending';
 
-const provider = () => {
-  send: (request: any) => {
-    if (request.method == 'parity_pendingTransactions') {
-      return pendingTx({ client: 'parity', result: request.expected });
-    } else if (request.method == 'txpool_content') {
-      return pendingTx({ client: 'geth', result: request.expected });
+class provider {
+  public result: any;
+
+  constructor (opts?: any) {
+    let found: any = {};
+    opts && opts.gas ? found.gas = opts.gas : undefined;
+    opts && opts.input ? found.input = opts.input : undefined;
+    opts && opts.value ? found.value = opts.value : undefined;
+    opts && opts.gasPrice ? found.gasPrice = opts.gasPrice : undefined;
+
+    this.result = {
+      result: PENDINGS.map( pending => Object.assign( {}, pending, found ))
     }
+  }
+  public send = (request?: any, callback?: any) => {
+    return new Promise((resolve: any) => {
+      if (request.method == 'parity_pendingTransactions') {
+        resolve(callback(null, pendingTx(Object.assign( {}, this.result, { client: 'parity' }) )));
+      } else if (request.method == 'txpool_content') {
+        resolve(callback(null, pendingTx(Object.assign( {}, this.result, { client: 'geth' }) )));
+      }
+    });
   };
-};
+  public sendAsync = async (request: any, callback: any) => {
+    return await this.send(request, callback);
+  };
+}
 
 const pendingTx = (opts?: any) => {
-  let result: object;
-  const defaultPending = {
-    blocknumber: 0,
+    let result: any = [];
+    const pending: any = [];
+    const defaultPending = {
     gas: 21000,
     gasPrice: 10 * 1e12,
     input: '0x',
     value: 0
   };
-  result =
-    opts.client == 'geth'
-      ? opts.result.map((res: any) => Object.assign(defaultPending, res))
-      : opts.result.map((res: any) => {
-          if (!result[res.from]) {
-            result[res.from] = [];
-          }
-          result[res.from].push(Object.assign(defaultPending, res));
-        });
-  return { result, client: opts.clent };
+  if (opts.client === 'parity' && opts.result) {
+    result = opts.result.map((res: any) => Object.assign({}, defaultPending, res));
+  }
+  if (opts.client === 'geth' && opts.result) {
+    opts.result.map((res: any) => {
+      if (!pending[res.from]) {
+        pending[res.from] = [];
+      }
+      pending[res.from].push(Object.assign({}, defaultPending, res));
+    });
+    result = { pending };
+  }
+  return { result, client: opts.client };
 };
 
-const preConfig = (opt?: any) => {
+const preConfig = (opt?: any) =>
   Object.assign(
+    {},
     {
-      provider,
-      web3: {},
+      provider: opt.provider ? opt.provider : new provider(),
+      web3: {
+        currentProvider: opt.provider ? opt.provider : new provider(),
+        eth: {
+          getGasPrice: async (callback?: any) => {
+            const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
+            if (callback) {
+              callback( null, gasPrice);
+            }
+            return gasPrice;
+          }
+        }
+      },
       eac: {}
     },
     opt
   );
-};
 
 const mockTx = (opts: any) => {
-  opts.address;
+  return {
+    address: opts.address,
+    gasPrice: opts.gasPrice
+  };
 };
 
-const clients = ['geth', 'parity'];
+const CLIENTS = ['geth', 'parity'];
+const startAddr = '0x2ffd48cc061331d071a1a8178cfc2a3863d56d4e';
+const PENDINGS = [
+  {
+    from: startAddr,
+    to: startAddr
+  },
+  {
+    from: startAddr,
+    to: startAddr + 1
+  },
+  {
+    from: startAddr + 1,
+    to: startAddr
+  },
+  {
+    from: startAddr + 1,
+    to: startAddr + 1
+  }
+];
 
-const randomClient = () => clients[Math.floor(Math.random() * clients.length)];
+const randomClient = () => CLIENTS[Math.floor(Math.random() * CLIENTS.length)];
 
-describe('Pending Unit Tests', async () => {
-  const config: Config = mockConfig(preConfig());
+describe('Pending Unit Tests', () => {
 
-  it('Checks that the right clent is triggerered', () => {
-    const testConfig: Config = mockConfig(preConfig({ client: randomClient() }));
+  it('Detects valid Pending requests (parity)', async () => {
+    const gasPrice = 1 * 1e12;
+    const config = mockConfig(preConfig({ client: 'parity', gasPrice }));
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    expect(pending).to.be.true;
   });
 
-  // it('initializes the Actions with a Config', () => {
-  //     actions = new Actions(config);
-  //     expect(actions).to.exist;
-  // });
+  it('Detects valid Pending requests (geth)', async () => {
+    const gasPrice = 1 * 1e12;
+    const config = mockConfig(preConfig({ client: 'geth', gasPrice }));
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    expect(pending).to.be.true;
+  });
 
-  // it('claim action', () => {
-  //     const claimingResult = actions.claim(tx);
-  //     expect(claimingResult).to.be.true;
-  // });
+  it('Detects valid Pending claim requests', async () => {
+      const expected = [true, true];
+      const results: any = [];
+      const gasPrice = 1 * 1e12;
+      const testConfigs: Config[] = CLIENTS.map( client => mockConfig(preConfig(
+        { 
+            client,
+            gasPrice,
+            provider: new provider({ input: FnSignatures.claim})
+        })));
+      await Promise.all(testConfigs.map( async (conf) => {
+          const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice, }), { type: 'claim' })
+          results.push(pending);
+      }))
+      expect(results).to.deep.equal(expected);
+  })
+
+  it('Detects absence of valid Pending claim request', async () => {
+      const expected = [false, false];
+      const results: any = [];
+      const gasPrice = 1 * 1e12;
+      const testConfigs: Config[] = CLIENTS.map( client => mockConfig(preConfig(
+        { 
+            client,
+            gasPrice,
+            provider: new provider({ input: FnSignatures.execute})
+        })));
+      await Promise.all(testConfigs.map( async (conf) => {
+          const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice, }), { type: 'claim' })
+          results.push(pending);
+      }))
+      expect(results).to.deep.equal(expected);
+  })
+
+  it('Ignore Pending claim request with low gasprice', async () => {
+      const expected = [false, false];
+      const results: any = [];
+      const gasPrice = 1 * 1e12;
+      const testConfigs: Config[] = CLIENTS.map( client => mockConfig(preConfig(
+        { 
+            client,
+            gasPrice,
+            netGasPrice: 15* 1e13,
+            provider: new provider({ input: FnSignatures.claim})
+        })));
+      await Promise.all(testConfigs.map( async (conf) => {
+          const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice, }), { type: 'claim' })
+          results.push(pending);
+      }))
+      expect(results).to.deep.equal(expected);
+  })
+
+  it('Detects valid Pending execute request', async () => {
+      const expected = [true, true];
+      const results: any = [];
+      const gasPrice = 1 * 1e12;
+      const testConfigs: Config[] = CLIENTS.map( client => mockConfig(preConfig(
+        { 
+            client,
+            gasPrice,
+            provider: new provider({ input: FnSignatures.execute})
+        })));
+      await Promise.all(testConfigs.map( async (conf) => {
+          const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice, }), { type: 'execute' })
+          results.push(pending);
+      }))
+      expect(results).to.deep.equal(expected);
+  })
+
+  it('Detects  absence of valid Pending execute request', async () => {
+      const expected = [false, false];
+      const results: any = [];
+      const gasPrice = 1 * 1e12;
+      const testConfigs: Config[] = CLIENTS.map( client => mockConfig(preConfig(
+        { 
+            client,
+            gasPrice,
+            provider: new provider({ input: FnSignatures.claim})
+        })));
+      await Promise.all(testConfigs.map( async (conf) => {
+          const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice, }), { type: 'execute' })
+          results.push(pending);
+      }))
+      expect(results).to.deep.equal(expected);
+  })
+
+  it('Detects Invalid Pending execute request', async () => {
+      const expected = [false, false];
+      const results: any = [];
+      const gasPrice = 1 * 1e12;
+      const exactPrice = 0.9 * 1e12;
+      const testConfigs: Config[] = CLIENTS.map( client => mockConfig(preConfig(
+        { 
+            client,
+            gasPrice,
+            provider: new provider({ input: FnSignatures.execute})
+        })));
+      await Promise.all(testConfigs.map( async (conf) => {
+          const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice:exactPrice , }), { type: 'execute', exactPrice })
+          results.push(pending);
+      }))
+      expect(results).to.deep.equal(expected);
+  })
 });
