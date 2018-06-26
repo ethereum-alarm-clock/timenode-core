@@ -20,7 +20,7 @@ class provider {
     }
   }
   public send = (request?: any, callback?: any) => {
-    return new Promise((reject: any, resolve: any) => {
+    return new Promise((resolve: any) => {
       if (request.method == 'parity_pendingTransactions') {
         resolve(callback(null, pendingTx(Object.assign( {}, this.result, { client: 'parity' }) )));
       } else if (request.method == 'txpool_content') {
