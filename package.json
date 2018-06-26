@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && npm run parcel && npm run clean-built",
+    "parcel": "./node_modules/.bin/parcel build built/index.js -d . --target=node",
     "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
@@ -12,7 +13,6 @@
     "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002",
     "lint": "tslint --project .",
     "lint-fix": "tslint --fix --project .",
-    "parcel": "./node_modules/.bin/parcel build built/index.js -d . --target=node",
     "precommit": "lint-staged",
     "prepare": "npm run build",
     "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
@@ -50,7 +50,7 @@
     "lokijs": "1.5.5"
   },
   "devDependencies": {
-    "@types/bluebird": "3.5.20",
+    "@types/bluebird": "3.5.21",
     "@types/chai": "4.1.4",
     "@types/ethereumjs-tx": "1.0.0",
     "@types/lokijs": "1.5.2",
@@ -64,8 +64,7 @@
     "mocha-typescript": "1.1.16",
     "moment": "2.22.2",
     "parcel": "1.8.1",
-    "prettier": "1.13.5",
-    "run-node": "^1.0.0",
+    "prettier": "1.13.6",
     "ts-node": "6.2.0",
     "tslint": "5.10.0",
     "tslint-config-prettier": "1.13.0",
