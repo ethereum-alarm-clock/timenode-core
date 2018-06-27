@@ -12,5 +12,3 @@ built/*
 .cache
 dist/
 dist/*
-index.js
-index.map
