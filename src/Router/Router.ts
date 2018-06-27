@@ -171,7 +171,7 @@ export default class Router {
     let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
-      this.config.logger.info(
+      this.config.logger.debug(
         `${txRequest.address} Transitioning from  ${TxStatus[status]} to ${
           TxStatus[nextStatus]
         } (${nextStatus})`
