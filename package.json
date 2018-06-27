@@ -4,7 +4,7 @@
   "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && npm run parcel && npm run clean-built",
+    "build": "tsc",
     "parcel": "./node_modules/.bin/parcel build built/index.js -d . --target=node",
     "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm -rf built",

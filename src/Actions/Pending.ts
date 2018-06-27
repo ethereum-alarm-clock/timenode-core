@@ -14,8 +14,7 @@ const hasPendingParity = async (
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
 ) => {
-  opts.checkGasPrice =
-    opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
+  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -27,7 +26,7 @@ const hasPendingParity = async (
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err){
+        if (err) {
           reject(err);
         }
 
@@ -36,16 +35,8 @@ const hasPendingParity = async (
             const withValidGasPrice =
               res.result[count] &&
               (!opts.checkGasPrice ||
-                (await hasValidGasPrice(
-                  conf.web3,
-                  res.result[count],
-                  opts.exactPrice
-                )));
-            if (
-              res.result[count] &&
-              isOfType(res.result[count], opts.type) &&
-              withValidGasPrice
-            ) {
+                (await hasValidGasPrice(conf.web3, res.result[count], opts.exactPrice)));
+            if (res.result[count] && isOfType(res.result[count], opts.type) && withValidGasPrice) {
               resolve(true);
             }
           }
@@ -70,8 +61,7 @@ const hasPendingGeth = (
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
 ) => {
-  opts.checkGasPrice =
-    opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
+  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
@@ -122,11 +112,7 @@ const hasPendingGeth = (
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = async (
-  web3: any,
-  transaction: any,
-  exactPrice?: any
-) => {
+const hasValidGasPrice = async (web3: any, transaction: any, exactPrice?: any) => {
   if (exactPrice) {
     return exactPrice.valueOf() === transaction.gasPrice.valueOf();
   }
@@ -141,10 +127,7 @@ const hasValidGasPrice = async (
       resolve(true);
     });
   });
-  return (
-    currentGasPrice &&
-    spread * currentGasPrice.valueOf() <= transaction.gasPrice.valueOf()
-  );
+  return currentGasPrice && spread * currentGasPrice.valueOf() <= transaction.gasPrice.valueOf();
 };
 
 /**
