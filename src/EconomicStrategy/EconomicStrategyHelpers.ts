@@ -50,6 +50,10 @@ const isProfitable = async (txRequest: any, economicStrategy: IEconomicStrategy)
 };
 
 const shouldClaimTx = async (txRequest: any, config: Config) => {
+  if (!config.economicStrategy) {
+    return true;
+  }
+
   const profitable = await isProfitable(txRequest, config.economicStrategy);
   if (!profitable) {
     return false;
