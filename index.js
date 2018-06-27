@@ -1,7 +1,8 @@
-const { Config, TimeNode, StatsDB } = require('./built');
+const { Config, TimeNode, StatsDB, Wallet } = require('./built');
 
 module.exports = {
   Config,
   TimeNode,
-  StatsDB
+  StatsDB,
+  Wallet,
 };
