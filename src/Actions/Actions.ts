@@ -5,20 +5,22 @@ import hasPending from './Pending';
 import W3Util from '../Util';
 
 export function shortenAddress(address: string) {
-  return `${address.slice(0, 6)}...${address.slice(
-    address.length - 5,
-    address.length
-  )}`;
+  return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
 }
 
 export default class Actions {
-  config: Config;
+  public config: Config;
 
   constructor(config: Config) {
     this.config = config;
   }
 
-  async claim(txRequest: any): Promise<any> {
+  public async claim(txRequest: any): Promise<any> {
+    // Check if claiming is turned off.
+    if (!this.config.claiming) {
+      return { ignore: true };
+    }
+
     const requiredDeposit = txRequest.requiredDeposit;
     // TODO make this a constant
     const claimData = txRequest.claimData;
@@ -34,7 +36,7 @@ export default class Actions {
       data: claimData
     };
 
-    if (await hasPending(this.config, txRequest)) {
+    if (await hasPending(this.config, txRequest, { type: 'claim' })) {
       return {
         ignore: true
       };
@@ -43,9 +45,7 @@ export default class Actions {
     if (this.config.wallet.isNextAccountFree()) {
       try {
         // this.config.logger.debug(`[${txRequest.address}] Sending claim transactions with opts: ${JSON.stringify(opts)}`);
-        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(
-          opts
-        );
+        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(opts);
         // this.config.logger.debug(`[${txRequest.address}] Received receipt: ${JSON.stringify(receipt)}\n And from: ${from}`);
 
         if (ignore) {
@@ -66,9 +66,7 @@ export default class Actions {
         return false;
       } catch (error) {
         this.config.logger.debug(
-          `Actions::claim(${shortenAddress(
-            txRequest.address
-          )})::sendFromIndex error: ${error}`
+          `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${error}`
         );
       }
     } else {
@@ -82,7 +80,7 @@ export default class Actions {
     //TODO get transaction object from txHash
   }
 
-  async execute(txRequest: any): Promise<any> {
+  public async execute(txRequest: any): Promise<any> {
     const gasToExecute = txRequest.callGas
       .add(180000)
       .div(64)
@@ -93,9 +91,7 @@ export default class Actions {
     // TODO make this a constant
     const executeData = txRequest.executeData;
 
-    const claimIndex = this.config.wallet
-      .getAddresses()
-      .indexOf(txRequest.claimedBy);
+    const claimIndex = this.config.wallet.getAddresses().indexOf(txRequest.claimedBy);
     this.config.logger.debug(`Claim Index ${claimIndex}`);
 
     const opts = {
@@ -106,38 +102,37 @@ export default class Actions {
       data: executeData
     };
 
-    this.config.logger.debug(`Opts: ${JSON.stringify(opts)}`);
-
-    if (await hasPending(this.config, txRequest)) {
+    if (
+      await hasPending(this.config, txRequest, {
+        type: 'execute',
+        exactPrice: opts.gasPrice
+      })
+    ) {
       return {
         ignore: true
       };
     }
 
     if (claimIndex !== -1) {
-      const { receipt, from, ignore } = await this.config.wallet.sendFromIndex(
-        claimIndex,
-        opts
-      );
+      const { receipt, from, ignore } = await this.config.wallet.sendFromIndex(claimIndex, opts);
 
       if (ignore) {
         return;
       }
 
       if (isTransactionStatusSuccessful(receipt.status)) {
+        let bounty = new BigNumber(0);
         if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
           const data = receipt.logs[0].data;
-          const bounty = this.config.web3.toDecimal(data.slice(0, 66));
-
-          this.config.statsDb.updateExecuted(from, bounty, new BigNumber(0));
+          bounty = this.config.web3.toDecimal(data.slice(0, 66));
         }
 
         const cost = new BigNumber(receipt.gasUsed).mul(
           new BigNumber(txRequest.data.txData.gasPrice)
         );
-        this.config.statsDb.updateExecuted(from, new BigNumber(0), cost);
+        this.config.statsDb.updateExecuted(from, bounty, cost);
 
         return txRequest.wasSuccessful;
       }
@@ -146,9 +141,7 @@ export default class Actions {
     }
 
     if (this.config.wallet.isNextAccountFree()) {
-      const { receipt, from, ignore } = await this.config.wallet.sendFromNext(
-        opts
-      );
+      const { receipt, from, ignore } = await this.config.wallet.sendFromNext(opts);
 
       if (ignore) {
         return;
@@ -174,13 +167,11 @@ export default class Actions {
 
       return false;
     } else {
-      this.config.logger.debug(
-        'Actions.execute : No available wallet to send a transaction.'
-      );
+      this.config.logger.debug('Actions.execute : No available wallet to send a transaction.');
     }
   }
 
-  async cleanup(txRequest: any): Promise<boolean> {
+  public async cleanup(txRequest: any): Promise<boolean> {
     throw Error('Not implemented according to latest EAC changes.');
 
     // Check if there is any ether left in a txRequest.
@@ -212,17 +203,10 @@ export default class Actions {
         data: txRequest.cancelData // TODO make constant
       };
 
-      let transactionHash;
       // Check to see if any of our accounts is the owner.
-      const ownerIndex = this.config.wallet
-        .getAddresses()
-        .indexOf(txRequest.owner);
+      const ownerIndex = this.config.wallet.getAddresses().indexOf(txRequest.owner);
       if (ownerIndex !== -1) {
-        const {
-          receipt,
-          from,
-          ignore
-        } = await this.config.wallet.sendFromIndex(ownerIndex, opts);
+        const { receipt, from, ignore } = await this.config.wallet.sendFromIndex(ownerIndex, opts);
         if (ignore) {
           return;
         }
@@ -232,9 +216,7 @@ export default class Actions {
           // It's now considered dust.
           return true;
         }
-        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(
-          opts
-        );
+        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(opts);
         if (ignore) {
           return;
         }

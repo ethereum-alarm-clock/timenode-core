@@ -1,33 +1,33 @@
 import { ILogger } from '../Logger';
 
 export default class Cache {
-  cache: {} = {};
-  logger: any;
+  public cache: {} = {};
+  public logger: any;
 
   constructor(logger: ILogger) {
     this.logger = logger;
   }
 
-  set(k: string, v: any) {
+  public set(k: string, v: any) {
     this.cache[k] = v;
     this.logger.cache(`stored ${k} with value ${v}`);
   }
 
-  get(k: string, d?: any): any {
+  public get(k: string, d?: any): any {
     const value = this.cache[k];
     if (value === undefined) {
       if (d === undefined) {
-        throw new Error(
-          'attempted to access key entry that does not exist: ' + k
-        );
-      } else return d;
+        throw new Error('attempted to access key entry that does not exist: ' + k);
+      } else {
+        return d;
+      }
     }
 
     this.logger.cache(`accessed ${k}`);
     return value;
   }
 
-  has(k: string) {
+  public has(k: string) {
     if (this.cache[k] === undefined) {
       this.logger.cache(`miss ${k}`);
       return false;
@@ -36,20 +36,20 @@ export default class Cache {
     return true;
   }
 
-  del(k: string) {
+  public del(k: string) {
     delete this.cache[k];
     this.logger.cache(`deleted ${k}`);
   }
 
-  len(): number {
+  public len(): number {
     return Object.keys(this.cache).length;
   }
 
-  stored() {
+  public stored() {
     return Object.keys(this.cache);
   }
 
-  isEmpty() {
+  public isEmpty() {
     return this.len() === 0;
   }
 }
