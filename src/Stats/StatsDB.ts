@@ -1,19 +1,12 @@
 import BigNumber from 'bignumber.js';
 // import * as EAC from 'eac.js-lib';
 
-// / Wrapper over a lokijs persistent storage to keep track of the stats of executing accounts.
+// Wrapper over *some* storage solution (we use lokijs) to keep track of TimeNode actions
 export class StatsDB {
-  /**
-   * Creates an instance of StatsDB.
-   * @param {any} web3
-   * @param {any} db Any storage solution that exposes find, update, insert
-   * @memberof StatsDB
-   */
-
   public db: any;
-  public web3: any;
   public eac: any;
   public stats: any;
+  public web3: any;
 
   constructor(web3: any, db: any) {
     this.db = db;
@@ -25,7 +18,7 @@ export class StatsDB {
     this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats');
   }
 
-  // / Takes an array of addresses and stores them as new stats objects.
+  // Takes an array of addresses and stores them as new stats objects.
   public initialize(accounts: string[]) {
     accounts.forEach(async account => {
       const found = this.stats.find({ account })[0];
@@ -48,7 +41,7 @@ export class StatsDB {
     });
   }
 
-  // / Takes the account which has claimed a transaction.
+  // Takes the account which has claimed a transaction.
   public async updateClaimed(account: string, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.claimed += 1;
@@ -57,7 +50,7 @@ export class StatsDB {
     this.stats.update(found);
   }
 
-  // / Takes the account which has executed a transaction.
+  // Takes the account which has executed a transaction.
   public async updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
 
@@ -65,7 +58,12 @@ export class StatsDB {
       return;
     }
 
-    found.executed += 1;
+    // Only increment executed if transaction was actually executed, we check by
+    // seeing if any bounty was paid. Otherwise, don't increment.
+    if (bounty !== new BigNumber(0)) {
+      found.executed += 1;
+    }
+
     found.executedTransactions.push({ timestamp: Date.now() });
 
     found.bounties = found.bounties.plus(bounty);
@@ -74,7 +72,7 @@ export class StatsDB {
     this.stats.update(found);
   }
 
-  // / Gets the stats
+  // Gets the stats
   // @returns an array of the DB objs
   public getStats() {
     return this.stats.data;
