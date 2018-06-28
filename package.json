@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "parcel": "./node_modules/.bin/parcel build built/index.js -d . --target=node",
     "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
@@ -64,7 +63,6 @@
     "mocha": "5.1.1",
     "mocha-typescript": "1.1.16",
     "moment": "2.22.2",
-    "parcel": "1.8.1",
     "prettier": "1.13.6",
     "ts-node": "6.2.0",
     "tslint": "5.10.0",
