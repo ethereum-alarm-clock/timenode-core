@@ -1,6 +1,8 @@
 import BigNumber from 'bignumber.js';
 // import * as EAC from 'eac.js-lib';
 
+declare const require: any;
+
 // Wrapper over *some* storage solution (we use lokijs) to keep track of TimeNode actions
 export class StatsDB {
   public db: any;
