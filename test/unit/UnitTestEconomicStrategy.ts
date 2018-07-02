@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { expect, assert } from 'chai';
+import { assert } from 'chai';
 import { Config } from '../../src/index';
 import { mockConfig, MockTxRequest } from '../helpers';
 import { shouldClaimTx } from '../../src/EconomicStrategy';
