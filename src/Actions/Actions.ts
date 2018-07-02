@@ -129,9 +129,10 @@ export default class Actions {
           bounty = this.config.web3.toDecimal(data.slice(0, 66));
         }
 
-        const cost = new BigNumber(receipt.gasUsed).mul(
-          new BigNumber(txRequest.data.txData.gasPrice)
-        );
+        let cost = new BigNumber(0);
+        if (!isExecuted) {
+          cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
+        }
         this.config.statsDb.updateExecuted(from, bounty, cost);
 
         return txRequest.wasSuccessful;
@@ -148,19 +149,19 @@ export default class Actions {
       }
 
       if (isTransactionStatusSuccessful(receipt.status)) {
+        let bounty = new BigNumber(0);
         if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
           const data = receipt.logs[0].data;
-          const bounty = this.config.web3.toDecimal(data.slice(0, 66));
-
-          this.config.statsDb.updateExecuted(from, bounty, new BigNumber(0));
+          bounty = this.config.web3.toDecimal(data.slice(0, 66));
         }
 
-        const cost = new BigNumber(receipt.gasUsed).mul(
-          new BigNumber(txRequest.data.txData.gasPrice)
-        );
-        this.config.statsDb.updateExecuted(from, new BigNumber(0), cost);
+        let cost = new BigNumber(0);
+        if (!isExecuted) {
+          cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
+        }
+        this.config.statsDb.updateExecuted(from, bounty, cost);
 
         return txRequest.wasSuccessful;
       }
