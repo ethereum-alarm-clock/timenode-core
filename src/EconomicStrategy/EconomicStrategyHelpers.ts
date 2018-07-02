@@ -21,16 +21,11 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) 
 
 /**
  * Checks if the balance of the TimeNode is above a set limit.
- * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  * @param {Config} config TimeNode configuration object.
  */
-const isAboveMinBalanceLimit = async (economicStrategy: IEconomicStrategy, config: Config) => {
-  const minBalance = economicStrategy.minBalance;
-
-  const currentBalance = await Bb.fromCallback((callback: (err: any, result?: {}) => void) =>
-    config.web3.eth.getBalance(config.wallet.getAddresses()[0], callback)
-  );
-
+const isAboveMinBalanceLimit = async (config: Config) => {
+  const minBalance = config.economicStrategy.minBalance;
+  const currentBalance = await config.wallet.getBalanceOf(config.wallet.getAddresses()[0]);
   return currentBalance.gt(minBalance);
 };
 
@@ -63,7 +58,7 @@ const shouldClaimTx = async (txRequest: any, config: Config) => {
     return false;
   }
 
-  const enoughBalance = await isAboveMinBalanceLimit(config.economicStrategy, config);
+  const enoughBalance = await isAboveMinBalanceLimit(config);
   if (!enoughBalance) {
     return false;
   }
