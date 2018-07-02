@@ -33,12 +33,12 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Has pending",
+            "name": "Economic Strategy",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "args": [
                 "-r",
                 "ts-node/register",
-                "${workspaceFolder}/test/unit/*ending.ts",
+                "${workspaceFolder}/test/unit/UnitTestEconomicStrategy.ts",
                 "--exit"
             ],
             "console": "integratedTerminal",
