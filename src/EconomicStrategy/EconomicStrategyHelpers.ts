@@ -12,7 +12,11 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) 
   const requiredDeposit = txRequest.requiredDeposit;
   const maxDeposit = economicStrategy.maxDeposit;
 
-  return requiredDeposit.gt(maxDeposit);
+  if (maxDeposit.gt(0)) {
+    return requiredDeposit.gt(maxDeposit);
+  }
+
+  return false;
 };
 
 /**
@@ -43,7 +47,7 @@ const isProfitable = async (txRequest: any, economicStrategy: IEconomicStrategy)
   const minProfitability = economicStrategy.minProfitability;
 
   if (minProfitability.gt(0)) {
-    return reward.lt(minProfitability);
+    return reward.gt(minProfitability);
   }
 
   return true;
