@@ -117,7 +117,7 @@ export default class Actions {
       receipt: any;
       from: string;
       ignore: boolean;
-    }): boolean => {
+    }): Promise<boolean> => {
       const { receipt, from, ignore } = walletReceipt;
 
       if (ignore) {
