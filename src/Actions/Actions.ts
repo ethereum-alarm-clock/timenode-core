@@ -113,7 +113,7 @@ export default class Actions {
       };
     }
 
-    const handleTransactionReturn = (walletReceipt: {
+    const handleTransactionReturn = async (walletReceipt: {
       receipt: any;
       from: string;
       ignore: boolean;
@@ -151,13 +151,13 @@ export default class Actions {
     if (claimIndex !== -1) {
       const walletReceipt = await this.config.wallet.sendFromIndex(claimIndex, opts);
 
-      handleTransactionReturn(walletReceipt);
+      return await handleTransactionReturn(walletReceipt);
     }
 
     if (this.config.wallet.isNextAccountFree()) {
       const walletReceipt = await this.config.wallet.sendFromNext(opts);
 
-      handleTransactionReturn(walletReceipt);
+      return await handleTransactionReturn(walletReceipt);
     } else {
       this.config.logger.debug('Actions.execute : No available wallet to send a transaction.');
     }
