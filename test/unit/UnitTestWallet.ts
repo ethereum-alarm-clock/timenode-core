@@ -59,4 +59,12 @@ describe('Wallet Unit Tests', () => {
       assert.equal(wallet.length, 1);
     });
   });
+
+  describe('getNonce()', () => {
+    it('returns a nonce', async () => {
+      const nonce = await wallet.getNonce(myAccount);
+      expect(nonce).to.exist;
+      assert.equal(typeof nonce, 'number');
+    });
+  });
 });
