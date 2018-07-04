@@ -233,7 +233,7 @@ export default class Wallet {
       throw new Error('Index is outside range of addresses.');
     }
 
-    const from: string = this.getAccounts()[idx].getAddressString();
+    const from: string = this.getAddresses()[idx];
 
     const balance = await this.getBalanceOf(from);
 
