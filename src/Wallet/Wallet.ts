@@ -6,6 +6,8 @@ const ethTx = require('ethereumjs-tx');
 import IWalletReceipt from './IWalletReceipt';
 
 declare const Buffer: any;
+declare const require: any;
+declare const console: any;
 declare const setTimeout: any;
 
 interface AccountState {

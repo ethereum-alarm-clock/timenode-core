@@ -113,8 +113,12 @@ export default class Actions {
       };
     }
 
-    if (claimIndex !== -1) {
-      const { receipt, from, ignore } = await this.config.wallet.sendFromIndex(claimIndex, opts);
+    const handleTransactionReturn = async (walletReceipt: {
+      receipt: any;
+      from: string;
+      ignore: boolean;
+    }): Promise<boolean> => {
+      const { receipt, from, ignore } = walletReceipt;
 
       if (ignore) {
         return;
@@ -122,49 +126,38 @@ export default class Actions {
 
       if (isTransactionStatusSuccessful(receipt.status)) {
         let bounty = new BigNumber(0);
-        if (isExecuted(receipt)) {
+        const wasExecuted = isExecuted(receipt);
+        if (wasExecuted) {
           await txRequest.refreshData();
 
           const data = receipt.logs[0].data;
           bounty = this.config.web3.toDecimal(data.slice(0, 66));
         }
 
-        const cost = new BigNumber(receipt.gasUsed).mul(
-          new BigNumber(txRequest.data.txData.gasPrice)
-        );
+        let cost = new BigNumber(0);
+        if (!wasExecuted) {
+          // If not executed, must add the gas cost into cost. Otherwise, TimeNode was
+          // reimbursed for gas.
+          cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
+        }
         this.config.statsDb.updateExecuted(from, bounty, cost);
 
         return txRequest.wasSuccessful;
       }
 
       return false;
+    };
+
+    if (claimIndex !== -1) {
+      const walletReceipt = await this.config.wallet.sendFromIndex(claimIndex, opts);
+
+      return await handleTransactionReturn(walletReceipt);
     }
 
     if (this.config.wallet.isNextAccountFree()) {
-      const { receipt, from, ignore } = await this.config.wallet.sendFromNext(opts);
+      const walletReceipt = await this.config.wallet.sendFromNext(opts);
 
-      if (ignore) {
-        return;
-      }
-
-      if (isTransactionStatusSuccessful(receipt.status)) {
-        let bounty = new BigNumber(0);
-        if (isExecuted(receipt)) {
-          await txRequest.refreshData();
-
-          const data = receipt.logs[0].data;
-          bounty = this.config.web3.toDecimal(data.slice(0, 66));
-        }
-
-        const cost = new BigNumber(receipt.gasUsed).mul(
-          new BigNumber(txRequest.data.txData.gasPrice)
-        );
-        this.config.statsDb.updateExecuted(from, bounty, cost);
-
-        return txRequest.wasSuccessful;
-      }
-
-      return false;
+      return await handleTransactionReturn(walletReceipt);
     } else {
       this.config.logger.debug('Actions.execute : No available wallet to send a transaction.');
     }
