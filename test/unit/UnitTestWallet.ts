@@ -67,4 +67,64 @@ describe('Wallet Unit Tests', () => {
       assert.equal(typeof nonce, 'number');
     });
   });
+
+  describe('getAccounts()', () => {
+    it('returns a list of accounts', async () => {
+      wallet.create(5);
+      assert.equal(wallet.getAccounts().length, 5);
+    });
+
+    it('returned account properly formatted', async () => {
+      wallet.create(1);
+
+      const account = wallet.getAccounts()[0];
+      expect(account).to.haveOwnProperty('_privKey');
+      expect(account).to.haveOwnProperty('_pubKey');
+    });
+  });
+
+  describe('getAddresses()', () => {
+    it('returns a list of addresses', async () => {
+      wallet.create(5);
+      assert.equal(wallet.getAddresses().length, 5);
+
+      const address = wallet.getAddresses()[0];
+      assert.equal(typeof address, 'string');
+    });
+  });
+
+  describe('isKnownAddress()', () => {
+    it('returns true if address is known', async () => {
+      wallet.create(1);
+      const address = wallet.getAddresses()[0];
+
+      assert.isTrue(wallet.isKnownAddress(address));
+    });
+
+    it('returns false if address is not known', async () => {
+      assert.isFalse(wallet.isKnownAddress('0x0000000000000000000000000000000000000000'));
+    });
+  });
+
+  describe('isWalletAbleToSendTx()', () => {
+    it('returns true if no states', async () => {
+      wallet.create(1);
+      assert.isTrue(wallet.isWalletAbleToSendTx(0));
+    });
+
+    it('returns false if wallet state set', async () => {
+      wallet.create(1);
+      const address = wallet.getAddresses()[0];
+
+      wallet.walletStates[address] = {
+        sendingTxInProgress: true
+      };
+      assert.isFalse(wallet.isWalletAbleToSendTx(0));
+    });
+
+    it('errors if wallet not within range', async () => {
+      wallet.create(1);
+      expect(() => wallet.isWalletAbleToSendTx(1)).to.throw();
+    });
+  });
 });

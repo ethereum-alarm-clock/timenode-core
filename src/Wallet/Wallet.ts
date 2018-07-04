@@ -82,7 +82,7 @@ export default class Wallet {
     return this[wallet.getAddressString()];
   }
 
-  public rm(addressOrIndex: string | number) {
+  public rm(addressOrIndex: string | number): boolean {
     const wallet = this[addressOrIndex];
 
     if (wallet && wallet.getAddressString()) {
@@ -194,7 +194,7 @@ export default class Wallet {
     });
   }
 
-  public signTransaction(from: string, nonce: number | string, opts: any) {
+  public signTransaction(from: string, nonce: number | string, opts: any): Promise<any> {
     return new Promise(resolve => {
       const params = {
         nonce,
@@ -214,7 +214,7 @@ export default class Wallet {
     });
   }
 
-  public isWalletAbleToSendTx(idx: number) {
+  public isWalletAbleToSendTx(idx: number): boolean {
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -286,11 +286,11 @@ export default class Wallet {
     return this._currentIndexes().map(idx => this[idx]);
   }
 
-  public getAddresses() {
+  public getAddresses(): string[] {
     return this.getAccounts().map(account => account.getAddressString());
   }
 
-  public isKnownAddress(address: string) {
+  public isKnownAddress(address: string): boolean {
     return this.getAddresses().some(addr => addr === address);
   }
 }
