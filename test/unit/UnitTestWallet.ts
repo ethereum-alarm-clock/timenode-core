@@ -201,7 +201,7 @@ describe('Wallet Unit Tests', () => {
   });
 
   describe('sendFromNext()', () => {
-    it('returns generates a random index and sends from it', async () => {
+    it('generates a random index and sends from it', async () => {
       wallet.create(5);
       const receipt = await wallet.sendFromNext(opts);
       assert.equal(receipt.ignore, true);
