@@ -1,4 +1,3 @@
-import * as Bb from 'bluebird';
 import { IEconomicStrategy } from './IEconomicStrategy';
 import Config from '../Config';
 
@@ -12,7 +11,7 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) 
   const requiredDeposit = txRequest.requiredDeposit;
   const maxDeposit = economicStrategy.maxDeposit;
 
-  if (maxDeposit.gt(0)) {
+  if (maxDeposit && maxDeposit.gt(0)) {
     return requiredDeposit.gt(maxDeposit);
   }
 
@@ -26,7 +25,11 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy) 
 const isAboveMinBalanceLimit = async (config: Config) => {
   const minBalance = config.economicStrategy.minBalance;
   const currentBalance = await config.wallet.getBalanceOf(config.wallet.getAddresses()[0]);
-  return currentBalance.gt(minBalance);
+
+  if (minBalance) {
+    return currentBalance.gt(minBalance);
+  }
+  return true;
 };
 
 /**
@@ -41,7 +44,7 @@ const isProfitable = async (txRequest: any, economicStrategy: IEconomicStrategy)
 
   const minProfitability = economicStrategy.minProfitability;
 
-  if (minProfitability.gt(0)) {
+  if (minProfitability && minProfitability.gt(0)) {
     return reward.gt(minProfitability);
   }
 
