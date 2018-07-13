@@ -1,6 +1,6 @@
 {
   "name": "@ethereum-alarm-clock/timenode-core",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
@@ -57,7 +57,7 @@
     "@types/node": "10.5.2",
     "bluebird": "3.5.1",
     "chai": "4.1.2",
-    "ganache-cli": "6.1.4",
+    "ganache-cli": "6.1.6",
     "husky": "0.14.3",
     "lint-staged": "7.2.0",
     "mocha": "5.1.1",
