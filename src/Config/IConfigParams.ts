@@ -6,6 +6,7 @@ import { StatsDB } from '../Stats';
 export interface IConfigParams {
   autostart: boolean;
   client?: string;
+  claiming?: boolean;
   eac: any;
   economicStrategy?: IEconomicStrategy;
   factory?: any;

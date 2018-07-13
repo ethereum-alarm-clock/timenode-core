@@ -22,6 +22,7 @@ const mockConfig = (preConfig?: any) => {
   return new Config({
     autostart: true,
     client,
+    claiming: true,
     eac,
     economicStrategy: {
       maxDeposit: new BigNumber(0),

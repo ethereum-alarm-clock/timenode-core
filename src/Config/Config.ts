@@ -26,7 +26,7 @@ export default class Config implements IConfigParams {
 
   constructor(params: IConfigParams) {
     this.autostart = params.autostart || true;
-    this.claiming = true;
+    this.claiming = params.claiming || false;
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;

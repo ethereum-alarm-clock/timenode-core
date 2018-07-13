@@ -58,25 +58,27 @@ export default class Router {
       return TxStatus.FreezePeriod;
     }
 
-    const shouldClaim = await shouldClaimTx(txRequest, this.config);
+    if (this.config.claiming) {
+      const shouldClaim = await shouldClaimTx(txRequest, this.config);
 
-    if (shouldClaim) {
-      try {
-        const claimed = await this.actions.claim(txRequest);
+      if (shouldClaim) {
+        try {
+          const claimed = await this.actions.claim(txRequest);
 
-        if (claimed === true) {
-          this.config.logger.info(`${txRequest.address} claimed`);
+          if (claimed === true) {
+            this.config.logger.info(`${txRequest.address} claimed`);
+          }
+        } catch (e) {
+          this.config.logger.error(`${txRequest.address} claiming failed`);
+          // TODO handle gracefully?
+          throw new Error(e);
         }
-      } catch (e) {
-        this.config.logger.error(`${txRequest.address} claiming failed`);
-        // TODO handle gracefully?
-        throw new Error(e);
+      } else {
+        this.config.logger.info(`[${txRequest.address}] not profitable to claim.`);
+        this.config.logger.debug(
+          `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
+        );
       }
-    } else {
-      this.config.logger.info(`[${txRequest.address}] not profitable to claim.`);
-      this.config.logger.debug(
-        `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
-      );
     }
 
     return TxStatus.ClaimWindow;
