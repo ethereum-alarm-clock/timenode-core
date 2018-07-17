@@ -12,6 +12,7 @@ built/*
 .cache
 dist/
 dist/*
+stats.db
 
 # Coverage directory
 coverage
