@@ -4,6 +4,8 @@
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/ethereum-alarm-clock/timenode-core.svg)](https://greenkeeper.io/)
 
+[![Coverage Status](https://coveralls.io/repos/github/ethereum-alarm-clock/timenode-core/badge.svg?branch=master)](https://coveralls.io/github/ethereum-alarm-clock/timenode-core?branch=master)
+
 # timenode-core
 
 This package contains all of the key logic necessary for the operation of an [Ethereum Alarm Clock](https://github.com/ethereum-alarm-clock/ethereum-alarm-clock) TimeNode. 
