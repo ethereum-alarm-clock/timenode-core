@@ -1,44 +1,31 @@
 import { expect } from 'chai';
 import Cache from '../../src/Cache';
 import { DefaultLogger } from '../../src/Logger';
-import { BigNumber } from 'bignumber.js';
 
 if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('Cache', () => {
-    let cache: Cache;
+    let cache: Cache<any>;
     beforeEach(() => {
       cache = new Cache(new DefaultLogger());
     });
 
-    const EXAMPLE_VALUE = {
-      windowStart: new BigNumber(0),
-      claimedBy: '',
-      wasCalled: false
-    };
-
-    const EXAMPLE_VALUE_2 = {
-      windowStart: new BigNumber(2),
-      claimedBy: '',
-      wasCalled: true
-    };
-
     it('stores and reads the key,value', () => {
-      cache.set('key', EXAMPLE_VALUE);
+      cache.set('key', 'value');
 
       const result = cache.get('key');
-      expect(result).to.equals(EXAMPLE_VALUE);
+      expect(result).to.equals('value');
     });
 
     it('return proper length', () => {
-      cache.set('key', EXAMPLE_VALUE);
+      cache.set('key', 'value');
 
       const result = cache.length();
       expect(result).to.equals(1);
     });
 
     it('returns stored values', () => {
-      cache.set('key', EXAMPLE_VALUE);
-      cache.set('key2', EXAMPLE_VALUE_2);
+      cache.set('key', 'value');
+      cache.set('key2', 'value2');
 
       const results = cache.stored();
 

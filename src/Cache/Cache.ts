@@ -7,7 +7,7 @@ export interface ICachedTxDetails {
   windowStart: BigNumber;
 }
 
-export default class Cache {
+export default class Cache<T> {
   public cache: {} = {};
   public logger: any;
 
@@ -15,12 +15,12 @@ export default class Cache {
     this.logger = logger;
   }
 
-  public set(key: string, value: ICachedTxDetails) {
+  public set(key: string, value: T) {
     this.cache[key] = value;
-    this.logger.cache(`stored ${key} with value ${value.windowStart}`);
+    this.logger.cache(`stored ${key} with value ${JSON.stringify(value)}`);
   }
 
-  public get(key: string, fallback?: any): ICachedTxDetails {
+  public get(key: string, fallback?: any): T {
     const value = this.cache[key];
     if (value === undefined) {
       if (fallback === undefined) {

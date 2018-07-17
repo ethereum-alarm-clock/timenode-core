@@ -5,10 +5,11 @@ import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
 import W3Util from '../Util';
+import { ICachedTxDetails } from '../Cache/Cache';
 
 export default class Config implements IConfigParams {
   public autostart: boolean;
-  public cache: Cache;
+  public cache: Cache<ICachedTxDetails>;
   public claiming: boolean;
   public client?: string;
   public eac: any;
