@@ -46,7 +46,7 @@ describe('Scanner Unit Tests', () => {
       assert.isTrue(scanner.scanning);
       expect(scanner.cacheScanner).to.exist;
       expect(scanner.chainScanner).to.exist;
-    });
+    }).timeout(5000);
   });
 
   describe('stop()', async () => {
@@ -56,7 +56,7 @@ describe('Scanner Unit Tests', () => {
       assert.isNotTrue(scanner.scanning);
       assert.equal(scanner.cacheScanner[0], null);
       assert.equal(scanner.chainScanner[0], null);
-    });
+    }).timeout(5000);
   });
 
   describe('isUpcoming()', () => {

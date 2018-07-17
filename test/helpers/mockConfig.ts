@@ -1,52 +1,41 @@
-import * as Web3 from 'web3';
 import * as loki from 'lokijs';
-import { Config, StatsDB } from '../../src/index';
+import { Config } from '../../src/index';
 import MockLogger from './MockLogger';
 import { createWalletKeystore } from './createWallet';
 import { providerUrl } from './network';
 import BigNumber from 'bignumber.js';
 
+const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
+
 const mockConfig = (preConfig?: any) => {
-  const provider =
-    preConfig && preConfig.provider
-      ? preConfig.provider
-      : new Web3.providers.HttpProvider(providerUrl);
-  const web3 = preConfig && preConfig.web3 ? preConfig.web3 : new Web3(provider);
-  const eac = preConfig && preConfig.eac ? preConfig.eac : require('eac.js-lib')(web3);
   const client = preConfig && preConfig.client ? preConfig.client : undefined;
 
   const filename = 'wallet.txt';
   const password = 'password123';
-  const wallet = ['fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26']; //createWalletKeystore(web3, 1, filename, password);
+  const wallet = [PRIVATE_KEY]; //createWalletKeystore(web3, 1, filename, password);
 
   return new Config({
     autostart: true,
     client,
     claiming: true,
-    eac,
     economicStrategy: {
       maxDeposit: new BigNumber(0),
       minBalance: new BigNumber(0),
       minProfitability: new BigNumber(0)
     },
-    factory: '0x0',
     logger: new MockLogger(),
     ms: 4000,
     password,
-    provider,
+    providerUrl,
     scanSpread: 0,
-    statsDb: new StatsDB(
-      web3,
-      new loki('stats.db', {
-        autoload: true,
-        autosave: true,
-        autosaveInterval: 4000
-      })
-    ),
+    statsDb: new loki('stats.db', {
+      autoload: true,
+      autosave: true,
+      autosaveInterval: 4000
+    }),
     walletStores: wallet,
-    walletStoresAsPrivateKeys: true,
-    web3
+    walletStoresAsPrivateKeys: true
   });
 };
 
-export { mockConfig };
+export { mockConfig, PRIVATE_KEY };

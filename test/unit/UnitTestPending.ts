@@ -57,27 +57,24 @@ const pendingTx = (opts?: any) => {
   return { result, client: opts.client };
 };
 
-const preConfig = (opt?: any) =>
-  Object.assign(
-    {},
-    {
-      provider: opt.provider ? opt.provider : new provider(),
-      web3: {
-        currentProvider: opt.provider ? opt.provider : new provider(),
-        eth: {
-          getGasPrice: async (callback?: any) => {
-            const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
-            if (callback) {
-              callback(null, gasPrice);
-            }
-            return gasPrice;
-          }
+const preConfig = (config: Config, opt?: any) => {
+  config.web3 = {
+    currentProvider: opt.provider ? opt.provider : new provider(),
+    eth: {
+      getGasPrice: async (callback?: any) => {
+        const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
+        if (callback) {
+          callback(null, gasPrice);
         }
-      },
-      eac: {}
-    },
-    opt
-  );
+        return gasPrice;
+      }
+    }
+  };
+
+  config.client = opt.client;
+
+  return config;
+};
 
 const mockTx = (opts: any) => {
   return {
@@ -112,14 +109,14 @@ const randomClient = () => CLIENTS[Math.floor(Math.random() * CLIENTS.length)];
 describe('Pending Unit Tests', () => {
   it('Detects valid Pending requests (parity)', async () => {
     const gasPrice = 1 * 1e12;
-    const config = mockConfig(preConfig({ client: 'parity', gasPrice }));
+    const config = preConfig(mockConfig(), { client: 'parity', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     expect(pending).to.be.true;
   });
 
   it('Detects valid Pending requests (geth)', async () => {
     const gasPrice = 1 * 1e12;
-    const config = mockConfig(preConfig({ client: 'geth', gasPrice }));
+    const config = preConfig(mockConfig(), { client: 'geth', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     expect(pending).to.be.true;
   });
@@ -129,13 +126,11 @@ describe('Pending Unit Tests', () => {
     const results: any = [];
     const gasPrice = 1 * 1e12;
     const testConfigs: Config[] = CLIENTS.map(client =>
-      mockConfig(
-        preConfig({
-          client,
-          gasPrice,
-          provider: new provider({ input: FnSignatures.claim })
-        })
-      )
+      preConfig(mockConfig(), {
+        client,
+        gasPrice,
+        provider: new provider({ input: FnSignatures.claim })
+      })
     );
     await Promise.all(
       testConfigs.map(async conf => {
@@ -153,13 +148,11 @@ describe('Pending Unit Tests', () => {
     const results: any = [];
     const gasPrice = 1 * 1e12;
     const testConfigs: Config[] = CLIENTS.map(client =>
-      mockConfig(
-        preConfig({
-          client,
-          gasPrice,
-          provider: new provider({ input: FnSignatures.execute })
-        })
-      )
+      preConfig(mockConfig(), {
+        client,
+        gasPrice,
+        provider: new provider({ input: FnSignatures.execute })
+      })
     );
     await Promise.all(
       testConfigs.map(async conf => {
@@ -177,14 +170,12 @@ describe('Pending Unit Tests', () => {
     const results: any = [];
     const gasPrice = 1 * 1e12;
     const testConfigs: Config[] = CLIENTS.map(client =>
-      mockConfig(
-        preConfig({
-          client,
-          gasPrice,
-          netGasPrice: 15 * 1e13,
-          provider: new provider({ input: FnSignatures.claim })
-        })
-      )
+      preConfig(mockConfig(), {
+        client,
+        gasPrice,
+        netGasPrice: 15 * 1e13,
+        provider: new provider({ input: FnSignatures.claim })
+      })
     );
     await Promise.all(
       testConfigs.map(async conf => {
@@ -202,13 +193,11 @@ describe('Pending Unit Tests', () => {
     const results: any = [];
     const gasPrice = 1 * 1e12;
     const testConfigs: Config[] = CLIENTS.map(client =>
-      mockConfig(
-        preConfig({
-          client,
-          gasPrice,
-          provider: new provider({ input: FnSignatures.execute })
-        })
-      )
+      preConfig(mockConfig(), {
+        client,
+        gasPrice,
+        provider: new provider({ input: FnSignatures.execute })
+      })
     );
     await Promise.all(
       testConfigs.map(async conf => {
@@ -226,13 +215,11 @@ describe('Pending Unit Tests', () => {
     const results: any = [];
     const gasPrice = 1 * 1e12;
     const testConfigs: Config[] = CLIENTS.map(client =>
-      mockConfig(
-        preConfig({
-          client,
-          gasPrice,
-          provider: new provider({ input: FnSignatures.claim })
-        })
-      )
+      preConfig(mockConfig(), {
+        client,
+        gasPrice,
+        provider: new provider({ input: FnSignatures.claim })
+      })
     );
     await Promise.all(
       testConfigs.map(async conf => {
@@ -251,13 +238,11 @@ describe('Pending Unit Tests', () => {
     const gasPrice = 1 * 1e12;
     const exactPrice = 0.9 * 1e12;
     const testConfigs: Config[] = CLIENTS.map(client =>
-      mockConfig(
-        preConfig({
-          client,
-          gasPrice,
-          provider: new provider({ input: FnSignatures.execute })
-        })
-      )
+      preConfig(mockConfig(), {
+        client,
+        gasPrice,
+        provider: new provider({ input: FnSignatures.execute })
+      })
     );
     await Promise.all(
       testConfigs.map(async conf => {
