@@ -1,4 +1,3 @@
-import * as Web3 from 'web3';
 import Cache from '../Cache';
 import Wallet from '../Wallet';
 import { IConfigParams } from './IConfigParams';
