@@ -14,9 +14,10 @@
     "lint-fix": "tslint --fix --project .",
     "precommit": "lint-staged",
     "postinstall": "npm run build",
-    "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
-    "test:coverage": "nyc npm test",
-    "test:noexit": "mocha -r ts-node/register test/*.ts test/unit/*.ts",
+    "test": "npm run test:e2e && npm run test:unit",
+    "test:e2e": "mocha --timeout 50000 -r ts-node/register test/e2e/*.ts --exit",
+    "test:unit": "mocha --timeout 50000 -r ts-node/register test/unit/*.ts",
+    "test:coverage": "nyc npm run test:unit",
     "report-coverage": "cat ./coverage/lcov.info | coveralls"
   },
   "lint-staged": {

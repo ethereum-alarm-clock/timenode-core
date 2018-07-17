@@ -1,6 +1,6 @@
 import { assert, expect } from 'chai';
-import { TimeNode } from '../src/index';
-import { mockConfig } from './helpers';
+import { TimeNode } from '../../src/index';
+import { mockConfig } from '../helpers';
 import { scheduleTestTx, getHelperMethods } from './TestScheduleTx';
 
 const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
@@ -12,7 +12,7 @@ describe('TimeNode', () => {
 
   const { waitUntilBlock } = getHelperMethods(web3);
 
-  let timenode : TimeNode;
+  let timenode: TimeNode;
 
   it('starts a basic timenode', () => {
     timenode = new TimeNode(config);
@@ -31,7 +31,7 @@ describe('TimeNode', () => {
       const scheduledTransactionsMap = {};
 
       for (let i = 0; i < TRANSACTIONS_TO_SCHEDULE; i++) {
-        const transactionAddress : string = await scheduleTestTx();
+        const transactionAddress: string = await scheduleTestTx();
 
         scheduledTransactionsMap[transactionAddress] = {
           executionLogged: false
@@ -39,11 +39,16 @@ describe('TimeNode', () => {
       }
 
       const firstScheduledTransactionAddress = Object.keys(scheduledTransactionsMap)[0];
-      const firstScheduledTransaction = await eac.transactionRequest(firstScheduledTransactionAddress);
+      const firstScheduledTransaction = await eac.transactionRequest(
+        firstScheduledTransactionAddress
+      );
 
       await firstScheduledTransaction.fillData();
 
-      const firstExecutionBlock = firstScheduledTransaction.windowStart.toNumber() + firstScheduledTransaction.freezePeriod.toNumber() + 100;
+      const firstExecutionBlock =
+        firstScheduledTransaction.windowStart.toNumber() +
+        firstScheduledTransaction.freezePeriod.toNumber() +
+        100;
 
       await waitUntilBlock(0, firstExecutionBlock);
 
@@ -62,15 +67,16 @@ describe('TimeNode', () => {
           }
         }
         originalLoggerInfoMethod(msg);
-      }
+      };
 
       let allExecutionsLogged = false;
 
       await new Promise(resolve => {
         const allExecutionsLoggedCheckInterval = setInterval(async () => {
-
           for (const txAddress in scheduledTransactionsMap) {
-            allExecutionsLogged = scheduledTransactionsMap[txAddress] && scheduledTransactionsMap[txAddress].executionLogged;
+            allExecutionsLogged =
+              scheduledTransactionsMap[txAddress] &&
+              scheduledTransactionsMap[txAddress].executionLogged;
           }
 
           if (allExecutionsLogged) {
@@ -82,7 +88,10 @@ describe('TimeNode', () => {
               await transactionRequest.fillData();
 
               assert.ok(transactionRequest.wasCalled, `${transactionAddress} hasn't been called!`);
-              assert.ok(transactionRequest.wasSuccessful, `${transactionAddress} isn't successful!`);
+              assert.ok(
+                transactionRequest.wasSuccessful,
+                `${transactionAddress} isn't successful!`
+              );
             }
 
             clearInterval(allExecutionsLoggedCheckInterval);
@@ -92,7 +101,10 @@ describe('TimeNode', () => {
         }, 1000);
       });
 
-      assert.ok(allExecutionsLogged, `All transactions' executions should be logged, but they weren't.`);
+      assert.ok(
+        allExecutionsLogged,
+        `All transactions' executions should be logged, but they weren't.`
+      );
 
       console.log('FINAL STATUS OF MASS TX EXECUTION:', scheduledTransactionsMap);
     }).timeout(400000);
@@ -105,7 +117,10 @@ describe('TimeNode', () => {
 
       await TEST_TX_REQUEST.fillData();
 
-      const firstClaimBlock = TEST_TX_REQUEST.windowStart.toNumber() - TEST_TX_REQUEST.freezePeriod.toNumber() - TEST_TX_REQUEST.claimWindowSize.toNumber();
+      const firstClaimBlock =
+        TEST_TX_REQUEST.windowStart.toNumber() -
+        TEST_TX_REQUEST.freezePeriod.toNumber() -
+        TEST_TX_REQUEST.claimWindowSize.toNumber();
 
       await waitUntilBlock(0, firstClaimBlock);
 
@@ -114,13 +129,12 @@ describe('TimeNode', () => {
       const originalLoggerInfoMethod = timenode.config.logger.info;
       let claimedLogged = false;
 
-
       timenode.config.logger.info = (msg: any) => {
         if (msg === `${TEST_TX_ADDRESS} claimed`) {
           claimedLogged = true;
         }
         originalLoggerInfoMethod(msg);
-      }
+      };
 
       await new Promise(resolve => {
         const claimedLoggedInterval = setInterval(async () => {
@@ -153,7 +167,8 @@ describe('TimeNode', () => {
 
       await TEST_TX_REQUEST.fillData();
 
-      const firstExecutionBlock = TEST_TX_REQUEST.windowStart.toNumber() + TEST_TX_REQUEST.freezePeriod.toNumber() + 20;
+      const firstExecutionBlock =
+        TEST_TX_REQUEST.windowStart.toNumber() + TEST_TX_REQUEST.freezePeriod.toNumber() + 20;
 
       await waitUntilBlock(0, firstExecutionBlock);
 
@@ -167,7 +182,7 @@ describe('TimeNode', () => {
           executionLogged = true;
         }
         originalLoggerInfoMethod(msg);
-      }
+      };
 
       await new Promise(resolve => {
         const executionLoggedInterval = setInterval(async () => {
@@ -189,5 +204,4 @@ describe('TimeNode', () => {
       assert.ok(executionLogged, `Execution of ${TEST_TX_ADDRESS} hasn't been logged.`);
     }).timeout(400000);
   }
-
-})
+});

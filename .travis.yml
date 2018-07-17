@@ -16,6 +16,7 @@ before_script:
 script:
   - npm run deploy-eac
   - npm run build
+  - npm run test:e2e
   - npm run test:coverage
 
 after_success:
