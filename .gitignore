@@ -12,3 +12,4 @@ built/*
 .cache
 dist/
 dist/*
+stats.db
