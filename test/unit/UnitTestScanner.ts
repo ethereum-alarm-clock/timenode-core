@@ -167,7 +167,10 @@ describe('Scanner Unit Tests', () => {
     it('stores request into cache if discovered', () => {
       scanner.handleRequest(txTimestamp);
       expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
-      assert.equal(scanner.config.cache.get(txTimestamp.address), txTimestamp.params[7]);
+      assert.equal(
+        scanner.config.cache.get(txTimestamp.address).windowStart,
+        txTimestamp.params[7]
+      );
     });
 
     it('rejects request if invalid address', () => {
