@@ -60,11 +60,6 @@ export default class Actions {
 
           this.config.cache.get(txRequest.address).claimedBy = from;
 
-          console.log('after claim', {
-            address: txRequest.address,
-            ...this.config.cache.get(txRequest.address)
-          });
-
           this.config.statsDb.updateClaimed(from, cost);
 
           return txRequest.isClaimed;
@@ -145,11 +140,6 @@ export default class Actions {
 
           if (cached) {
             cached.wasCalled = true;
-
-            console.log('after exec', {
-              address: txRequest.address,
-              ...this.config.cache.get(txRequest.address)
-            });
           }
         } else {
           // If not executed, must add the gas cost into cost. Otherwise, TimeNode was
