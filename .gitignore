@@ -13,3 +13,7 @@ built/*
 dist/
 dist/*
 stats.db
+
+# Coverage directory
+coverage
+.nyc_output
