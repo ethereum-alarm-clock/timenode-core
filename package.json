@@ -80,8 +80,11 @@
       ".ts",
       ".tsx"
     ],
+    "include": [
+      "src/"
+    ],
     "exclude": [
-      "**/*.d.ts"
+      "src/*.d.ts"
     ],
     "reporter": [
       "lcov"
