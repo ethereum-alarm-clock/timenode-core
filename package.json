@@ -16,7 +16,7 @@
     "postinstall": "npm run build",
     "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
     "test:coverage": "nyc npm test",
-    "test-noexit": "mocha -r ts-node/register test/*.ts",
+    "test:noexit": "mocha -r ts-node/register test/*.ts test/unit/*.ts",
     "report-coverage": "cat ./coverage/lcov.info | coveralls"
   },
   "lint-staged": {
