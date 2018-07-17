@@ -12,3 +12,7 @@ built/*
 .cache
 dist/
 dist/*
+
+# Coverage directory
+coverage
+.nyc_output

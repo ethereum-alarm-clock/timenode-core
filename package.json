@@ -15,7 +15,9 @@
     "precommit": "lint-staged",
     "postinstall": "npm run build",
     "test": "mocha --timeout 50000 -r ts-node/register test/*.ts test/unit/*.ts --exit",
-    "test-noexit": "mocha -r ts-node/register test/*.ts"
+    "test:coverage": "nyc npm test",
+    "test-noexit": "mocha -r ts-node/register test/*.ts",
+    "report-coverage": "cat ./coverage/lcov.info | coveralls"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -26,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ethereum-alarm-clock/eac.js-client.git"
+    "url": "git+https://github.com/ethereum-alarm-clock/timenode-core.git"
   },
   "keywords": [
     "ethereum",
@@ -36,9 +38,9 @@
   "author": "lsaether",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ethereum-alarm-clock/eac.js-client/issues"
+    "url": "https://github.com/ethereum-alarm-clock/timenode-core/issues"
   },
-  "homepage": "https://github.com/ethereum-alarm-clock/eac.js-client#readme",
+  "homepage": "https://github.com/ethereum-alarm-clock/timenode-core#readme",
   "dependencies": {
     "@types/es6-promise": "3.3.0",
     "babel-polyfill": "6.26.0",
@@ -57,12 +59,14 @@
     "@types/node": "10.5.2",
     "bluebird": "3.5.1",
     "chai": "4.1.2",
+    "coveralls": "3.0.2",
     "ganache-cli": "6.1.6",
     "husky": "0.14.3",
     "lint-staged": "7.2.0",
     "mocha": "5.1.1",
     "mocha-typescript": "1.1.16",
     "moment": "2.22.2",
+    "nyc": "12.0.2",
     "prettier": "1.13.7",
     "ts-node": "6.2.0",
     "tslint": "5.10.0",
@@ -70,5 +74,19 @@
     "tslint-microsoft-contrib": "5.0.3",
     "typings": "2.1.1",
     "web3": "0.20.6"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "reporter": [
+      "lcov"
+    ],
+    "all": true,
+    "report-dir": "./coverage"
   }
 }

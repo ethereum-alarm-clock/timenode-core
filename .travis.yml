@@ -16,7 +16,10 @@ before_script:
 script:
   - npm run deploy-eac
   - npm run build
-  - npm run test
+  - npm run test:coverage
+
+after_success:
+  - npm run report-coverage
 
 matrix:
   fast_finish: true
