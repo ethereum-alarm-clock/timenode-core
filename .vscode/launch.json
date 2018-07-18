@@ -9,7 +9,7 @@
             "args": [
                 "-r",
                 "ts-node/register",
-                "${workspaceFolder}/test/*.ts",
+                "${workspaceFolder}/test/e2e/*.ts",
                 "${workspaceFolder}/test/unit/*.ts",
                 "--exit"
             ],
@@ -29,6 +29,20 @@
             ],
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen"
-        }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Mocha E2E",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "args": [
+                "-r",
+                "ts-node/register",
+                "${workspaceFolder}/test/e2e/*.ts",
+                "--exit"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
     ]
 }

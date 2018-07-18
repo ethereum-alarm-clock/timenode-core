@@ -46,7 +46,7 @@ describe('Scanner Unit Tests', () => {
       assert.isTrue(scanner.scanning);
       expect(scanner.cacheScanner).to.exist;
       expect(scanner.chainScanner).to.exist;
-    });
+    }).timeout(5000);
   });
 
   describe('stop()', async () => {
@@ -56,7 +56,7 @@ describe('Scanner Unit Tests', () => {
       assert.isNotTrue(scanner.scanning);
       assert.equal(scanner.cacheScanner[0], null);
       assert.equal(scanner.chainScanner[0], null);
-    });
+    }).timeout(5000);
   });
 
   describe('isUpcoming()', () => {
@@ -167,7 +167,10 @@ describe('Scanner Unit Tests', () => {
     it('stores request into cache if discovered', () => {
       scanner.handleRequest(txTimestamp);
       expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
-      assert.equal(scanner.config.cache.get(txTimestamp.address), txTimestamp.params[7]);
+      assert.equal(
+        scanner.config.cache.get(txTimestamp.address).windowStart,
+        txTimestamp.params[7]
+      );
     });
 
     it('rejects request if invalid address', () => {

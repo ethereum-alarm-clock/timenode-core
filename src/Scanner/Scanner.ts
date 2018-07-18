@@ -239,7 +239,11 @@ export default class {
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const allTxRequests = this.config.cache
       .stored()
-      .filter((address: string) => this.config.cache.get(address) > 0)
+      .filter((address: string) => {
+        const cached = this.config.cache.get(address);
+
+        return cached && cached.windowStart.greaterThan(0);
+      })
       .map((address: string) => this.config.eac.transactionRequest(address));
 
     // Get fresh data on our transaction requests and route them into appropriate action.
@@ -253,6 +257,10 @@ export default class {
 
   public store(request: any) {
     this.config.logger.info(`[${request.address}] Inputting to cache`);
-    this.config.cache.set(request.address, request.params[7]);
+    this.config.cache.set(request.address, {
+      claimedBy: null,
+      wasCalled: false,
+      windowStart: request.params[7]
+    });
   }
 }
