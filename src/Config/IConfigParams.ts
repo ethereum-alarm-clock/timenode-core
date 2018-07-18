@@ -1,22 +1,17 @@
 import { IEconomicStrategy } from '../EconomicStrategy';
-import { ILogger, DefaultLogger } from '../Logger';
-import { StatsDB } from '../Stats';
+import { ILogger } from '../Logger';
 
-//TODO remove factory
 export interface IConfigParams {
-  autostart: boolean;
+  autostart?: boolean;
   client?: string;
   claiming?: boolean;
-  eac: any;
   economicStrategy?: IEconomicStrategy;
-  factory?: any;
   logger?: ILogger | null;
   ms?: any;
   password?: any;
-  provider: any;
-  scanSpread: number | null;
-  statsDb: StatsDB;
+  providerUrl: string;
+  scanSpread?: number | null;
+  statsDb?: any;
   walletStores?: any;
-  web3: any;
-  walletStoresAsPrivateKeys: boolean;
+  walletStoresAsPrivateKeys?: boolean;
 }

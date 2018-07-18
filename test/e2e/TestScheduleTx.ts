@@ -4,13 +4,12 @@ import * as Web3 from 'web3';
 import BigNumber from 'bignumber.js';
 import { expect } from 'chai';
 import { calcEndowment, providerUrl } from '../helpers';
-// import { createWallet } from './helpers';
 
 const CLAIM_WINDOW_SIZE = 255;
 
 export const getHelperMethods = (web3: any) => {
   function sendRpc(method: any, params?: any) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
       web3.currentProvider.sendAsync(
         {
           jsonrpc: '2.0',
@@ -18,7 +17,7 @@ export const getHelperMethods = (web3: any) => {
           params: params || [],
           id: new Date().getTime()
         },
-        function(err: any, res: any) {
+        (err: any, res: any) => {
           resolve(res);
         }
       );
@@ -26,16 +25,14 @@ export const getHelperMethods = (web3: any) => {
   }
 
   function waitUntilBlock(seconds: any, targetBlock: any) {
-    return new Promise(function(resolve) {
-      let asyncIterator = function asyncIterator() {
-        return web3.eth.getBlock('latest', function(e: any, _ref: any) {
-          let number = _ref.number;
+    return new Promise(resolve => {
+      const asyncIterator = function asyncIterator() {
+        return web3.eth.getBlock('latest', (e: any, _ref: any) => {
+          const num = _ref.number;
 
-          if (number >= targetBlock - 1) {
+          if (num >= targetBlock - 1) {
             return sendRpc('evm_increaseTime', [seconds])
-              .then(function() {
-                return sendRpc('evm_mine');
-              })
+              .then(() => sendRpc('evm_mine'))
               .then(resolve);
           }
           return sendRpc('evm_mine').then(asyncIterator);
