@@ -3,7 +3,8 @@ import Cache from '../../src/Cache';
 import { DefaultLogger } from '../../src/Logger';
 
 describe('Cache unit tests', () => {
-  let cache: Cache;
+  let cache: Cache<any>;
+
   beforeEach(() => {
     cache = new Cache(new DefaultLogger());
   });
@@ -28,10 +29,10 @@ describe('Cache unit tests', () => {
     });
   });
 
-  describe('len()', () => {
+  describe('length()', () => {
     it('return proper length', () => {
       cache.set('key', 'value');
-      const result = cache.len();
+      const result = cache.length();
       expect(result).to.equals(1);
     });
   });

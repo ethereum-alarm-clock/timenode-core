@@ -16,13 +16,13 @@ describe('TimeNode', () => {
 
   it('starts a basic timenode', () => {
     timenode = new TimeNode(config);
-    expect(timenode).to.exist;
-    expect(timenode.scanner.scanning).to.be.false;
+
+    expect(timenode.scanner.scanning).to.equal(false);
   }).timeout(200000);
 
   it('starts scanning', async () => {
     await timenode.startScanning();
-    expect(timenode.scanner.scanning).to.be.true;
+    expect(timenode.scanner.scanning).to.equal(true);
   });
 
   if (process.env.RUN_ONLY_OPTIONAL_TESTS === 'true') {
@@ -74,6 +74,10 @@ describe('TimeNode', () => {
       await new Promise(resolve => {
         const allExecutionsLoggedCheckInterval = setInterval(async () => {
           for (const txAddress in scheduledTransactionsMap) {
+            if (!scheduledTransactionsMap.hasOwnProperty(txAddress)) {
+              continue;
+            }
+
             allExecutionsLogged =
               scheduledTransactionsMap[txAddress] &&
               scheduledTransactionsMap[txAddress].executionLogged;
@@ -83,6 +87,10 @@ describe('TimeNode', () => {
             timenode.stopScanning();
 
             for (const transactionAddress in scheduledTransactionsMap) {
+              if (!scheduledTransactionsMap.hasOwnProperty(transactionAddress)) {
+                continue;
+              }
+
               const transactionRequest = await eac.transactionRequest(transactionAddress);
 
               await transactionRequest.fillData();
@@ -110,8 +118,6 @@ describe('TimeNode', () => {
     }).timeout(400000);
   } else {
     it('claims transaction', async () => {
-      const { eac } = timenode.config;
-
       const TEST_TX_ADDRESS = await scheduleTestTx();
       const TEST_TX_REQUEST = await eac.transactionRequest(TEST_TX_ADDRESS);
 
@@ -149,6 +155,8 @@ describe('TimeNode', () => {
             expect(TEST_TX_REQUEST.address).to.equal(TEST_TX_ADDRESS);
             expect(TEST_TX_REQUEST.claimData).to.equal('0x4e71d92d');
             expect(TEST_TX_REQUEST.claimedBy).to.equal(TIMENODE_ADDRESS);
+            expect(timenode.getClaimedNotExecutedTransactions().length).to.equal(2);
+            expect(timenode.getClaimedNotExecutedTransactions()).to.include(TEST_TX_ADDRESS);
 
             resolve();
           }
@@ -195,6 +203,8 @@ describe('TimeNode', () => {
 
             assert.ok(TEST_TX_REQUEST.wasCalled, `${TEST_TX_ADDRESS} hasn't been called!`);
             assert.ok(TEST_TX_REQUEST.wasSuccessful, `${TEST_TX_ADDRESS} isn't successful!`);
+
+            expect(timenode.getClaimedNotExecutedTransactions()).to.deep.equal([]);
 
             resolve();
           }

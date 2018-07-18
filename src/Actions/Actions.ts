@@ -58,6 +58,8 @@ export default class Actions {
             new BigNumber(txRequest.data.txData.gasPrice)
           );
 
+          this.config.cache.get(txRequest.address).claimedBy = from;
+
           this.config.statsDb.updateClaimed(from, cost);
 
           return txRequest.isClaimed;
@@ -126,20 +128,25 @@ export default class Actions {
 
       if (isTransactionStatusSuccessful(receipt.status)) {
         let bounty = new BigNumber(0);
-        const wasExecuted = isExecuted(receipt);
-        if (wasExecuted) {
+        let cost = new BigNumber(0);
+
+        if (isExecuted(receipt)) {
           await txRequest.refreshData();
 
           const data = receipt.logs[0].data;
           bounty = this.config.web3.toDecimal(data.slice(0, 66));
-        }
 
-        let cost = new BigNumber(0);
-        if (!wasExecuted) {
+          const cached = this.config.cache.get(txRequest.address);
+
+          if (cached) {
+            cached.wasCalled = true;
+          }
+        } else {
           // If not executed, must add the gas cost into cost. Otherwise, TimeNode was
           // reimbursed for gas.
           cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
         }
+
         this.config.statsDb.updateExecuted(from, bounty, cost);
 
         return txRequest.wasSuccessful;

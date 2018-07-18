@@ -1,6 +1,13 @@
 import { ILogger } from '../Logger';
+import BigNumber from 'bignumber.js';
 
-export default class Cache {
+export interface ICachedTxDetails {
+  claimedBy: string;
+  wasCalled: boolean;
+  windowStart: BigNumber;
+}
+
+export default class Cache<T> {
   public cache: {} = {};
   public logger: any;
 
@@ -8,41 +15,41 @@ export default class Cache {
     this.logger = logger;
   }
 
-  public set(k: string, v: any) {
-    this.cache[k] = v;
-    this.logger.cache(`stored ${k} with value ${v}`);
+  public set(key: string, value: T) {
+    this.cache[key] = value;
+    this.logger.cache(`stored ${key} with value ${JSON.stringify(value)}`);
   }
 
-  public get(k: string, d?: any): any {
-    const value = this.cache[k];
+  public get(key: string, fallback?: any): T {
+    const value = this.cache[key];
     if (value === undefined) {
-      if (d === undefined) {
-        throw new Error('attempted to access key entry that does not exist: ' + k);
-      } else {
-        return d;
+      if (fallback === undefined) {
+        throw new Error('attempted to access key entry that does not exist: ' + key);
       }
+
+      return fallback;
     }
 
-    this.logger.cache(`accessed ${k}`);
+    this.logger.cache(`accessed ${key}`);
     return value;
   }
 
-  public has(k: string) {
-    if (this.cache[k] === undefined) {
-      this.logger.cache(`miss ${k}`);
+  public has(key: string) {
+    if (this.cache[key] === undefined) {
+      this.logger.cache(`miss ${key}`);
       return false;
     }
-    this.logger.cache(`hit ${k}`);
+    this.logger.cache(`hit ${key}`);
     return true;
   }
 
-  public del(k: string) {
-    delete this.cache[k];
-    this.logger.cache(`deleted ${k}`);
+  public del(key: string) {
+    delete this.cache[key];
+    this.logger.cache(`deleted ${key}`);
   }
 
-  public len(): number {
-    return Object.keys(this.cache).length;
+  public length(): number {
+    return this.stored().length;
   }
 
   public stored() {
@@ -50,7 +57,7 @@ export default class Cache {
   }
 
   public isEmpty() {
-    return this.len() === 0;
+    return this.length() === 0;
   }
 }
 
