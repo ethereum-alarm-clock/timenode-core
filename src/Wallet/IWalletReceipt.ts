@@ -1,4 +1,5 @@
-export default interface IWalletReceipt {
-  receipt: any;
+export interface IWalletReceipt {
+  receipt?: any;
   from: string;
+  error?: string;
 }

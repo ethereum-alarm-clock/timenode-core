@@ -1,5 +1,5 @@
 import Cache from '../Cache';
-import Wallet from '../Wallet';
+import { Wallet } from '../Wallet';
 import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';

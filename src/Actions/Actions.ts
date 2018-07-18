@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import Config from '../Config';
 import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
-import W3Util from '../Util';
+import { IWalletReceipt } from '../Wallet';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -45,10 +45,10 @@ export default class Actions {
     if (this.config.wallet.isNextAccountFree()) {
       try {
         // this.config.logger.debug(`[${txRequest.address}] Sending claim transactions with opts: ${JSON.stringify(opts)}`);
-        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(opts);
+        const { receipt, from, error } = await this.config.wallet.sendFromNext(opts);
         // this.config.logger.debug(`[${txRequest.address}] Received receipt: ${JSON.stringify(receipt)}\n And from: ${from}`);
 
-        if (ignore) {
+        if (error) {
           return;
         }
 
@@ -66,9 +66,9 @@ export default class Actions {
         }
 
         return false;
-      } catch (error) {
+      } catch (err) {
         this.config.logger.debug(
-          `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${error}`
+          `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${err}`
         );
       }
     } else {
@@ -115,14 +115,10 @@ export default class Actions {
       };
     }
 
-    const handleTransactionReturn = async (walletReceipt: {
-      receipt: any;
-      from: string;
-      ignore: boolean;
-    }): Promise<boolean> => {
-      const { receipt, from, ignore } = walletReceipt;
+    const handleTransactionReturn = async (walletReceipt: IWalletReceipt): Promise<boolean> => {
+      const { receipt, from, error } = walletReceipt;
 
-      if (ignore) {
+      if (error) {
         return;
       }
 
@@ -205,8 +201,8 @@ export default class Actions {
       // Check to see if any of our accounts is the owner.
       const ownerIndex = this.config.wallet.getAddresses().indexOf(txRequest.owner);
       if (ownerIndex !== -1) {
-        const { receipt, from, ignore } = await this.config.wallet.sendFromIndex(ownerIndex, opts);
-        if (ignore) {
+        const { error } = await this.config.wallet.sendFromIndex(ownerIndex, opts);
+        if (error) {
           return;
         }
       } else {
@@ -215,8 +211,8 @@ export default class Actions {
           // It's now considered dust.
           return true;
         }
-        const { receipt, from, ignore } = await this.config.wallet.sendFromNext(opts);
-        if (ignore) {
+        const { error } = await this.config.wallet.sendFromNext(opts);
+        if (error) {
           return;
         }
       }
