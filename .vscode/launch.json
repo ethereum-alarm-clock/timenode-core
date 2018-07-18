@@ -9,7 +9,7 @@
             "args": [
                 "-r",
                 "ts-node/register",
-                "${workspaceFolder}/test/*.ts",
+                "${workspaceFolder}/test/e2e/*.ts",
                 "${workspaceFolder}/test/unit/*.ts",
                 "--exit"
             ],

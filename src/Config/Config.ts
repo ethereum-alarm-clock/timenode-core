@@ -5,6 +5,7 @@ import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
 import W3Util from '../Util';
+import { getWeb3FromProviderUrl } from './helpers';
 
 export default class Config implements IConfigParams {
   public autostart: boolean;
@@ -13,10 +14,9 @@ export default class Config implements IConfigParams {
   public client?: string;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
-  public factory: any;
   public logger?: ILogger;
   public ms: any;
-  public provider: any;
+  public providerUrl: string;
   public scanSpread: any;
   public statsDb: StatsDB;
   public util: any;
@@ -25,27 +25,22 @@ export default class Config implements IConfigParams {
   public walletStoresAsPrivateKeys: boolean;
 
   constructor(params: IConfigParams) {
-    this.autostart = params.autostart || true;
+    if (params.providerUrl) {
+      this.web3 = getWeb3FromProviderUrl(params.providerUrl);
+      this.eac = require('eac.js-lib')(this.web3);
+    } else {
+      throw new Error('Please set the providerUrl in the config object.');
+    }
+
+    this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
-    this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys;
-    this.client = params.client;
-
+    this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
+    this.client = params.client || null;
     this.logger = params.logger || new DefaultLogger();
 
     this.cache = new Cache(this.logger);
-
-    if (params.eac && params.factory && params.provider && params.web3) {
-      this.eac = params.eac;
-      this.factory = params.factory;
-      this.provider = params.provider;
-      this.web3 = params.web3;
-    } else {
-      throw new Error(
-        'Passed in Config params are incomplete! Unable to start TimeNode. Quitting..'
-      );
-    }
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
       this.wallet = new Wallet(this.web3, this.logger);
@@ -61,13 +56,20 @@ export default class Config implements IConfigParams {
       if (this.walletStoresAsPrivateKeys) {
         this.wallet.loadPrivateKeys(params.walletStores);
       } else {
-        this.wallet.decrypt(params.walletStores, params.password);
+        if (params.password) {
+          this.wallet.decrypt(params.walletStores, params.password);
+        } else {
+          throw new Error(
+            'Unable to unlock the wallet. Please provide a password as a config param'
+          );
+        }
       }
     } else {
       this.wallet = null;
     }
 
-    this.statsDb = params.statsDb;
+    this.statsDb = params.statsDb ? new StatsDB(this.web3, params.statsDb) : null;
+
     this.util = new W3Util(this.web3);
     this.economicStrategy = params.economicStrategy;
   }
