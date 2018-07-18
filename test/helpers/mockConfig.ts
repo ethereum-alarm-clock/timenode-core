@@ -1,7 +1,7 @@
 import * as loki from 'lokijs';
 import { Config } from '../../src/index';
 import MockLogger from './MockLogger';
-import { createWalletKeystore } from './createWallet';
+// import { createWalletKeystore } from './createWallet';
 import { providerUrl } from './network';
 import BigNumber from 'bignumber.js';
 

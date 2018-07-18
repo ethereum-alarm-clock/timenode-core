@@ -26,7 +26,7 @@ const hasPendingParity = async (
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err !== null || res.hasOwnProperty('error')) {
+        if (err) {
           reject(err);
         }
 
@@ -73,7 +73,7 @@ const hasPendingGeth = (
         id: 0o7
       },
       async (err: Error, res: any) => {
-        if (err !== null || res.hasOwnProperty('error')) {
+        if (err) {
           reject(err);
         }
 
@@ -165,8 +165,6 @@ const hasPending = (
   if (conf.client === 'geth') {
     return hasPendingGeth(conf, txRequest, opts);
   }
-
-  return true;
 };
 
 export default hasPending;
