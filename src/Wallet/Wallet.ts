@@ -1,9 +1,10 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import { ILogger } from '../Logger';
+import { TxSendErrors } from '../Enum/TxSendErrors';
 const ethTx = require('ethereumjs-tx');
 
-import IWalletReceipt from './IWalletReceipt';
+import { IWalletReceipt } from './IWalletReceipt';
 
 declare const Buffer: any;
 declare const require: any;
@@ -18,7 +19,7 @@ interface AccountStateMap {
   [Account: string]: AccountState;
 }
 
-export default class Wallet {
+export class Wallet {
   public length: number;
   public logger: ILogger;
   public nonce: number;
@@ -139,9 +140,9 @@ export default class Wallet {
   /**
    * sendFromNext will send a transaction from the account in this wallet that is next according to this.nonce
    * @param {TransactionParams} opts {to, value, gas, gasPrice, data}
-   * @returns {Promise<string>} A promise which will resolve to the transaction hash
+   * @returns {Promise<IWalletReceipt>} A promise which will resolve to the transaction receipt
    */
-  public sendFromNext(opts: any) {
+  public sendFromNext(opts: any): Promise<IWalletReceipt> {
     const next = this.nonce++ % this.length;
 
     return this.sendFromIndex(next, opts);
@@ -228,7 +229,7 @@ export default class Wallet {
     return this.isWalletAbleToSendTx(this.nonce % this.length);
   }
 
-  public async sendFromIndex(idx: number, opts: any): Promise<any> {
+  public async sendFromIndex(idx: number, opts: any): Promise<IWalletReceipt> {
     if (idx >= this.length) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -239,9 +240,12 @@ export default class Wallet {
 
     if (balance.eq(0)) {
       if (this.logger) {
-        this.logger.info(`Account ${from} has not enough funds to send transaction.`);
+        this.logger.info(`${TxSendErrors.NOT_ENOUGH_FUNDS} ${from}`);
       }
-      return { ignore: true };
+      return {
+        from,
+        error: TxSendErrors.NOT_ENOUGH_FUNDS
+      };
     }
 
     const nonce = this.web3.toHex(await this.getNonce(from));
@@ -250,11 +254,12 @@ export default class Wallet {
 
     if (this.walletStates[from] && this.walletStates[from].sendingTxInProgress) {
       if (this.logger) {
-        this.logger.debug(
-          `Sending transaction is already in progress. Please wait for account: "${from}" to complete tx.`
-        );
+        this.logger.debug(`${TxSendErrors.SENDING_IN_PROGRESS} ${from}`);
       }
-      return { ignore: true };
+      return {
+        from,
+        error: TxSendErrors.SENDING_IN_PROGRESS
+      };
     }
 
     let receipt;
@@ -274,7 +279,10 @@ export default class Wallet {
       } else {
         console.log(error);
       }
-      return { ignore: true };
+      return {
+        from,
+        error: TxSendErrors.UNKNOWN_ERROR
+      };
     } finally {
       this.walletStates[from].sendingTxInProgress = false;
     }
