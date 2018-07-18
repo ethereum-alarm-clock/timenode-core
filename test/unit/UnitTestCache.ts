@@ -29,10 +29,10 @@ describe('Cache unit tests', () => {
     });
   });
 
-  describe('len()', () => {
+  describe('length()', () => {
     it('return proper length', () => {
       cache.set('key', 'value');
-      const result = cache.len();
+      const result = cache.length();
       expect(result).to.equals(1);
     });
   });
