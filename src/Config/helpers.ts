@@ -1,5 +1,5 @@
 import * as Web3 from 'web3';
-import Web3WsProvider from 'web3-providers-ws';
+import * as Web3WsProvider from 'web3-providers-ws';
 
 const getWeb3FromProviderUrl = (providerUrl: string) => {
   const provider = (() => {
