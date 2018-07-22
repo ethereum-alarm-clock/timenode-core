@@ -76,15 +76,12 @@ export default class W3Util {
       this.web3.currentProvider.sendAsync(
         {
           jsonrpc: '2.0',
-          id: 1,
+          id: new Date().getTime(),
           method: 'eth_getFilterLogs',
-          params: []
+          params: ['0x16'] // we need to provide at least 1 argument, this is test data
         },
         (err: any) => {
-          if (err !== null) {
-            resolve(false);
-          }
-          resolve(true);
+          resolve(err === null);
         }
       );
     });
