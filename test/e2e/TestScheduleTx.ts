@@ -4,6 +4,7 @@ import * as Web3 from 'web3';
 import BigNumber from 'bignumber.js';
 import { expect } from 'chai';
 import { calcEndowment, providerUrl } from '../helpers';
+import { getWeb3FromProviderUrl } from '../../src/Config/helpers';
 
 const CLAIM_WINDOW_SIZE = 255;
 
@@ -50,8 +51,7 @@ export const SCHEDULED_TX_PARAMS = {
 };
 
 export const scheduleTestTx = async () => {
-  const provider = new Web3.providers.HttpProvider(providerUrl);
-  const web3 = new Web3(provider);
+  const web3 = getWeb3FromProviderUrl(providerUrl);
   const eac = EAC(web3);
 
   const { waitUntilBlock } = getHelperMethods(web3);
