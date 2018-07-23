@@ -55,7 +55,7 @@ export default class W3Util {
     });
   }
 
-  public getBlock(blockNumber = 'latest'): Promise<IBlock> {
+  public getBlock(blockNumber: string | number = 'latest'): Promise<IBlock> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getBlock(blockNumber, (err: any, block: IBlock) => {
         if (!err) {
