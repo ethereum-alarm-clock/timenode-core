@@ -1,9 +1,9 @@
 import * as EAC from 'eac.js-lib';
 import * as Bb from 'bluebird';
-import * as Web3 from 'web3';
 import BigNumber from 'bignumber.js';
 import { expect } from 'chai';
 import { calcEndowment, providerUrl } from '../helpers';
+import { getWeb3FromProviderUrl } from '../../src/Config/helpers';
 
 const CLAIM_WINDOW_SIZE = 255;
 
@@ -50,15 +50,14 @@ export const SCHEDULED_TX_PARAMS = {
 };
 
 export const scheduleTestTx = async () => {
-  const provider = new Web3.providers.HttpProvider(providerUrl);
-  const web3 = new Web3(provider);
+  const web3 = getWeb3FromProviderUrl(providerUrl);
   const eac = EAC(web3);
 
   const { waitUntilBlock } = getHelperMethods(web3);
 
   const scheduler = await eac.scheduler();
 
-  let latestBlock = await Bb.fromCallback(callback => web3.eth.getBlockNumber(callback));
+  let latestBlock = await Bb.fromCallback((callback: any) => web3.eth.getBlockNumber(callback));
 
   /*
      * Since in transaction request library there's check that subtracts
@@ -69,7 +68,7 @@ export const scheduleTestTx = async () => {
     await waitUntilBlock(0, CLAIM_WINDOW_SIZE);
   }
 
-  latestBlock = await Bb.fromCallback(callback => web3.eth.getBlockNumber(callback));
+  latestBlock = await Bb.fromCallback((callback: any) => web3.eth.getBlockNumber(callback));
 
   const { callValue } = SCHEDULED_TX_PARAMS;
 
@@ -82,7 +81,9 @@ export const scheduleTestTx = async () => {
 
   // const filename = 'wallet.txt';
   // const wallet = createWallet(web3, 1, filename, 'password123');
-  const mainAccount = web3.eth.accounts[0]; // wallet.getAddresses()[0];
+
+  const accounts = await Bb.fromCallback((callback: any) => web3.eth.getAccounts(callback));
+  const mainAccount = accounts[0];
 
   await scheduler.initSender({
     from: mainAccount,

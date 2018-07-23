@@ -4,6 +4,7 @@ import { mockConfig } from '../helpers';
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
+import { TxSendErrors } from '../../src/Enum/TxSendErrors';
 
 describe('Wallet Unit Tests', () => {
   let config: Config;
@@ -158,14 +159,14 @@ describe('Wallet Unit Tests', () => {
   });
 
   describe('sendFromIndex()', () => {
-    it('returns ignore when not enough balance on account', async () => {
+    it('returns error when not enough balance on account', async () => {
       wallet.create(1);
 
       const receipt = await wallet.sendFromIndex(0, opts);
-      assert.equal(receipt.ignore, true);
+      assert.equal(receipt.error, TxSendErrors.NOT_ENOUGH_FUNDS);
     });
 
-    it('returns ignore when sendint a Tx is in progress', async () => {
+    xit('returns error when sending a Tx is in progress', async () => {
       wallet.create(1);
       const idx = 0;
       const address = wallet.getAddresses()[idx];
@@ -174,7 +175,7 @@ describe('Wallet Unit Tests', () => {
       };
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      assert.equal(receipt.ignore, true);
+      assert.equal(receipt.error, TxSendErrors.SENDING_IN_PROGRESS);
     });
 
     it('returns receipt when is able to send the transaction', async () => {
@@ -204,7 +205,7 @@ describe('Wallet Unit Tests', () => {
     it('generates the next index and sends from it', async () => {
       wallet.create(5);
       const receipt = await wallet.sendFromNext(opts);
-      assert.equal(receipt.ignore, true);
+      expect(receipt.error).to.exist;
     });
   });
 });

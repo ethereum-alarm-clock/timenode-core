@@ -1,5 +1,6 @@
+import * as EAC from 'eac.js-lib';
 import Cache from '../Cache';
-import Wallet from '../Wallet';
+import { Wallet } from '../Wallet';
 import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
@@ -28,7 +29,7 @@ export default class Config implements IConfigParams {
   constructor(params: IConfigParams) {
     if (params.providerUrl) {
       this.web3 = getWeb3FromProviderUrl(params.providerUrl);
-      this.eac = require('eac.js-lib')(this.web3);
+      this.eac = EAC(this.web3);
     } else {
       throw new Error('Please set the providerUrl in the config object.');
     }
