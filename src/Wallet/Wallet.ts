@@ -1,4 +1,5 @@
 import * as ethWallet from 'ethereumjs-wallet';
+import * as Bb from 'bluebird';
 import { BigNumber } from 'bignumber.js';
 import { ILogger } from '../Logger';
 import { TxSendErrors } from '../Enum/TxSendErrors';
@@ -35,9 +36,10 @@ export class Wallet {
   }
 
   public getBalanceOf(address: string): Promise<BigNumber> {
-    return new Promise(resolve => {
-      const balance = this.web3.eth.getBalance(address);
-
+    return new Promise(async resolve => {
+      const balance = await Bb.fromCallback(callback =>
+        this.web3.eth.getBalance(address, callback)
+      );
       resolve(balance);
     });
   }
