@@ -57,7 +57,7 @@ export const scheduleTestTx = async () => {
 
   const scheduler = await eac.scheduler();
 
-  let latestBlock = await Bb.fromCallback(callback => web3.eth.getBlockNumber(callback));
+  let latestBlock = await Bb.fromCallback((callback: any) => web3.eth.getBlockNumber(callback));
 
   /*
      * Since in transaction request library there's check that subtracts
@@ -68,7 +68,7 @@ export const scheduleTestTx = async () => {
     await waitUntilBlock(0, CLAIM_WINDOW_SIZE);
   }
 
-  latestBlock = await Bb.fromCallback(callback => web3.eth.getBlockNumber(callback));
+  latestBlock = await Bb.fromCallback((callback: any) => web3.eth.getBlockNumber(callback));
 
   const { callValue } = SCHEDULED_TX_PARAMS;
 
@@ -82,7 +82,7 @@ export const scheduleTestTx = async () => {
   // const filename = 'wallet.txt';
   // const wallet = createWallet(web3, 1, filename, 'password123');
 
-  const accounts = await Bb.fromCallback(callback => web3.eth.getAccounts(callback));
+  const accounts = await Bb.fromCallback((callback: any) => web3.eth.getAccounts(callback));
   const mainAccount = accounts[0];
 
   await scheduler.initSender({
