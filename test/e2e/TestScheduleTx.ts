@@ -82,7 +82,9 @@ export const scheduleTestTx = async () => {
 
   // const filename = 'wallet.txt';
   // const wallet = createWallet(web3, 1, filename, 'password123');
-  const mainAccount = web3.eth.accounts[0]; // wallet.getAddresses()[0];
+
+  const accounts = await Bb.fromCallback(callback => web3.eth.getAccounts(callback));
+  const mainAccount = accounts[0];
 
   await scheduler.initSender({
     from: mainAccount,
