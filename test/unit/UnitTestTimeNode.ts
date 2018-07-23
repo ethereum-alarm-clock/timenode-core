@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect, assert } from 'chai';
 import { TimeNode, Config } from '../../src/index';
 import { mockConfig } from '../helpers';
 
@@ -11,14 +11,36 @@ describe('TimeNode Unit Tests', () => {
     expect(timenode).to.exist;
   });
 
-  it('starts scanning', async () => {
-    const result: Boolean = await timenode.startScanning();
-    expect(result).to.be.true;
-    expect(timenode.scanner.scanning).to.be.true;
-  }).timeout(5000);
+  describe('startScanning()', () => {
+    it('returns true when started scanning', async () => {
+      assert.isTrue(await timenode.startScanning());
+      assert.isTrue(timenode.scanner.scanning);
+    }).timeout(5000);
 
-  it('stops scanning', async () => {
-    await timenode.stopScanning();
-    expect(timenode.scanner.scanning).to.be.false;
-  }).timeout(5000);
+    it('hard resets the scanner module when already scanning', async () => {
+      timenode.scanner.scanning = true;
+      assert.isTrue(await timenode.startScanning());
+      assert.isTrue(timenode.scanner.scanning);
+    }).timeout(5000);
+  });
+
+  describe('startClaiming()', () => {
+    it('returns false when stopped scanning', async () => {
+      assert.isFalse(await timenode.stopScanning());
+    }).timeout(5000);
+  });
+
+  describe('startClaiming()', () => {
+    it('returns true when started claiming', async () => {
+      assert.isTrue(timenode.startClaiming());
+      assert.isTrue(timenode.config.claiming);
+    });
+  });
+
+  describe('stopClaiming()', () => {
+    it('returns false when stopped claiming', async () => {
+      assert.isFalse(timenode.stopClaiming());
+      assert.isFalse(timenode.config.claiming);
+    });
+  });
 });
