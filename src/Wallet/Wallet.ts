@@ -37,7 +37,7 @@ export class Wallet {
 
   public getBalanceOf(address: string): Promise<BigNumber> {
     return new Promise(async resolve => {
-      const balance = await Bb.fromCallback(callback =>
+      const balance = await Bb.fromCallback((callback: any) =>
         this.web3.eth.getBalance(address, callback)
       );
       resolve(balance);
