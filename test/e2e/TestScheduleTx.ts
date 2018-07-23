@@ -1,6 +1,5 @@
 import * as EAC from 'eac.js-lib';
 import * as Bb from 'bluebird';
-import * as Web3 from 'web3';
 import BigNumber from 'bignumber.js';
 import { expect } from 'chai';
 import { calcEndowment, providerUrl } from '../helpers';
