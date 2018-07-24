@@ -8,6 +8,7 @@ import { IBlock, IntervalId, ITxRequest } from '../Types';
 
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
+import { CacheStates } from '../Enum';
 
 export default class {
   public config: Config;
@@ -231,9 +232,9 @@ export default class {
   }
 
   // TODO meaningful return value
-  public async scanCache(): Promise<void> {
+  public async scanCache(): Promise<CacheStates> {
     if (this.config.cache.isEmpty()) {
-      return;
+      return CacheStates.EMPTY; // 1 = cache is empty
     }
 
     // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
@@ -253,6 +254,8 @@ export default class {
 
       this.router.route(txRequest);
     });
+
+    return CacheStates.REFRESHED; //0 = cache loaded successfully
   }
 
   public store(request: any) {

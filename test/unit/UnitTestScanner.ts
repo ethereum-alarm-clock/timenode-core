@@ -1,13 +1,14 @@
 /* tslint:disable:no-unused-expression */
 import { expect, assert } from 'chai';
+import BigNumber from 'bignumber.js';
 
 import { Config } from '../../src/index';
 import { mockConfig, MockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
-import { TxStatus } from '../../src/Enum';
-import { BucketSize, IBucketPair } from '../../src/Buckets';
+import { TxStatus, CacheStates } from '../../src/Enum';
+import { BucketSize } from '../../src/Buckets';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
@@ -42,6 +43,14 @@ describe('Scanner Unit Tests', () => {
 
   describe('start()', async () => {
     it('returns true for scanning and chainScanner/cacheScanner', async () => {
+      await scanner.start();
+      assert.isTrue(scanner.scanning);
+      expect(scanner.cacheScanner).to.exist;
+      expect(scanner.chainScanner).to.exist;
+    }).timeout(5000);
+
+    it('returns true when watching disabled', async () => {
+      scanner.util.isWatchingEnabled = () => Promise.resolve(false);
       await scanner.start();
       assert.isTrue(scanner.scanning);
       expect(scanner.cacheScanner).to.exist;
@@ -252,6 +261,21 @@ describe('Scanner Unit Tests', () => {
   });
 
   describe('scanCache()', () => {
-    // TO-DO when we have meaningful data returns
+    it('returns EMPTY when cache empty', async () => {
+      const state = await scanner.scanCache();
+      assert.equal(state, CacheStates.EMPTY);
+    });
+
+    it('returns REFRESHED when cache not empty', async () => {
+      const tx = {
+        claimedBy: '0x0',
+        wasCalled: false,
+        windowStart: new BigNumber(10000)
+      };
+      config.cache.set('tx', tx);
+
+      const state = await scanner.scanCache();
+      assert.equal(state, CacheStates.REFRESHED);
+    });
   });
 });
