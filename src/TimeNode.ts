@@ -1,6 +1,7 @@
 import Actions from './Actions';
 import Config from './Config';
 import { Networks } from './Enum';
+import EventBus from './EventBus';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
@@ -8,12 +9,14 @@ import Version from './Version';
 export default class TimeNode {
   public actions: Actions;
   public config: Config;
+  public eventBus: EventBus;
   public scanner: Scanner;
   public router: Router;
 
   constructor(config: Config) {
     this.actions = new Actions(config);
     this.config = config;
+    this.eventBus = new EventBus();
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
 

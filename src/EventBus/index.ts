@@ -9,8 +9,8 @@ interface ISubscribers {
 }
 
 export default class EventBus {
-  public subscribers: {};
-  public eventEmitter: any;
+  public subscribers: ISubscribers;
+  public eventEmitter: EventEmitter;
 
   constructor() {
     this.eventEmitter = new EventEmitter();
@@ -20,6 +20,7 @@ export default class EventBus {
     this.eventEmitter.on(eventTopic, () => {
       this.pushEvents(eventTopic);
     });
+    return true;
   }
 
   public subscribe(eventTopic: string, listener: any): boolean {
