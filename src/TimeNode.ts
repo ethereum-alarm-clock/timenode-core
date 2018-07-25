@@ -25,6 +25,7 @@ export default class TimeNode {
   public startupMessage(): void {
     this.config.logger.info('EAC-TimeNode');
     this.config.logger.info('Version: ' + Version);
+    this.logNetwork();
   }
 
   public logNetwork(): void {
