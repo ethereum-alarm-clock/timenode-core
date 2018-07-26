@@ -1,3 +1,4 @@
+/* tslint:disable:no-unused-expression */
 import { expect, assert } from 'chai';
 import { Config, Wallet } from '../../src/index';
 import { mockConfig } from '../helpers';
@@ -5,6 +6,9 @@ import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
 import { TxSendErrors } from '../../src/Enum/TxSendErrors';
+import { DefaultLogger } from '../../src/Logger';
+
+const PRIVKEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
 describe('Wallet Unit Tests', () => {
   let config: Config;
@@ -15,6 +19,7 @@ describe('Wallet Unit Tests', () => {
   const reset = async () => {
     config = mockConfig();
     wallet = new Wallet(config.web3);
+    wallet.logger = new DefaultLogger();
 
     const accounts = await Bb.fromCallback((callback: any) =>
       config.web3.eth.getAccounts(callback)
@@ -50,6 +55,14 @@ describe('Wallet Unit Tests', () => {
       const newWallet = wallet.add(ethWallet.generate());
       expect(wallet[newWallet.getAddressString()]).to.exist;
     });
+
+    it('returns an existing wallet if already exists', () => {
+      const newWallet = wallet.add(ethWallet.generate());
+      expect(wallet[newWallet.getAddressString()]).to.exist;
+
+      const oldWallet = wallet.add(newWallet);
+      assert.equal(oldWallet, newWallet);
+    });
   });
 
   describe('rm()', () => {
@@ -61,19 +74,60 @@ describe('Wallet Unit Tests', () => {
       assert.isTrue(result);
       expect(wallet[newWallet.getAddressString()]).to.not.exist;
     });
+
+    it('returns false when a wallet is not present', () => {
+      const nonExistingAddr = '0x1234';
+      const result = wallet.rm(nonExistingAddr);
+      assert.isFalse(result);
+      expect(wallet[nonExistingAddr]).to.not.exist;
+    });
+  });
+
+  describe('clear()', () => {
+    it('clears all wallets', () => {
+      const newWallet1 = wallet.add(ethWallet.generate());
+      const newWallet2 = wallet.add(ethWallet.generate());
+      expect(wallet[newWallet1.getAddressString()]).to.exist;
+      expect(wallet[newWallet2.getAddressString()]).to.exist;
+
+      assert.equal(wallet.getAccounts().length, 2);
+
+      wallet.clear();
+
+      assert.equal(wallet.getAccounts().length, 0);
+    });
+  });
+
+  describe('encrypt()', () => {
+    it('clears all wallets', () => {
+      wallet.add(ethWallet.generate());
+      const encryptedWallets = wallet.encrypt('testpasswd123', {});
+
+      assert.equal(encryptedWallets.length, 1);
+      encryptedWallets.forEach(encryptedWallet =>
+        expect(encryptedWallet).to.haveOwnProperty('crypto')
+      );
+    });
   });
 
   describe('loadPrivateKeys()', () => {
     it('creates a wallet from a private key', () => {
       assert.equal(wallet.length, 0);
 
-      const privKey = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
+      const privKey = PRIVKEY;
       wallet.loadPrivateKeys([privKey]);
 
       assert.equal(
         wallet.getAddresses()[0].toLowerCase(),
         '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6'
       );
+    });
+
+    it('throws an error in case invalid key', () => {
+      assert.equal(wallet.length, 0);
+
+      const privKey = PRIVKEY.substring(0, PRIVKEY.length - 1);
+      expect(() => wallet.loadPrivateKeys([privKey])).to.throw();
     });
   });
 
@@ -159,8 +213,29 @@ describe('Wallet Unit Tests', () => {
   });
 
   describe('sendFromIndex()', () => {
-    it('returns error when not enough balance on account', async () => {
+    it('returns error if index invalid', async () => {
       wallet.create(1);
+      let err;
+
+      try {
+        await wallet.sendFromIndex(2, opts);
+      } catch (e) {
+        err = e;
+      }
+
+      expect(err.message).to.equal('Index is outside range of addresses.');
+    });
+
+    it('returns error when not enough balance on account and logs', async () => {
+      wallet.create(1);
+
+      const receipt = await wallet.sendFromIndex(0, opts);
+      assert.equal(receipt.error, TxSendErrors.NOT_ENOUGH_FUNDS);
+    });
+
+    it('returns error when not enough balance on account and doesnt log', async () => {
+      wallet.create(1);
+      wallet.logger = null;
 
       const receipt = await wallet.sendFromIndex(0, opts);
       assert.equal(receipt.error, TxSendErrors.NOT_ENOUGH_FUNDS);
