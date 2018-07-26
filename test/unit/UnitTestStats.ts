@@ -28,6 +28,9 @@ describe('Stats Unit Tests', () => {
   describe('initialize()', () => {
     it('fetches stats after initialization', async () => {
       expect(myStats).to.exist;
+
+      config.statsDb.initialize([myAccount]);
+      expect(myStats).to.exist;
     });
 
     it('stats are set to 0', async () => {
