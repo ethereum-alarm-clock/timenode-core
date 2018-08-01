@@ -39,8 +39,8 @@ export default class Config implements IConfigParams {
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
-    this.client = params.client || null;
     this.logger = params.logger || new DefaultLogger();
+    this.getConnectedClient();
 
     this.cache = new Cache(this.logger);
 
@@ -74,5 +74,62 @@ export default class Config implements IConfigParams {
 
     this.util = new W3Util(this.web3);
     this.economicStrategy = params.economicStrategy;
+  }
+
+  public clientSet (): boolean {
+    return typeof this.client === 'string';
+  }
+
+  public async awaitClientSet (): Promise<any> {
+    return new Promise((resolve) => {
+      if (this.clientSet()) {
+        resolve(true);
+      } else {
+        return this.awaitClientSet();
+      }
+    })
+  }
+  
+  public async getConnectedClient(): Promise<any> {
+    if (!this.web3) {
+      return;
+    }
+    return new Promise((resolve) => {
+      try {
+        const method = 'parity_defaultAccount';
+        this.web3.currentProvider.sendAsync(
+          {
+            jsonrpc: '2.0',
+            method: method,
+            params: [],
+            id: 0x0a7
+          }, async (err: Error) => {
+            if (!err && !this.clientSet()) {
+              this.client = 'parity';
+              resolve();
+            }
+          }
+        )
+      } catch (e) {
+      }
+
+      try {
+        const method = 'net_version';
+        this.web3.currentProvider.sendAsync(
+          {
+            jsonrpc: '2.0',
+            method: 'net_version',
+            params: [],
+            id: 0x07a
+          }, async(err: Error) => {
+            if (!err && !this.clientSet()) {
+              this.client = 'geth';
+              resolve();
+            }
+          }
+        )
+      } catch (e) {
+      }
+    });
   }
 }
