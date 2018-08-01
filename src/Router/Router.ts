@@ -1,15 +1,10 @@
 import Actions from '../Actions';
 import Config from '../Config';
-import { TxStatus } from '../Enum';
+import { TxStatus, ClaimStatus } from '../Enum';
 import { shouldClaimTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
 import { ITxRequest } from '../Types';
-
-export enum TEMPORAL_UNIT {
-  BLOCK = 1,
-  TIMESTAMP = 2
-}
 
 export default class Router {
   public actions: Actions;
@@ -63,9 +58,9 @@ export default class Router {
 
       if (shouldClaim) {
         try {
-          const claimed = await this.actions.claim(txRequest);
+          const claimed: ClaimStatus = await this.actions.claim(txRequest);
 
-          if (claimed === true) {
+          if (claimed === ClaimStatus.SUCCESS) {
             this.config.logger.info(`${txRequest.address} claimed`);
           }
         } catch (e) {

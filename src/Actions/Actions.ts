@@ -3,6 +3,7 @@ import Config from '../Config';
 import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
+import { ExecuteErrors, ClaimStatus } from '../Enum';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -15,10 +16,10 @@ export default class Actions {
     this.config = config;
   }
 
-  public async claim(txRequest: any): Promise<any> {
+  public async claim(txRequest: any): Promise<ClaimStatus> {
     // Check if claiming is turned off.
     if (!this.config.claiming) {
-      return { ignore: true };
+      return ClaimStatus.NOT_ENABLED;
     }
 
     const requiredDeposit = txRequest.requiredDeposit;
@@ -37,9 +38,7 @@ export default class Actions {
     };
 
     if (await hasPending(this.config, txRequest, { type: 'claim' })) {
-      return {
-        ignore: true
-      };
+      return ClaimStatus.PENDING;
     }
 
     if (this.config.wallet.isNextAccountFree()) {
@@ -49,7 +48,10 @@ export default class Actions {
         // this.config.logger.debug(`[${txRequest.address}] Received receipt: ${JSON.stringify(receipt)}\n And from: ${from}`);
 
         if (error) {
-          return;
+          this.config.logger.debug(
+            `Actions::claim(${shortenAddress(txRequest.address)})::sendFromNext error: ${error}`
+          );
+          return ClaimStatus.FAILED;
         }
 
         if (isTransactionStatusSuccessful(receipt.status)) {
@@ -62,14 +64,17 @@ export default class Actions {
 
           this.config.statsDb.updateClaimed(from, cost);
 
-          return txRequest.isClaimed;
+          if (txRequest.isClaimed) {
+            return ClaimStatus.SUCCESS;
+          }
         }
 
-        return false;
+        return ClaimStatus.SUCCESS;
       } catch (err) {
         this.config.logger.debug(
           `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${err}`
         );
+        return ClaimStatus.FAILED;
       }
     } else {
       this.config.logger.debug(
@@ -77,6 +82,7 @@ export default class Actions {
           txRequest.address
         )})::Wallet with index 0 is not able to send tx.`
       );
+      return ClaimStatus.FAILED;
     }
 
     //TODO get transaction object from txHash
