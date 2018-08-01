@@ -100,7 +100,7 @@ export default class Config implements IConfigParams {
         this.web3.currentProvider.sendAsync(
           {
             jsonrpc: '2.0',
-            method: method,
+            method,
             params: [],
             id: 0x0a7
           }, async (err: Error) => {
@@ -111,6 +111,7 @@ export default class Config implements IConfigParams {
           }
         )
       } catch (e) {
+        return;
       }
 
       try {
@@ -118,7 +119,7 @@ export default class Config implements IConfigParams {
         this.web3.currentProvider.sendAsync(
           {
             jsonrpc: '2.0',
-            method: 'net_version',
+            method,
             params: [],
             id: 0x07a
           }, async(err: Error) => {
@@ -129,6 +130,7 @@ export default class Config implements IConfigParams {
           }
         )
       } catch (e) {
+        return;
       }
     });
   }
