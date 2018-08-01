@@ -69,7 +69,7 @@ export default class Actions {
           }
         }
 
-        return ClaimStatus.SUCCESS;
+        return ClaimStatus.FAILED;
       } catch (err) {
         this.config.logger.debug(
           `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${err}`
