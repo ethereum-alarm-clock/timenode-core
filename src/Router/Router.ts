@@ -62,6 +62,8 @@ export default class Router {
 
           if (claimed === ClaimStatus.SUCCESS) {
             this.config.logger.info(`${txRequest.address} claimed`);
+          } else {
+            this.config.logger.debug(`${txRequest.address} error: ${claimed}`);
           }
         } catch (e) {
           this.config.logger.error(`${txRequest.address} claiming failed`);
@@ -115,6 +117,8 @@ export default class Router {
         this.config.logger.info(`${txRequest.address} executed`);
 
         return TxStatus.Executed;
+      } else {
+        this.config.logger.debug(`${txRequest.address} error: ${executed}`);
       }
     } catch (e) {
       this.config.logger.error(`${txRequest.address} execution failed`);
