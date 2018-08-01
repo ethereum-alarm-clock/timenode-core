@@ -3,7 +3,7 @@ import Config from '../Config';
 import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
-import { ExecuteErrors, ClaimStatus } from '../Enum';
+import { ExecuteStatus, ClaimStatus } from '../Enum';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -116,16 +116,17 @@ export default class Actions {
         exactPrice: opts.gasPrice
       })
     ) {
-      return {
-        ignore: true
-      };
+      return ExecuteStatus.PENDING;
     }
 
-    const handleTransactionReturn = async (walletReceipt: IWalletReceipt): Promise<boolean> => {
+    const handleTransactionReturn = async (
+      walletReceipt: IWalletReceipt
+    ): Promise<ExecuteStatus> => {
       const { receipt, from, error } = walletReceipt;
 
       if (error) {
-        return;
+        this.config.logger.debug(`Actions.execute: ${ExecuteStatus.FAILED}`);
+        return ExecuteStatus.FAILED;
       }
 
       if (isTransactionStatusSuccessful(receipt.status)) {
@@ -151,10 +152,12 @@ export default class Actions {
 
         this.config.statsDb.updateExecuted(from, bounty, cost);
 
-        return txRequest.wasSuccessful;
+        if (txRequest.wasSuccessful) {
+          return ExecuteStatus.SUCCESS;
+        }
       }
 
-      return false;
+      return ExecuteStatus.FAILED;
     };
 
     if (claimIndex !== -1) {

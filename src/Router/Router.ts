@@ -1,6 +1,6 @@
 import Actions from '../Actions';
 import Config from '../Config';
-import { TxStatus, ClaimStatus } from '../Enum';
+import { TxStatus, ClaimStatus, ExecuteStatus } from '../Enum';
 import { shouldClaimTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
@@ -109,9 +109,9 @@ export default class Router {
     }
 
     try {
-      const executed = await this.actions.execute(txRequest);
+      const executed: ExecuteStatus = await this.actions.execute(txRequest);
 
-      if (executed === true) {
+      if (executed === ExecuteStatus.SUCCESS) {
         this.config.logger.info(`${txRequest.address} executed`);
 
         return TxStatus.Executed;

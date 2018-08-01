@@ -2,5 +2,5 @@ export { Networks } from './Networks';
 export { TxStatus } from './TxStatus';
 export { FnSignatures } from './FnSignatures';
 export { CacheStates } from './CacheStates';
-export { ExecuteErrors } from './ExecuteErrors';
+export { ExecuteStatus } from './ExecuteStatus';
 export { ClaimStatus } from './ClaimStatus';
