@@ -53,6 +53,10 @@ describe('TimeNode Unit Tests', () => {
         networkLogged = true;
       };
 
+      timenode.config.web3.version.getNetwork = (callback: Function) => {
+        callback(null, true);
+      };
+
       timenode.logNetwork();
       assert.isTrue(networkLogged);
     });
