@@ -266,7 +266,7 @@ describe('Wallet Unit Tests', () => {
       assert.equal(receipt.error, TxSendErrors.SENDING_IN_PROGRESS);
     });
 
-    it.only('allows to send another transaction when previous one reverted', async () => {
+    it('allows to send another transaction when previous one reverted', async () => {
       wallet.create(1);
       const idx = 0;
       const address = wallet.getAddresses()[idx];
