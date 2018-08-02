@@ -94,17 +94,17 @@ export default class Config implements IConfigParams {
     if (!this.web3) {
       return;
     }
-    return new Promise((resolve) => {
+    return new Promise( async (resolve) => {
       try {
-        const method = 'parity_defaultAccount';
-        this.web3.currentProvider.sendAsync(
+        const method = 'parity_pendingTransactions';
+        await this.web3.currentProvider.sendAsync(
           {
             jsonrpc: '2.0',
             method,
             params: [],
             id: 0x0a7
-          }, async (err: Error) => {
-            if (!err && !this.clientSet()) {
+          }, async (err: Error, res: any) => {
+            if (!err && !res.error && !this.clientSet()) {
               this.client = 'parity';
               resolve();
             }
@@ -115,15 +115,15 @@ export default class Config implements IConfigParams {
       }
 
       try {
-        const method = 'net_version';
-        this.web3.currentProvider.sendAsync(
+        const method = 'txpool_content';
+        await this.web3.currentProvider.sendAsync(
           {
             jsonrpc: '2.0',
             method,
             params: [],
             id: 0x07a
-          }, async(err: Error) => {
-            if (!err && !this.clientSet()) {
+          }, async(err: Error, res: any) => {
+            if (!err && !res.error && !this.clientSet()) {
               this.client = 'geth';
               resolve();
             }
@@ -132,6 +132,8 @@ export default class Config implements IConfigParams {
       } catch (e) {
         return;
       }
+      this.client = 'unknown';
+      return;
     });
   }
 }
