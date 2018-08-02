@@ -121,6 +121,13 @@ describe('Pending Unit Tests', () => {
     expect(pending).to.be.true;
   });
 
+  it('Does not process unknown clients', async () => {
+    const gasPrice = 1 * 1e12;
+    const config = preConfig(mockConfig(), { client: '', gasPrice });
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    expect(pending).to.be.undefined;
+  })
+
   it('Detects valid Pending claim requests', async () => {
     const expected = [true, true];
     const results: any = [];

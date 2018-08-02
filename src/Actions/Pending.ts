@@ -9,7 +9,7 @@ import { FnSignatures } from '../Enum';
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = async (
+const hasPendingParity = (
   conf: any,
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
@@ -63,7 +63,7 @@ const hasPendingParity = async (
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingGeth = async (
+const hasPendingGeth = (
   conf: any,
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
