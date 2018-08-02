@@ -106,28 +106,34 @@ const PENDINGS = [
 
 const randomClient = () => CLIENTS[Math.floor(Math.random() * CLIENTS.length)];
 
-describe('Pending Unit Tests', () => {
+describe('hasPendingParity()', () => {
   it('Detects valid Pending requests (parity)', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'parity', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     expect(pending).to.be.true;
   });
+})
 
+describe('hasPendingGeth()', () => {
   it('Detects valid Pending requests (geth)', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'geth', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     expect(pending).to.be.true;
   });
+})
 
+describe('hasPending()', () => {
   it('Does not process unknown clients', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: '', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     expect(pending).to.be.undefined;
   })
+})
 
+describe('Pending Unit Tests', () => {
   it('Detects valid Pending claim requests', async () => {
     const expected = [true, true];
     const results: any = [];

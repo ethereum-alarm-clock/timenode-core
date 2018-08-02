@@ -73,7 +73,7 @@ const hasPendingGeth = (
 
   return new Promise((resolve, reject) => {
     try{
-      provider.send(
+      provider.sendAsync(
         {
           jsonrpc: '2.0',
           method: 'txpool_content',
