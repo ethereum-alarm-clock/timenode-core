@@ -25,6 +25,18 @@ describe('Config unit tests', () => {
       assert.isNull(config.wallet);
     });
 
+    it('Detect if config client is set', () => {
+      const config = new Config({ providerUrl });
+      expect(config.clientSet()).to.be.false;
+    });
+
+    it('Detect when config client is set', async () => {
+      const config = new Config({ providerUrl });
+      expect(config.clientSet()).to.be.false;
+      await config.awaitClientSet();
+      expect(config.clientSet()).to.be.true;
+    });
+
     it('check all values are set when added to config object', () => {
       const config = new Config({
         providerUrl,

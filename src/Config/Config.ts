@@ -81,39 +81,22 @@ export default class Config implements IConfigParams {
   }
 
   public async awaitClientSet (): Promise<any> {
-    return new Promise((resolve) => {
-      if (this.clientSet()) {
-        resolve(true);
-      } else {
-        return this.awaitClientSet();
-      }
-    })
+    if (this.clientSet()) {
+      return true;
+    } else {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(this.awaitClientSet());
+          }, 100);
+      })
+    }
   }
   
   public async getConnectedClient(): Promise<any> {
-    if (!this.web3) {
-      return;
-    }
-    return new Promise( async (resolve) => {
-      try {
-        const method = 'parity_pendingTransactions';
-        await this.web3.currentProvider.sendAsync(
-          {
-            jsonrpc: '2.0',
-            method,
-            params: [],
-            id: 0x0a7
-          }, async (err: Error, res: any) => {
-            if (!err && !res.error && !this.clientSet()) {
-              this.client = 'parity';
-              resolve();
-            }
-          }
-        )
-      } catch (e) {
-        return;
+    return new Promise( async (resolve, reject) => {
+      if (!this.web3) {
+        reject();
       }
-
       try {
         const method = 'txpool_content';
         await this.web3.currentProvider.sendAsync(
@@ -125,15 +108,51 @@ export default class Config implements IConfigParams {
           }, async(err: Error, res: any) => {
             if (!err && !res.error && !this.clientSet()) {
               this.client = 'geth';
-              resolve();
             }
+            resolve();
           }
         )
       } catch (e) {
+        this.logger.error(e.message);
+        resolve();
+      }
+    })
+    .then( async () => {
+      if (this.clientSet()) {
         return;
       }
-      this.client = 'unknown';
+      return new Promise( async (resolve, reject) => {
+        try {
+          const method = 'parity_pendingTransactions';
+          await this.web3.currentProvider.sendAsync(
+            {
+              jsonrpc: '2.0',
+              method,
+              params: [],
+              id: 0x0a7
+            }, async (err: Error, res: any) => {
+              if (!err && !res.error && !this.clientSet()) {
+                this.client = 'parity';
+              }
+              resolve();
+            }
+          )
+        } catch (e) {
+          this.logger.error(e.message);
+          resolve();
+        }
+      })
+    })
+    .then( () => {
+      if (!this.clientSet()) {
+        this.client = 'unknown';
+      }
+      this.logger.debug(`Client: ${this.client.toUpperCase()}`);
       return;
-    });
+    })
+    .catch(() => {
+      this.client = 'none';
+      this.logger.error(`Client: ${this.client.toUpperCase()}`);
+    })
   }
 }
