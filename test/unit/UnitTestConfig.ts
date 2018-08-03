@@ -45,7 +45,7 @@ describe('Config unit tests', () => {
       assert.isTrue(config.walletStoresAsPrivateKeys);
       assert.isNotNull(config.client);
       expect(config.logger).to.exist;
-      assert.equal(config.wallet.length, 1);
+      assert.equal(config.wallet.getAccounts().length, 1);
     });
 
     it('wallet decrypted when using a keystore string', () => {
@@ -55,7 +55,7 @@ describe('Config unit tests', () => {
         password: WALLET_PASSWD
       });
 
-      assert.equal(config.wallet.length, 1);
+      assert.equal(config.wallet.getAccounts().length, 1);
     });
 
     it('wallet decrypted when using a keystore object', () => {
@@ -65,7 +65,7 @@ describe('Config unit tests', () => {
         password: WALLET_PASSWD
       });
 
-      assert.equal(config.wallet.length, 1);
+      assert.equal(config.wallet.getAccounts().length, 1);
     });
 
     it('throws an error when using a keystore without a password', () => {

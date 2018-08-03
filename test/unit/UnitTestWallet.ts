@@ -54,48 +54,15 @@ describe('Wallet Unit Tests', () => {
   describe('add()', () => {
     it('creates a new wallet', () => {
       const newWallet = wallet.add(ethWallet.generate());
-      expect(wallet[newWallet.getAddressString()]).to.exist;
+      expect(wallet.isKnownAddress(newWallet.getAddressString())).to.be.true;
     });
 
     it('returns an existing wallet if already exists', () => {
       const newWallet = wallet.add(ethWallet.generate());
-      expect(wallet[newWallet.getAddressString()]).to.exist;
+      expect(wallet.isKnownAddress(newWallet.getAddressString())).to.be.true;
 
       const oldWallet = wallet.add(newWallet);
-      assert.equal(oldWallet, newWallet);
-    });
-  });
-
-  describe('rm()', () => {
-    it('removes a wallet', () => {
-      const newWallet = wallet.add(ethWallet.generate());
-      expect(wallet[newWallet.getAddressString()]).to.exist;
-
-      const result = wallet.rm(newWallet.getAddressString());
-      assert.isTrue(result);
-      expect(wallet[newWallet.getAddressString()]).to.not.exist;
-    });
-
-    it('returns false when a wallet is not present', () => {
-      const nonExistingAddr = '0x1234';
-      const result = wallet.rm(nonExistingAddr);
-      assert.isFalse(result);
-      expect(wallet[nonExistingAddr]).to.not.exist;
-    });
-  });
-
-  describe('clear()', () => {
-    it('clears all wallets', () => {
-      const newWallet1 = wallet.add(ethWallet.generate());
-      const newWallet2 = wallet.add(ethWallet.generate());
-      expect(wallet[newWallet1.getAddressString()]).to.exist;
-      expect(wallet[newWallet2.getAddressString()]).to.exist;
-
-      assert.equal(wallet.getAccounts().length, 2);
-
-      wallet.clear();
-
-      assert.equal(wallet.getAccounts().length, 0);
+      assert.equal(oldWallet.getAddressString(), newWallet.getAddressString());
     });
   });
 
@@ -113,8 +80,6 @@ describe('Wallet Unit Tests', () => {
 
   describe('loadPrivateKeys()', () => {
     it('creates a wallet from a private key', () => {
-      assert.equal(wallet.length, 0);
-
       const privKey = PRIVKEY;
       wallet.loadPrivateKeys([privKey]);
 
@@ -125,8 +90,6 @@ describe('Wallet Unit Tests', () => {
     });
 
     it('throws an error in case invalid key', () => {
-      assert.equal(wallet.length, 0);
-
       const privKey = PRIVKEY.substring(0, PRIVKEY.length - 1);
       expect(() => wallet.loadPrivateKeys([privKey])).to.throw();
     });
@@ -197,19 +160,6 @@ describe('Wallet Unit Tests', () => {
     it('errors if wallet not within range', () => {
       wallet.create(1);
       expect(() => wallet.isWalletAbleToSendTx(1)).to.throw();
-    });
-  });
-
-  describe('signTransaction()', () => {
-    it('signs a transaction', async () => {
-      wallet.create(1);
-      const from = wallet.getAddresses()[0];
-      const nonce = config.web3.toHex(await wallet.getNonce(from));
-
-      const sig = await wallet.signTransaction(from, nonce, opts);
-      expect(sig).to.haveOwnProperty('r');
-      expect(sig).to.haveOwnProperty('s');
-      expect(sig).to.haveOwnProperty('v');
     });
   });
 
@@ -290,6 +240,7 @@ describe('Wallet Unit Tests', () => {
         })
       );
       assert.equal(receipt.error, TxSendErrors.UNKNOWN_ERROR);
+      assert.isFalse(wallet.walletStates[address].sendingTxInProgress);
 
       receipt = await wallet.sendFromIndex(idx, opts);
       assert.ok(isTransactionStatusSuccessful(receipt.receipt.status));
