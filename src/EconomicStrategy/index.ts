@@ -1,2 +1,2 @@
 export { IEconomicStrategy } from './IEconomicStrategy';
-export { shouldClaimTx } from './EconomicStrategyHelpers';
+export { shouldClaimTx, getExecutionGasPrice } from './EconomicStrategyHelpers';
