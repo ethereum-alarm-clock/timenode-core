@@ -300,7 +300,7 @@ describe('Wallet Unit Tests', () => {
       const idx = 0;
       const address = wallet.getAddresses()[idx];
 
-      const txHash = await Bb.fromCallback((callback: any) =>
+      const txHash = (await Bb.fromCallback((callback: any) =>
         config.web3.eth.sendTransaction(
           {
             from: myAccount,
@@ -309,7 +309,7 @@ describe('Wallet Unit Tests', () => {
           },
           callback
         )
-      );
+      )) as string;
       assert.equal(txHash.length, 66);
 
       const receipt = await wallet.sendFromIndex(idx, opts);

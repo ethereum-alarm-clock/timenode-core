@@ -70,11 +70,23 @@ export default class Actions {
           }
         }
 
+        if (this.config.cache.has(txRequest.address)) {
+          this.config.cache.get(txRequest.address).claimingFailed = true;
+        } else {
+          this.config.cache.set(txRequest.address, {
+            claimedBy: null,
+            claimingFailed: true,
+            wasCalled: false,
+            windowStart: null
+          });
+        }
+
         return ClaimStatus.FAILED;
       } catch (err) {
         this.config.logger.debug(
           `Actions::claim(${shortenAddress(txRequest.address)})::sendFromIndex error: ${err}`
         );
+
         return ClaimStatus.FAILED;
       }
     } else {
