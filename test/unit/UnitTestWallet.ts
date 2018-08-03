@@ -7,6 +7,7 @@ import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
 import { TxSendErrors } from '../../src/Enum/TxSendErrors';
 import { DefaultLogger } from '../../src/Logger';
+import { isTransactionStatusSuccessful } from '../../src/Actions/Helpers';
 
 const PRIVKEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
@@ -241,7 +242,7 @@ describe('Wallet Unit Tests', () => {
       assert.equal(receipt.error, TxSendErrors.NOT_ENOUGH_FUNDS);
     });
 
-    xit('returns error when sending a Tx is in progress', async () => {
+    it('returns error when sending a Tx is in progress', async () => {
       wallet.create(1);
       const idx = 0;
       const address = wallet.getAddresses()[idx];
@@ -249,8 +250,49 @@ describe('Wallet Unit Tests', () => {
         sendingTxInProgress: true
       };
 
+      // Fund new wallet
+      await new Promise(resolve => {
+        config.web3.eth.sendTransaction(
+          {
+            from: myAccount,
+            to: address,
+            value: config.web3.toWei('0.5', 'ether')
+          },
+          resolve
+        );
+      });
+
       const receipt = await wallet.sendFromIndex(idx, opts);
       assert.equal(receipt.error, TxSendErrors.SENDING_IN_PROGRESS);
+    });
+
+    it('allows to send another transaction when previous one reverted', async () => {
+      wallet.create(1);
+      const idx = 0;
+      const address = wallet.getAddresses()[idx];
+
+      // Fund new wallet
+      await new Promise(resolve => {
+        config.web3.eth.sendTransaction(
+          {
+            from: myAccount,
+            to: address,
+            value: config.web3.toWei('0.5', 'ether')
+          },
+          resolve
+        );
+      });
+
+      let receipt = await wallet.sendFromIndex(
+        idx,
+        Object.assign({}, opts, {
+          data: '0x1234'
+        })
+      );
+      assert.equal(receipt.error, TxSendErrors.UNKNOWN_ERROR);
+
+      receipt = await wallet.sendFromIndex(idx, opts);
+      assert.ok(isTransactionStatusSuccessful(receipt.receipt.status));
     });
 
     it('returns receipt when is able to send the transaction', async () => {
