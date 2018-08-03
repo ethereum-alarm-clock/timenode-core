@@ -4,6 +4,7 @@ import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
+import { getExecutionGasPrice } from '../EconomicStrategy';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -102,18 +103,20 @@ export default class Actions {
     const claimIndex = this.config.wallet.getAddresses().indexOf(txRequest.claimedBy);
     this.config.logger.debug(`Claim Index ${claimIndex}`);
 
+    const gasPrice = await getExecutionGasPrice(txRequest, this.config);
+
     const opts = {
       to: txRequest.address,
       value: 0,
       gas: gasToExecute,
-      gasPrice: txRequest.gasPrice,
+      gasPrice,
       data: executeData
     };
 
     if (
       await hasPending(this.config, txRequest, {
         type: 'execute',
-        exactPrice: opts.gasPrice
+        exactPrice: gasPrice
       })
     ) {
       return ExecuteStatus.PENDING;
