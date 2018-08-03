@@ -71,6 +71,7 @@ describe('TimeNode Unit Tests', () => {
     it('returns a transaction', () => {
       const tx = {
         claimedBy: config.wallet.getAddresses()[0],
+        claimingFailed: false,
         wasCalled: false,
         windowStart: new BigNumber(10000)
       };

@@ -1,6 +1,6 @@
 import { expect, assert } from 'chai';
 
-import { Config } from '../../src/index';
+import { Config, TimeNode } from '../../src/index';
 import { mockConfig, MockTxRequest } from '../helpers';
 import Actions from '../../src/Actions';
 import {
@@ -8,24 +8,43 @@ import {
   EXECUTED_EVENT,
   isTransactionStatusSuccessful
 } from '../../src/Actions/Helpers';
+import { ClaimStatus } from '../../src/Enum';
 
-describe('Actions Unit Tests', async () => {
-  const config: Config = mockConfig();
-  const tx: any = await MockTxRequest(config.web3);
-  let actions: Actions;
+describe('Actions Unit Tests', () => {
+  it('sets claimingFailed to true when claim transaction reverts', async () => {
+    const config = mockConfig();
+    const timenode = new TimeNode(config);
 
-  it('initializes the Actions with a Config', () => {
-    actions = new Actions(config);
-    expect(actions).to.exist;
+    config.wallet.sendRawTransaction = async () => {
+      return {};
+    };
+
+    config.wallet.getTransactionReceipt = async () => {
+      return {
+        from: null,
+        receipt: {
+          status: '0x0'
+        }
+      };
+    };
+
+    const actions = new Actions(config);
+
+    const tx = await MockTxRequest(config.web3);
+
+    assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
+    assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 0);
+
+    const claimingResult = await actions.claim(tx);
+
+    assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
+    assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 1);
+
+    assert.equal(claimingResult, ClaimStatus.FAILED);
   });
-
-  // it('claim action', () => {
-  //   const claimingResult = actions.claim(tx);
-  //   expect(claimingResult).to.be.true;
-  // });
 });
 
-describe('Actions Helpers Unit Tests', async () => {
+describe('Actions Helpers Unit Tests', () => {
   describe('isExecuted()', () => {
     it('returns true when executed event present in receipt', () => {
       const receipt = {
