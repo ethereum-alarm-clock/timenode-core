@@ -269,6 +269,7 @@ describe('Scanner Unit Tests', () => {
     it('returns REFRESHED when cache not empty', async () => {
       const tx = {
         claimedBy: '0x0',
+        claimingFailed: false,
         wasCalled: false,
         windowStart: new BigNumber(10000)
       };

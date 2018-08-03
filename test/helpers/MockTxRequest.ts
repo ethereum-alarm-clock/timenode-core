@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import * as moment from 'moment';
 import * as Bb from 'bluebird';
-import { TxStatus } from '../../src/Enum';
+import { TxStatus, FnSignatures } from '../../src/Enum';
 
 const MockTxRequest = async (web3: any, isBlock?: boolean) => {
   const from = '0x74f8e3501b00bd219e864650f5625cd4f9272a75';
@@ -22,9 +22,9 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
 
   const oneHourWindowSize = new BigNumber(isBlock ? 255 : 3600);
 
-  const currentBlockNumber = await Bb.fromCallback((callback: any) =>
+  const currentBlockNumber = (await Bb.fromCallback((callback: any) =>
     web3.eth.getBlockNumber(callback)
-  );
+  )) as number;
 
   return {
     isBlock,
@@ -33,11 +33,7 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
     callGas: new BigNumber(Math.pow(10, 6)),
     gasPrice: new BigNumber(web3.toWei(21, 'gwei')),
     claimedBy,
-    claimData: {
-      claimedBy,
-      requiredDeposit,
-      nonce
-    },
+    claimData: FnSignatures.claim,
     isClaimed: false,
     requiredDeposit,
     temporalUnit: isBlock ? 1 : 2,
