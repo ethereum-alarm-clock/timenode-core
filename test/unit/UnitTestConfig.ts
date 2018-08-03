@@ -20,7 +20,7 @@ describe('Config unit tests', () => {
       assert.equal(config.ms, 4000);
       assert.equal(config.scanSpread, 50);
       assert.isFalse(config.walletStoresAsPrivateKeys);
-      assert.isNull(config.client);
+      assert.isUndefined(config.client);
       expect(config.logger).to.exist;
       assert.isNull(config.wallet);
     });
