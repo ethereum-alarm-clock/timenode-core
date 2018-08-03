@@ -64,16 +64,32 @@ export default class TimeNode {
   public getClaimedNotExecutedTransactions(): string[] {
     const cachedTransactionsAddresses = this.config.cache.stored();
     const timenodeAddresses = this.config.wallet.getAddresses();
-    const claimedNotExecutedTransactions = [];
+    const transactions = [];
 
     for (const address of cachedTransactionsAddresses) {
       const cachedTx = this.config.cache.get(address);
 
       if (timenodeAddresses.indexOf(cachedTx.claimedBy) !== -1 && !cachedTx.wasCalled) {
-        claimedNotExecutedTransactions.push(address);
+        transactions.push(address);
       }
     }
 
-    return claimedNotExecutedTransactions;
+    return transactions;
+  }
+
+  public getUnsucessfullyClaimedTransactions(): string[] {
+    const cachedTransactionsAddresses = this.config.cache.stored();
+    const timenodeAddresses = this.config.wallet.getAddresses();
+    const transactions = [];
+
+    for (const address of cachedTransactionsAddresses) {
+      const cachedTx = this.config.cache.get(address);
+
+      if (cachedTx.claimingFailed && timenodeAddresses.indexOf(cachedTx.claimedBy) === -1) {
+        transactions.push(address);
+      }
+    }
+
+    return transactions;
   }
 }
