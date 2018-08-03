@@ -1,6 +1,6 @@
 import { IEconomicStrategy } from './IEconomicStrategy';
 import Config from '../Config';
-import { BigNumber } from '../../node_modules/bignumber.js';
+import { BigNumber } from 'bignumber.js';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
@@ -8,10 +8,7 @@ import { BigNumber } from '../../node_modules/bignumber.js';
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const exceedsMaxDeposit = (
-  txRequest: any,
-  economicStrategy: IEconomicStrategy
-): boolean | BigNumber => {
+const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy): boolean => {
   const requiredDeposit = txRequest.requiredDeposit;
   const maxDeposit = economicStrategy.maxDeposit;
 
@@ -26,7 +23,7 @@ const exceedsMaxDeposit = (
  * Checks if the balance of the TimeNode is above a set limit.
  * @param {Config} config TimeNode configuration object.
  */
-const isAboveMinBalanceLimit = async (config: Config): Promise<boolean | BigNumber> => {
+const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
   const minBalance = config.economicStrategy.minBalance;
   const currentBalance = await config.wallet.getBalanceOf(config.wallet.getAddresses()[0]);
 
@@ -45,7 +42,7 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean | BigNumb
 const isProfitable = async (
   txRequest: any,
   economicStrategy: IEconomicStrategy
-): Promise<boolean | BigNumber> => {
+): Promise<boolean> => {
   const paymentModifier = await txRequest.claimPaymentModifier();
   const reward = txRequest.bounty.times(paymentModifier);
 
