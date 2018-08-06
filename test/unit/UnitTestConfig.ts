@@ -37,6 +37,44 @@ describe('Config unit tests', () => {
       expect(config.clientSet()).to.be.true;
     });
 
+    it('Detects correct config client is set', async () => {
+      const clients = ['geth', 'parity', 'unknown'];
+      let found: any = [];
+      const methods = {
+        'geth': 'txpool_content',
+        'parity': 'parity_pendingTransactions',
+        'unknown': ''
+      }
+
+      const Web3 = (client: string) => {
+        return {
+          currentProvider : {
+            sendAsync : (_payload: any, callback: Function) => {
+              console.log('inAsync', methods[client])
+              if(_payload.method === methods[client]) {
+                callback(null, {});
+              } else {
+                const err = new Error('Method does not exist');
+                callback(err, { error: err });
+              }
+            }
+          }
+        }
+      }
+
+      await Promise.all(
+        clients.map( async (client: string) => {
+          const config = new Config({ providerUrl, disableDetecion: true });
+          config.web3 = Web3(client);
+          config.getConnectedClient();
+          await config.awaitClientSet();
+          found.push(config.client);
+        })
+      )
+
+      expect(found).to.deep.equal(clients);
+    });
+
     it('check all values are set when added to config object', () => {
       const config = new Config({
         providerUrl,
