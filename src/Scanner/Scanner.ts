@@ -177,8 +177,9 @@ export default class {
     if (watcher !== undefined) {
       const reqFactory = await this.requestFactory;
       await reqFactory.stopWatch(watcher);
-
       delete this.eventWatchers[bucket];
+
+      this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been stopped`);
     }
   }
 
@@ -187,9 +188,11 @@ export default class {
     const handleRequest = this.handleRequest.bind(this);
 
     if (bucket !== previousBucket) {
-      this.stopWatcher(previousBucket);
+      await this.stopWatcher(previousBucket);
       const watcher = await reqFactory.watchRequestsByBucket(bucket, handleRequest);
       this.eventWatchers[bucket] = watcher;
+
+      this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
     }
   }
 
