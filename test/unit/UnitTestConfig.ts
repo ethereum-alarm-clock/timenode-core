@@ -64,7 +64,7 @@ describe('Config unit tests', () => {
 
       await Promise.all(
         clients.map( async (client: string) => {
-          const config = new Config({ providerUrl, disableDetecion: true });
+          const config = new Config({ providerUrl, disableDetection: true });
           config.web3 = Web3(client);
           config.getConnectedClient();
           await config.awaitClientSet();

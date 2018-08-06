@@ -5,7 +5,7 @@ export interface IConfigParams {
   autostart?: boolean;
   client?: string;
   claiming?: boolean;
-  disableDetecion?: boolean;
+  disableDetection?: boolean;
   economicStrategy?: IEconomicStrategy;
   logger?: ILogger | null;
   ms?: any;

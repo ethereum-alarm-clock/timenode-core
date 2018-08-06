@@ -41,7 +41,7 @@ export default class Config implements IConfigParams {
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
 
-    if (!params.disableDetecion) {
+    if (!params.disableDetection) {
       this.getConnectedClient();
     }
 
