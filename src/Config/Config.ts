@@ -113,7 +113,7 @@ export default class Config implements IConfigParams {
           }
         )
       } catch (e) {
-        this.logger.error(e.message);
+        // this.logger.error(e.message);
         resolve();
       }
     })
@@ -138,7 +138,7 @@ export default class Config implements IConfigParams {
             }
           )
         } catch (e) {
-          this.logger.error(e.message);
+          // this.logger.error(e.message);
           resolve();
         }
       })
