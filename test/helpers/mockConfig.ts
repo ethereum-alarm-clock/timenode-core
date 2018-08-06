@@ -17,6 +17,7 @@ const mockConfig = (preConfig?: any) => {
   const config = new Config({
     autostart: true,
     claiming: true,
+    disableDetecion: true,
     economicStrategy: {
       maxDeposit: new BigNumber(0),
       minBalance: new BigNumber(0),

@@ -40,7 +40,10 @@ export default class Config implements IConfigParams {
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
-    this.getConnectedClient();
+
+    if (!params.disableDetecion) {
+      this.getConnectedClient();
+    }
 
     this.cache = new Cache(this.logger);
 
@@ -113,7 +116,7 @@ export default class Config implements IConfigParams {
           }
         )
       } catch (e) {
-        // this.logger.error(e.message);
+        this.logger.error(e.message);
         resolve();
       }
     })
@@ -138,7 +141,7 @@ export default class Config implements IConfigParams {
             }
           )
         } catch (e) {
-          // this.logger.error(e.message);
+          this.logger.error(e.message);
           resolve();
         }
       })
