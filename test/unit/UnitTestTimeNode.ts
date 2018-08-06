@@ -46,11 +46,15 @@ describe('TimeNode Unit Tests', () => {
   });
 
   describe('logNetwork()', () => {
-    xit('logs the network id', () => {
+    it('logs the network id', () => {
       let networkLogged = false;
 
       timenode.config.logger.info = (msg: string) => {
         networkLogged = true;
+      };
+
+      timenode.config.web3.version.getNetwork = (callback: Function) => {
+        callback(null, true);
       };
 
       timenode.logNetwork();
@@ -67,6 +71,7 @@ describe('TimeNode Unit Tests', () => {
     it('returns a transaction', () => {
       const tx = {
         claimedBy: config.wallet.getAddresses()[0],
+        claimingFailed: false,
         wasCalled: false,
         windowStart: new BigNumber(10000)
       };

@@ -3,6 +3,7 @@ import BigNumber from 'bignumber.js';
 
 export interface ICachedTxDetails {
   claimedBy: string;
+  claimingFailed: boolean;
   wasCalled: boolean;
   windowStart: BigNumber;
 }
