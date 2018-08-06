@@ -22,7 +22,7 @@ describe('Actions Unit Tests', async () => {
     const config = mockConfig();
     const timenode = new TimeNode(config);
 
-    config.wallet.sendRawTransaction = async () => {
+    config.wallet.sendRawTransaction = async (tx: any) => {
       return {};
     };
 
