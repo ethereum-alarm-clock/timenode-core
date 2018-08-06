@@ -1,5 +1,5 @@
 import * as ethWallet from 'ethereumjs-wallet';
-import * as Bb from 'bluebird';
+import { fromCallback } from 'bluebird';
 import { BigNumber } from 'bignumber.js';
 import { ILogger } from '../Logger';
 import { TxSendErrors } from '../Enum/TxSendErrors';
@@ -20,46 +20,26 @@ interface AccountStateMap {
   [Account: string]: AccountState;
 }
 
+interface V3Wallet {
+  privKey: any;
+  getAddressString(): string;
+  toV3(password: string, opts: object): string;
+}
+
 export class Wallet {
-  public length: number;
   public logger: ILogger;
-  public nonce: number;
+  public nonce: number = 0;
   public web3: any;
-  public walletStates: AccountStateMap;
+  public walletStates: AccountStateMap = {};
+  private accounts: V3Wallet[] = [];
 
   constructor(web3: any, logger?: ILogger) {
-    this.length = 0;
     this.logger = logger;
-    this.nonce = 0;
     this.web3 = web3;
-    this.walletStates = {};
   }
 
   public getBalanceOf(address: string): Promise<BigNumber> {
-    return new Promise(async resolve => {
-      const balance = await Bb.fromCallback((callback: any) =>
-        this.web3.eth.getBalance(address, callback)
-      );
-      resolve(balance);
-    });
-  }
-
-  public _findSafeIndex(pointer = 0): number {
-    pointer = pointer;
-    if (this.hasOwnProperty(pointer)) {
-      return this._findSafeIndex(pointer + 1);
-    } else {
-      return pointer;
-    }
-  }
-
-  public _currentIndexes() {
-    const keys = Object.keys(this);
-    const indexes = keys
-      .map(key => parseInt(key, 10))
-      .filter(n => n < 9e20)
-      .slice(0, this.length);
-    return indexes;
+    return fromCallback((callback: any) => this.web3.eth.getBalance(address, callback));
   }
 
   public create(numAccounts: number) {
@@ -67,52 +47,18 @@ export class Wallet {
       const wallet = ethWallet.generate();
       this.add(wallet);
     }
-    return this;
   }
 
   public add(wallet: any) {
-    if (!this[wallet.getAddressString()]) {
-      const idx = this._findSafeIndex();
-      wallet.index = idx;
-
-      this[idx] = wallet;
-      this[wallet.getAddressString()] = wallet;
-      this[wallet.getAddressString().toLowerCase()] = wallet;
-      this.length++;
-      return wallet;
+    if (!this.accounts.some(a => a.getAddressString() === wallet.getAddressString())) {
+      this.accounts.push(wallet);
     }
 
-    return this[wallet.getAddressString()];
-  }
-
-  public rm(addressOrIndex: string | number): boolean {
-    const wallet = this[addressOrIndex];
-
-    if (wallet && wallet.getAddressString()) {
-      delete this[wallet.getAddressString()];
-      delete this[wallet.getAddressString().toLowerCase()];
-      delete this[wallet.index];
-      this.length--;
-      return true;
-    }
-
-    return false;
-  }
-
-  public clear() {
-    const indexes = this._currentIndexes();
-
-    indexes.forEach(idx => {
-      this.rm(idx);
-    });
-
-    return this;
+    return wallet;
   }
 
   public encrypt(password: string, opts: object) {
-    const indexes = this._currentIndexes();
-
-    return indexes.map(idx => this[idx].toV3(password, opts));
+    return this.accounts.map(wallet => wallet.toV3(password, opts));
   }
 
   public loadPrivateKeys(privateKeys: string[]) {
@@ -127,14 +73,14 @@ export class Wallet {
     });
   }
 
-  public decrypt(encryptedKeystores: (string | object)[], password: string) {
-    encryptedKeystores.forEach(keystore => {
-      const wallet = ethWallet.fromV3(keystore, password, true);
+  public decrypt(encryptedKeyStores: (string | object)[], password: string) {
+    encryptedKeyStores.forEach(keyStore => {
+      const wallet = ethWallet.fromV3(keyStore, password, true);
 
       if (wallet) {
         this.add(wallet);
       } else {
-        throw new Error("Couldn't decrypt keystore. Wrong password?");
+        throw new Error("Couldn't decrypt key store. Wrong password?");
       }
     });
   }
@@ -145,34 +91,13 @@ export class Wallet {
    * @returns {Promise<IWalletReceipt>} A promise which will resolve to the transaction receipt
    */
   public sendFromNext(opts: any): Promise<IWalletReceipt> {
-    const next = this.nonce++ % this.length;
+    const next = this.nonce++ % this.accounts.length;
 
     return this.sendFromIndex(next, opts);
   }
 
   public getNonce(account: string): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-      this.web3.eth.getTransactionCount(account, (err: Error, res: any) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(res);
-      });
-    });
-  }
-
-  public sendRawTransaction(tx: any) {
-    return new Promise((resolve, reject) => {
-      this.web3.eth.sendRawTransaction(
-        '0x'.concat(tx.serialize().toString('hex')),
-        (err: Error, res: any) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(res);
-        }
-      );
-    });
+    return fromCallback((callback: any) => this.web3.eth.getTransactionCount(account, callback));
   }
 
   public async getTransactionReceipt(hash: any, from: string): Promise<any> {
@@ -197,46 +122,27 @@ export class Wallet {
     });
   }
 
-  public signTransaction(from: string, nonce: number | string, opts: any): Promise<any> {
-    return new Promise(resolve => {
-      const params = {
-        nonce,
-        from,
-        to: opts.to,
-        gas: this.web3.toHex(opts.gas),
-        gasPrice: this.web3.toHex(opts.gasPrice),
-        value: this.web3.toHex(opts.value),
-        data: opts.data
-      };
-
-      const tx = new ethTx(params);
-      const privKey = this[from].privKey;
-      tx.sign(Buffer.from(privKey, 'hex'));
-
-      resolve(tx);
-    });
-  }
-
   public isWalletAbleToSendTx(idx: number): boolean {
-    if (idx >= this.length) {
+    if (this.accounts[idx] === undefined) {
       throw new Error('Index is outside range of addresses.');
     }
 
-    const from: string = this.getAccounts()[idx].getAddressString();
+    const from: string = this.accounts[idx].getAddressString();
 
     return !this.walletStates[from] || !this.walletStates[from].sendingTxInProgress;
   }
 
-  public isNextAccountFree() {
-    return this.isWalletAbleToSendTx(this.nonce % this.length);
+  public isNextAccountFree(): boolean {
+    return this.isWalletAbleToSendTx(this.nonce % this.accounts.length);
   }
 
   public async sendFromIndex(idx: number, opts: any): Promise<IWalletReceipt> {
-    if (idx >= this.length) {
+    if (this.accounts[idx] === undefined) {
       throw new Error('Index is outside range of addresses.');
     }
 
-    const from: string = this.getAddresses()[idx];
+    const account = this.accounts[idx];
+    const from: string = account.getAddressString();
 
     const balance = await this.getBalanceOf(from);
 
@@ -251,8 +157,7 @@ export class Wallet {
     }
 
     const nonce = this.web3.toHex(await this.getNonce(from));
-
-    const signedTx = await this.signTransaction(from, nonce, opts);
+    const signedTx = await this.signTransaction(account, nonce, opts);
 
     if (this.walletStates[from] && this.walletStates[from].sendingTxInProgress) {
       if (this.logger) {
@@ -292,15 +197,38 @@ export class Wallet {
     return receipt;
   }
 
-  public getAccounts() {
-    return this._currentIndexes().map(idx => this[idx]);
+  public getAccounts(): V3Wallet[] {
+    return this.accounts;
   }
 
   public getAddresses(): string[] {
-    return this.getAccounts().map(account => account.getAddressString());
+    return this.accounts.map(account => account.getAddressString());
   }
 
   public isKnownAddress(address: string): boolean {
     return this.getAddresses().some(addr => addr === address);
+  }
+
+  public sendRawTransaction(tx: any): Promise<any> {
+    const serialized = '0x'.concat(tx.serialize().toString('hex'));
+
+    return fromCallback((callback: any) => this.web3.eth.sendRawTransaction(serialized, callback));
+  }
+
+  private async signTransaction(from: V3Wallet, nonce: number | string, opts: any): Promise<any> {
+    const params = {
+      nonce,
+      from: from.getAddressString(),
+      to: opts.to,
+      gas: this.web3.toHex(opts.gas),
+      gasPrice: this.web3.toHex(opts.gasPrice),
+      value: this.web3.toHex(opts.value),
+      data: opts.data
+    };
+
+    const tx = new ethTx(params);
+    tx.sign(Buffer.from(from.privKey, 'hex'));
+
+    return tx;
   }
 }
