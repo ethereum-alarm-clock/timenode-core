@@ -14,9 +14,8 @@ const mockConfig = (preConfig?: any) => {
   const password = 'password123';
   const wallet = [PRIVATE_KEY]; //createWalletKeystore(web3, 1, filename, password);
 
-  return new Config({
+  const config = new Config({
     autostart: true,
-    client,
     claiming: true,
     economicStrategy: {
       maxDeposit: new BigNumber(0),
@@ -36,6 +35,8 @@ const mockConfig = (preConfig?: any) => {
     walletStores: wallet,
     walletStoresAsPrivateKeys: true
   });
+  config.client = client;
+  return config;
 };
 
 export { mockConfig, PRIVATE_KEY };
