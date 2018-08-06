@@ -63,6 +63,10 @@ export default class {
   }
 
   public async start(): Promise<boolean> {
+    if (!this.config.clientSet()) {
+      await this.config.awaitClientSet();
+    }
+
     if (await this.util.isWatchingEnabled()) {
       // Watching is enabled! start watching the chain.
       this.config.logger.info('Watching ENABLED');
