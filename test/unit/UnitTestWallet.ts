@@ -152,7 +152,8 @@ describe('Wallet Unit Tests', () => {
       const address = wallet.getAddresses()[0];
 
       wallet.walletStates[address] = {
-        sendingTxInProgress: true
+        sendingTxInProgress: true,
+        tx: ''
       };
       assert.isFalse(wallet.isWalletAbleToSendTx(0));
     });
@@ -197,7 +198,8 @@ describe('Wallet Unit Tests', () => {
       const idx = 0;
       const address = wallet.getAddresses()[idx];
       wallet.walletStates[address] = {
-        sendingTxInProgress: true
+        sendingTxInProgress: true,
+        tx: ''
       };
 
       // Fund new wallet
