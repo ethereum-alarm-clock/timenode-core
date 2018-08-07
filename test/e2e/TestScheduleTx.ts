@@ -73,7 +73,7 @@ export const scheduleTestTx = async () => {
   const { callValue } = SCHEDULED_TX_PARAMS;
 
   const callGas = new BigNumber(1000000);
-  const gasPrice = new BigNumber(web3.toWei(1, 'gwei'));
+  const gasPrice = new BigNumber(web3.toWei(20, 'gwei'));
   const fee = new BigNumber(0);
   const bounty = new BigNumber(0);
 
