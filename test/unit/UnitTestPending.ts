@@ -113,7 +113,7 @@ describe('hasPendingParity()', () => {
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     expect(pending).to.be.true;
   });
-})
+});
 
 describe('hasPendingGeth()', () => {
   it('Detects valid Pending requests (geth)', async () => {
@@ -122,16 +122,16 @@ describe('hasPendingGeth()', () => {
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     expect(pending).to.be.true;
   });
-})
+});
 
 describe('hasPending()', () => {
-  it('Does not process unknown clients', async () => {
+  it('Unknown clients defaults to false', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: '', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
-    expect(pending).to.be.undefined;
-  })
-})
+    expect(pending).to.be.false;
+  });
+});
 
 describe('Pending Unit Tests', () => {
   it('Detects valid Pending claim requests', async () => {

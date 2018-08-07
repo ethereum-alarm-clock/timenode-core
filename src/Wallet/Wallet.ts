@@ -14,6 +14,7 @@ declare const setTimeout: any;
 
 interface AccountState {
   sendingTxInProgress: boolean;
+  tx: string;
 }
 
 interface AccountStateMap {
@@ -50,8 +51,11 @@ export class Wallet {
   }
 
   public add(wallet: any) {
-    if (!this.accounts.some(a => a.getAddressString() === wallet.getAddressString())) {
+    const address = wallet.getAddressString();
+
+    if (!this.accounts.some(a => a.getAddressString() === address)) {
       this.accounts.push(wallet);
+      this.walletStates[address] = {} as AccountState;
     }
 
     return wallet;
@@ -128,8 +132,11 @@ export class Wallet {
     }
 
     const from: string = this.accounts[idx].getAddressString();
+    const state = this.walletStates[from];
 
-    return !this.walletStates[from] || !this.walletStates[from].sendingTxInProgress;
+    this.logger.debug(`Wallet:isWalletAbleToSendTx: idx=${idx} wallet=${from} tx=${state.tx}`);
+
+    return !state.sendingTxInProgress;
   }
 
   public isNextAccountFree(): boolean {
@@ -159,10 +166,7 @@ export class Wallet {
     const nonce = this.web3.toHex(await this.getNonce(from));
     const signedTx = await this.signTransaction(account, nonce, opts);
 
-    if (this.walletStates[from] && this.walletStates[from].sendingTxInProgress) {
-      if (this.logger) {
-        this.logger.debug(`${TxSendErrors.SENDING_IN_PROGRESS} ${from}`);
-      }
+    if (!this.isWalletAbleToSendTx(idx)) {
       return {
         from,
         error: TxSendErrors.SENDING_IN_PROGRESS
@@ -171,13 +175,9 @@ export class Wallet {
 
     let receipt;
     try {
-      if (!this.walletStates[from]) {
-        this.walletStates[from] = {} as AccountState;
-      }
-
       this.walletStates[from].sendingTxInProgress = true;
-
       const hash = await this.sendRawTransaction(signedTx);
+      this.walletStates[from].tx = hash;
 
       receipt = await this.getTransactionReceipt(hash, from);
     } catch (error) {
@@ -192,6 +192,7 @@ export class Wallet {
       };
     } finally {
       this.walletStates[from].sendingTxInProgress = false;
+      this.walletStates[from].tx = '';
     }
 
     return receipt;
