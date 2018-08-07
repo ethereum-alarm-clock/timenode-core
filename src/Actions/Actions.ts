@@ -125,7 +125,7 @@ export default class Actions {
     if (
       await hasPending(this.config, txRequest, {
         type: 'execute',
-        exactPrice: opts.gasPrice
+        minPrice: opts.gasPrice
       })
     ) {
       return ExecuteStatus.PENDING;

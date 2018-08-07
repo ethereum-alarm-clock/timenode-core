@@ -5,15 +5,15 @@ import { mockConfig } from '../helpers';
 import { FnSignatures } from '../../src/Enum';
 import hasPending from '../../src/Actions/Pending';
 
-class provider {
+class Provider {
   public result: any;
 
   constructor(opts?: any) {
     const found: any = {};
-    opts && opts.gas ? (found.gas = opts.gas) : undefined;
-    opts && opts.input ? (found.input = opts.input) : undefined;
-    opts && opts.value ? (found.value = opts.value) : undefined;
-    opts && opts.gasPrice ? (found.gasPrice = opts.gasPrice) : undefined;
+    found.gas = opts && opts.gas ? opts.gas : undefined;
+    found.input = opts && opts.input ? opts.input : undefined;
+    found.value = opts && opts.value ? opts.value : undefined;
+    found.gasPrice = opts && opts.gasPrice ? opts.gasPrice : undefined;
 
     this.result = {
       result: PENDINGS.map(pending => Object.assign({}, pending, found))
@@ -21,9 +21,9 @@ class provider {
   }
   public send = (request?: any, callback?: any) => {
     return new Promise((resolve: any) => {
-      if (request.method == 'parity_pendingTransactions') {
+      if (request.method === 'parity_pendingTransactions') {
         resolve(callback(null, pendingTx(Object.assign({}, this.result, { client: 'parity' }))));
-      } else if (request.method == 'txpool_content') {
+      } else if (request.method === 'txpool_content') {
         resolve(callback(null, pendingTx(Object.assign({}, this.result, { client: 'geth' }))));
       }
     });
@@ -59,7 +59,7 @@ const pendingTx = (opts?: any) => {
 
 const preConfig = (config: Config, opt?: any) => {
   config.web3 = {
-    currentProvider: opt.provider ? opt.provider : new provider(),
+    currentProvider: opt.provider ? opt.provider : new Provider(),
     eth: {
       getGasPrice: async (callback?: any) => {
         const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
@@ -111,27 +111,33 @@ describe('hasPendingParity()', () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'parity', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    /* tslint:disable */
     expect(pending).to.be.true;
+    /* tslint:enable */
   });
-})
+});
 
 describe('hasPendingGeth()', () => {
   it('Detects valid Pending requests (geth)', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'geth', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    /* tslint:disable */
     expect(pending).to.be.true;
+    /* tslint:enable */
   });
-})
+});
 
 describe('hasPending()', () => {
   it('Does not process unknown clients', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: '', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    /* tslint:disable */
     expect(pending).to.be.undefined;
-  })
-})
+    /* tslint:enable */
+  });
+});
 
 describe('Pending Unit Tests', () => {
   it('Detects valid Pending claim requests', async () => {
@@ -142,7 +148,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new provider({ input: FnSignatures.claim })
+        provider: new Provider({ input: FnSignatures.claim })
       })
     );
     await Promise.all(
@@ -164,7 +170,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new provider({ input: FnSignatures.execute })
+        provider: new Provider({ input: FnSignatures.execute })
       })
     );
     await Promise.all(
@@ -187,7 +193,7 @@ describe('Pending Unit Tests', () => {
         client,
         gasPrice,
         netGasPrice: 15 * 1e13,
-        provider: new provider({ input: FnSignatures.claim })
+        provider: new Provider({ input: FnSignatures.claim })
       })
     );
     await Promise.all(
@@ -209,7 +215,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new provider({ input: FnSignatures.execute })
+        provider: new Provider({ input: FnSignatures.execute })
       })
     );
     await Promise.all(
@@ -231,7 +237,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new provider({ input: FnSignatures.claim })
+        provider: new Provider({ input: FnSignatures.claim })
       })
     );
     await Promise.all(
@@ -249,21 +255,20 @@ describe('Pending Unit Tests', () => {
     const expected = [false, false];
     const results: any = [];
     const gasPrice = 1 * 1e12;
-    const exactPrice = 0.9 * 1e12;
+    const minPrice = 0.9 * 1e12;
     const testConfigs: Config[] = CLIENTS.map(client =>
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new provider({ input: FnSignatures.execute })
+        provider: new Provider({ input: FnSignatures.execute })
       })
     );
     await Promise.all(
       testConfigs.map(async conf => {
-        const pending = await hasPending(
-          conf,
-          mockTx({ address: startAddr, gasPrice: exactPrice }),
-          { type: 'execute', exactPrice }
-        );
+        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice: minPrice }), {
+          type: 'execute',
+          minPrice
+        });
         results.push(pending);
       })
     );
