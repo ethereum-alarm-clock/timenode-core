@@ -9,6 +9,7 @@ import { IBlock, IntervalId, ITxRequest } from '../Types';
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
+import TxPool from '../TxPool';
 
 export default class {
   public config: Config;
@@ -16,6 +17,7 @@ export default class {
   public scanning: boolean;
   public router: any;
   public requestFactory: Promise<any>;
+  public txPool: TxPool;
 
   // Child Scanners, tracked by the ID of their interval
   public cacheScanner: IntervalId;
@@ -46,6 +48,7 @@ export default class {
     this.scanning = false;
     this.router = router;
     this.requestFactory = config.eac.requestFactory();
+    this.txPool = new TxPool(config);
   }
 
   public async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
@@ -66,6 +69,7 @@ export default class {
     if (!this.config.clientSet()) {
       await this.config.awaitClientSet();
     }
+    await this.txPool.start();
 
     if (await this.util.isWatchingEnabled()) {
       // Watching is enabled! start watching the chain.
@@ -95,6 +99,9 @@ export default class {
       // Clear scanning intervals.
       clearInterval(this.cacheScanner);
       clearInterval(this.chainScanner);
+
+      this.txPool.stop();
+
 
       // Mark that we've stopped.
       this.config.logger.info('Scanner STOPPED');
