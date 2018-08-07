@@ -1,4 +1,11 @@
+import Config from '../Config';
 import { FnSignatures } from '../Enum';
+
+interface PendingOpts {
+  type?: string;
+  checkGasPrice?: boolean;
+  minPrice?: number;
+}
 
 /**
  * Uses the Parity specific RPC request `parity_pendingTransactions` to search
@@ -9,11 +16,7 @@ import { FnSignatures } from '../Enum';
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = (
-  conf: any,
-  txRequest: any,
-  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-): Promise<boolean> => {
+const hasPendingParity = (conf: Config, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
@@ -39,7 +42,7 @@ const hasPendingParity = (
               const withValidGasPrice =
                 res.result[count] &&
                 (!opts.checkGasPrice ||
-                  (await hasValidGasPrice(conf, res.result[count], opts.exactPrice)));
+                  (await hasValidGasPrice(conf, res.result[count], opts.minPrice)));
               if (
                 res.result[count] &&
                 isOfType(res.result[count], opts.type) &&
@@ -68,11 +71,7 @@ const hasPendingParity = (
  * @param {number} exactPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingGeth = (
-  conf: any,
-  txRequest: any,
-  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-): Promise<boolean> => {
+const hasPendingGeth = (conf: Config, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
@@ -102,7 +101,7 @@ const hasPendingGeth = (
                     (await hasValidGasPrice(
                       conf,
                       res.result.pending[account][nonce],
-                      opts.exactPrice
+                      opts.minPrice
                     )));
                 if (
                   res.result.pending[account][nonce] &&
@@ -125,23 +124,26 @@ const hasPendingGeth = (
 };
 
 /**
- * Uses the Geth specific RPC request `txpool_content` to search
- * for pending transactions in the transaction pool.
+ * Checks for valid gas price attached to a transaction in the txpool.
  * @param {Config} conf Config object.
  * @param {TransactionReceipt} transaction Ethereum transaction receipt
- * @param {number} exactPrice (optional) Expected gasPrice.
+ * @param {number} minPrice (optional) Minimum gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = async (conf: any, transaction: any, exactPrice?: any) => {
-  if (exactPrice) {
-    return exactPrice.valueOf() === transaction.gasPrice.valueOf();
+const hasValidGasPrice = async (
+  conf: Config,
+  transaction: any,
+  minPrice?: number
+): Promise<boolean> => {
+  if (minPrice) {
+    return minPrice.valueOf() <= transaction.gasPrice.valueOf();
   }
   const spread = 0.3;
   let currentGasPrice: number;
   await new Promise((resolve, reject) => {
     conf.web3.eth.getGasPrice((err: Error, res: any) => {
       if (err) {
-        conf.logger.error(err);
+        conf.logger.error(err.toString());
         return;
       }
       currentGasPrice = res;
@@ -174,11 +176,7 @@ const isOfType = (transaction: any, type?: string) => {
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
  * @param {number} exactPrice (optional) Expected gasPrice to compare.
  */
-const hasPending = async (
-  conf: any,
-  txRequest: any,
-  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-): Promise<boolean> => {
+const hasPending = async (conf: Config, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   let result = false;
 
   if (conf.client === 'parity') {
