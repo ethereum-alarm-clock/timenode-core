@@ -20,7 +20,7 @@ export interface IEconomicStrategy {
   minProfitability?: BigNumber;
 
   /**
-   * A number 0-100 which defines the percentage with which
+   * A number which defines the percentage with which
    * the TimeNode would be able to subsidize the amount of gas
    * it sends at the time of the execution.
    *

@@ -114,4 +114,30 @@ const getExecutionGasPrice = async (txRequest: any, config: Config): Promise<Big
   return currentNetworkPrice;
 };
 
-export { shouldClaimTx, getExecutionGasPrice };
+/**
+ * Checks if the transaction is profitable to be executed when considering the
+ * current network gas prices.
+ * @param {TransactionRequest} txRequest Transaction Request object to check.
+ * @param {Config} config Configuration object.
+ */
+const shouldExecuteTx = async (txRequest: any, config: Config): Promise<boolean> => {
+  const isClaimedByMe = config.wallet.getAddresses().indexOf(txRequest.claimedBy) !== -1;
+
+  const gasPrice = await this.getExecutionGasPrice(txRequest, config);
+  const gasAmount = config.util.calculateGasAmount(txRequest);
+  const reimbursement = txRequest.gasPrice.times(gasAmount);
+  const deposit = isClaimedByMe ? txRequest.requiredDeposit : new BigNumber(0);
+
+  const paymentModifier = await txRequest.claimPaymentModifier();
+  const reward = txRequest.bounty.times(paymentModifier);
+
+  const gas = gasPrice.times(gasAmount);
+
+  if (gas.greaterThan(deposit.plus(reward).plus(reimbursement))) {
+    return false;
+  }
+
+  return true;
+};
+
+export { shouldClaimTx, shouldExecuteTx, getExecutionGasPrice };

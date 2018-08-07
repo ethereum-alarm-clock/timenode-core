@@ -1,10 +1,19 @@
 import { IBlock } from './Types';
+import BigNumber from 'bignumber.js';
 
 export default class W3Util {
   public web3: any;
 
   constructor(web3: any) {
     this.web3 = web3;
+  }
+
+  public calculateGasAmount(txRequest: any): BigNumber {
+    return txRequest.callGas
+      .add(180000)
+      .div(64)
+      .times(65)
+      .round();
   }
 
   public estimateGas(opts: any): Promise<any> {

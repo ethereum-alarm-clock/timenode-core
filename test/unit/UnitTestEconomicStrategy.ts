@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import { assert } from 'chai';
 import { Config } from '../../src/index';
 import { mockConfig, MockTxRequest } from '../helpers';
-import { shouldClaimTx, getExecutionGasPrice } from '../../src/EconomicStrategy';
+import { shouldClaimTx, getExecutionGasPrice, shouldExecuteTx } from '../../src/EconomicStrategy';
 
 describe('Economic Strategy Tests', () => {
   let config: Config;
@@ -62,6 +62,7 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns tx gas price if current network price lower than tx gas price', async () => {
+      config.economicStrategy.maxGasSubsidy = 100;
       const gasPrice = await getExecutionGasPrice(txTimestamp, config);
       assert.equal(gasPrice.toNumber(), txTimestamp.gasPrice.toNumber());
     });
@@ -84,6 +85,29 @@ describe('Economic Strategy Tests', () => {
 
       const gasPrice = await getExecutionGasPrice(txTimestamp, config);
       assert.equal(gasPrice.toNumber(), expectedResult.toNumber());
+    });
+  });
+
+  describe('shouldExecuteTx()', () => {
+    it('returns true if CurrentGasCost < (Deposit + Reward + Reimbursement)', async () => {
+      txTimestamp.claimedBy = config.wallet.getAddresses()[0];
+      const shouldExecute = await shouldExecuteTx(txTimestamp, config);
+      assert.isTrue(shouldExecute);
+    });
+
+    it('returns false if CurrentGasCost > (Deposit + Reward + Reimbursement)', async () => {
+      txTimestamp.claimedBy = config.wallet.getAddresses()[0];
+      txTimestamp.requiredDeposit = new BigNumber(config.web3.toWei(0, 'ether'));
+      txTimestamp.bounty = new BigNumber(config.web3.toWei(0.1, 'gwei'));
+      config.util.networkGasPrice = () => new BigNumber(config.web3.toWei(100, 'gwei'));
+
+      const shouldExecute = await shouldExecuteTx(txTimestamp, config);
+      assert.isFalse(shouldExecute);
+    });
+
+    it('returns true if CurrentGasCost < (Reward + Reimbursement) and not claimed by me', async () => {
+      const shouldExecute = await shouldExecuteTx(txTimestamp, config);
+      assert.isTrue(shouldExecute);
     });
   });
 });

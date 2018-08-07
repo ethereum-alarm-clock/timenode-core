@@ -102,11 +102,7 @@ export default class Actions {
   }
 
   public async execute(txRequest: any): Promise<any> {
-    const gasToExecute = txRequest.callGas
-      .add(180000)
-      .div(64)
-      .times(65)
-      .round();
+    const gasToExecute = this.config.util.calculateGasAmount(txRequest);
     // TODO Check that the gasToExecue < gasLimit of latest block w/ some margin
 
     // TODO make this a constant

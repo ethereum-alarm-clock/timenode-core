@@ -22,7 +22,7 @@ const mockConfig = (preConfig?: any) => {
       maxDeposit: new BigNumber(0),
       minBalance: new BigNumber(0),
       minProfitability: new BigNumber(0),
-      maxGasSubsidy: 0
+      maxGasSubsidy: 100
     },
     logger: new MockLogger(),
     ms: 4000,
