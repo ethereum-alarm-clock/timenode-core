@@ -3,6 +3,7 @@ import { expect, assert } from 'chai';
 import { Config, TimeNode } from '../../src/index';
 import { mockConfig, MockTxRequest } from '../helpers';
 import Actions from '../../src/Actions';
+import { shortenAddress } from '../../src/Actions/Actions';
 import {
   isExecuted,
   EXECUTED_EVENT,
@@ -10,7 +11,13 @@ import {
 } from '../../src/Actions/Helpers';
 import { ClaimStatus } from '../../src/Enum';
 
-describe('Actions Unit Tests', () => {
+describe('shortenAddress()', () => {
+  const address = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
+  const expected = '0x487a...892c6';
+  expect(shortenAddress(address)).to.equal(expected);
+})
+
+describe('Actions Unit Tests', async () => {
   it('sets claimingFailed to true when claim transaction reverts', async () => {
     const config = mockConfig();
     const timenode = new TimeNode(config);
