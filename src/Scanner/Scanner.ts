@@ -281,7 +281,6 @@ export default class {
   }
 
   public store(request: any) {
-    this.config.logger.info(`[${request.address}] Inputting to cache`);
     this.config.cache.set(request.address, {
       claimedBy: null,
       claimingFailed: false,
