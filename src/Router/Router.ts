@@ -58,15 +58,15 @@ export default class Router {
 
       if (shouldClaim) {
         try {
-          const claimed: ClaimStatus = await this.actions.claim(txRequest);
+          const claimingStatus: ClaimStatus = await this.actions.claim(txRequest);
 
-          if (claimed === ClaimStatus.SUCCESS) {
-            this.config.logger.info(`${txRequest.address} claimed`);
+          if (claimingStatus === ClaimStatus.SUCCESS) {
+            this.config.logger.info(`[${txRequest.address}] claimed`);
           } else {
-            this.config.logger.debug(`${txRequest.address} error: ${claimed}`);
+            this.config.logger.debug(`[${txRequest.address}] error: ${claimingStatus}`);
           }
         } catch (e) {
-          this.config.logger.error(`${txRequest.address} claiming failed`);
+          this.config.logger.error(`[${txRequest.address}] claiming failed`);
           // TODO handle gracefully?
           throw new Error(e);
         }
@@ -181,7 +181,7 @@ export default class Router {
 
     while (nextStatus !== status) {
       this.config.logger.debug(
-        `${txRequest.address} Transitioning from  ${TxStatus[status]} to ${
+        `[${txRequest.address}] Transitioning from  ${TxStatus[status]} to ${
           TxStatus[nextStatus]
         } (${nextStatus})`
       );

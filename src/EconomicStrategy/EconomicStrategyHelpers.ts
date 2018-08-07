@@ -131,9 +131,9 @@ const shouldExecuteTx = async (txRequest: any, config: Config): Promise<boolean>
   const paymentModifier = await txRequest.claimPaymentModifier();
   const reward = txRequest.bounty.times(paymentModifier);
 
-  const gas = gasPrice.times(gasAmount);
+  const gasCost = gasPrice.times(gasAmount);
 
-  if (gas.greaterThan(deposit.plus(reward).plus(reimbursement))) {
+  if (gasCost.greaterThan(deposit.plus(reward).plus(reimbursement))) {
     return false;
   }
 

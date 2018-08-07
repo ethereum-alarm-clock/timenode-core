@@ -13,12 +13,12 @@ const hasPendingParity = (
   conf: any,
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-) => {
+): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
-  return new Promise( async (resolve, reject) => {
-    try{
+  return new Promise(async (resolve, reject) => {
+    try {
       await provider.sendAsync(
         {
           jsonrpc: '2.0',
@@ -28,8 +28,9 @@ const hasPendingParity = (
         },
         async (err: Error, res: any) => {
           if (err || res.error || !res.result) {
-            const errMsg = (err && err.message) || err || (res.error && res.error.message) || res.error;
-            conf.logger.error(errMsg)
+            const errMsg =
+              (err && err.message) || err || (res.error && res.error.message) || res.error;
+            conf.logger.error(errMsg);
             return;
           }
 
@@ -39,7 +40,11 @@ const hasPendingParity = (
                 res.result[count] &&
                 (!opts.checkGasPrice ||
                   (await hasValidGasPrice(conf, res.result[count], opts.exactPrice)));
-              if (res.result[count] && isOfType(res.result[count], opts.type) && withValidGasPrice) {
+              if (
+                res.result[count] &&
+                isOfType(res.result[count], opts.type) &&
+                withValidGasPrice
+              ) {
                 resolve(true);
               }
             }
@@ -67,12 +72,12 @@ const hasPendingGeth = (
   conf: any,
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-) => {
+): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
-    try{
+    try {
       provider.sendAsync(
         {
           jsonrpc: '2.0',
@@ -82,8 +87,9 @@ const hasPendingGeth = (
         },
         async (err: Error, res: any) => {
           if (err || res.error || !res.result) {
-            const errMsg = (err && err.message) || err || (res.error && res.error.message) || res.error;
-            conf.logger.error(errMsg)
+            const errMsg =
+              (err && err.message) || err || (res.error && res.error.message) || res.error;
+            conf.logger.error(errMsg);
             return;
           }
 
@@ -135,7 +141,7 @@ const hasValidGasPrice = async (conf: any, transaction: any, exactPrice?: any) =
   await new Promise((resolve, reject) => {
     conf.web3.eth.getGasPrice((err: Error, res: any) => {
       if (err) {
-        conf.logger.error(err)
+        conf.logger.error(err);
         return;
       }
       currentGasPrice = res;
@@ -172,15 +178,18 @@ const hasPending = async (
   conf: any,
   txRequest: any,
   opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-) => {
+): Promise<boolean> => {
+  let result = false;
 
-    if (conf.client === 'parity') {
-      return hasPendingParity(conf, txRequest, opts);
-    } else if (conf.client === 'geth') {
-      return hasPendingGeth(conf, txRequest, opts);
-    } else {
-      return;
-    }
+  if (conf.client === 'parity') {
+    result = await hasPendingParity(conf, txRequest, opts);
+  } else if (conf.client === 'geth') {
+    result = await hasPendingGeth(conf, txRequest, opts);
+  }
+
+  conf.logger.debug(` ${txRequest.address} hasPending=${result}`);
+
+  return result;
 };
 
 export default hasPending;
