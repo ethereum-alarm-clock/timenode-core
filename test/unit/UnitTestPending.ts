@@ -10,10 +10,11 @@ class Provider {
 
   constructor(opts?: any) {
     const found: any = {};
-    found.gas = opts && opts.gas ? opts.gas : undefined;
-    found.input = opts && opts.input ? opts.input : undefined;
-    found.value = opts && opts.value ? opts.value : undefined;
-    found.gasPrice = opts && opts.gasPrice ? opts.gasPrice : undefined;
+    console.log('opts', opts);
+    opts && opts.gas ? (found.gas = opts.gas) : undefined;
+    opts && opts.input ? (found.input = opts.input) : undefined;
+    opts && opts.value ? (found.value = opts.value) : undefined;
+    opts && opts.gasPrice ? (found.gasPrice = opts.gasPrice) : undefined;
 
     this.result = {
       result: PENDINGS.map(pending => Object.assign({}, pending, found))
@@ -59,7 +60,7 @@ const pendingTx = (opts?: any) => {
 
 const preConfig = (config: Config, opt?: any) => {
   config.web3 = {
-    currentProvider: opt.provider ? opt.provider : new Provider(),
+    currentProvider: opt.provider ? opt.provider : new Provider(opt),
     eth: {
       getGasPrice: async (callback?: any) => {
         const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
@@ -129,12 +130,12 @@ describe('hasPendingGeth()', () => {
 });
 
 describe('hasPending()', () => {
-  it('Does not process unknown clients', async () => {
+  it('Unknown clients defaults to false', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: '', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     /* tslint:disable */
-    expect(pending).to.be.undefined;
+    expect(pending).to.be.false;
     /* tslint:enable */
   });
 });

@@ -16,7 +16,7 @@ interface PendingOpts {
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts) => {
+const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
@@ -71,7 +71,7 @@ const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts) => {
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingGeth = (conf: any, txRequest: any, opts: PendingOpts) => {
+const hasPendingGeth = (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
@@ -173,14 +173,18 @@ const isOfType = (transaction: any, type?: string) => {
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
  * @param {number} minPrice (optional) Expected gasPrice to compare.
  */
-const hasPending = async (conf: any, txRequest: any, opts: PendingOpts) => {
+const hasPending = async (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
+  let result = false;
+
   if (conf.client === 'parity') {
-    return hasPendingParity(conf, txRequest, opts);
+    result = await hasPendingParity(conf, txRequest, opts);
   } else if (conf.client === 'geth') {
-    return hasPendingGeth(conf, txRequest, opts);
-  } else {
-    return;
+    result = await hasPendingGeth(conf, txRequest, opts);
   }
+
+  conf.logger.debug(` ${txRequest.address} hasPending=${result}`);
+
+  return result;
 };
 
 export default hasPending;
