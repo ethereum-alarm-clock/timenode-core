@@ -78,18 +78,9 @@ export default class TimeNode {
   }
 
   public getUnsucessfullyClaimedTransactions(): string[] {
-    const cachedTransactionsAddresses = this.config.cache.stored();
-    const timenodeAddresses = this.config.wallet.getAddresses();
-    const transactions = [];
+    const account = this.config.wallet.getAddresses()[0];
+    const stats = this.config.statsDb.getStats().find((stat: any) => stat.account === account);
 
-    for (const address of cachedTransactionsAddresses) {
-      const cachedTx = this.config.cache.get(address);
-
-      if (cachedTx.claimingFailed && timenodeAddresses.indexOf(cachedTx.claimedBy) === -1) {
-        transactions.push(address);
-      }
-    }
-
-    return transactions;
+    return stats.failedClaims;
   }
 }
