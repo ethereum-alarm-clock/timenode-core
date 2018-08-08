@@ -10,7 +10,7 @@ export interface ITxPoolTxDetails {
     transactionHash: string;
 }
 
-export class Pool<T> {
+export class Pool {
   public pool: {} = {};
 
   public set(key: string, value: ITxPoolTxDetails) {
@@ -19,19 +19,13 @@ export class Pool<T> {
 
   public get(key: string, field: string): [ITxPoolTxDetails] {
     let foundTxs: any = [];
-
-    if (field === 'transationHash') {
-      if (this.pool[key]) {
-        foundTxs.push(this.pool[key]);
-      }
-    } else {
-      this.stored().filter((
-        p: string) => {
-          if (this.pool[p][field] === key) {
-            foundTxs.push(this.pool[p]);
-          }
-        });
-    }
+  
+    this.stored().filter((
+      p: string) => {
+        if (this.pool[p][field] === key) {
+          foundTxs.push(this.pool[p]);
+        }
+      });
     return foundTxs;
   }
 

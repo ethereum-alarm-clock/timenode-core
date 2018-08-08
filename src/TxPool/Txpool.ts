@@ -22,6 +22,7 @@ export default class TxPool {
         this.subs.pending.stopWatching();
         this.subs.latest.stopWatching();
         this.pool.wipe();
+        this.subs = {};
     }
 
     public async watchPending () {
