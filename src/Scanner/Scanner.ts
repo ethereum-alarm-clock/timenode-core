@@ -85,7 +85,7 @@ export default class {
     this.cacheScanner = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
 
     // Mark that we've started.
-    // this.config.logger.info('Scanner STARTED');
+    this.config.logger.info('Scanner STARTED');
     this.scanning = true;
     return this.scanning;
   }
@@ -157,7 +157,7 @@ export default class {
       throw new Error(`[${request.address}] NOT VALID`);
     }
 
-    this.config.logger.info(`[${request.address}] Discovered`);
+    this.config.logger.info('Discovered.', request.address);
     if (!this.config.cache.has(request.address)) {
       this.store(request);
     }

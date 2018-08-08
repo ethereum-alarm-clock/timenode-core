@@ -6,12 +6,6 @@ describe('Logger Unit Tests', () => {
   const config: Config = mockConfig();
 
   // There's really no way to test these reliably
-  describe('cache()', () => {
-    it('prints a cache message', async () => {
-      expect(config.logger.info('cache message'));
-    });
-  });
-
   describe('debug()', () => {
     it('prints a debug message', async () => {
       expect(config.logger.debug('debug message'));

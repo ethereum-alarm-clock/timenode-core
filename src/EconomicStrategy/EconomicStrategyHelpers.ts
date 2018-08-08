@@ -136,9 +136,8 @@ const shouldExecuteTx = async (txRequest: any, config: Config): Promise<boolean>
   const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
 
   config.logger.debug(
-    `[${
-      txRequest.address
-    }] shouldExecuteTx ret ${shouldExecute} gasCost=${gasCost.toNumber()} expectedReward=${expectedReward.toNumber()}`
+    `shouldExecuteTx ret ${shouldExecute} gasCost=${gasCost.toNumber()} expectedReward=${expectedReward.toNumber()}`,
+    txRequest.address
   );
 
   return shouldExecute;
