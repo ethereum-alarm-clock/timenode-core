@@ -34,6 +34,9 @@ export default class TxPool {
             if (!this.pool.has(res, 'transactionHash')) {
                 await this.config.web3.eth.getTransaction(res,
                     (txErr: any, tx: any) => {
+                        if (txErr) {
+                            return this.config.logger.error(txErr);
+                        }
 
                         const poolDetails: ITxPoolTxDetails = {
                             from: tx.from,

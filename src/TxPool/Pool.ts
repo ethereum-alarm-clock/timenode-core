@@ -11,15 +11,28 @@ export interface ITxPoolTxDetails {
 }
 
 export class Pool<T> {
-  public pool: any = [];
+  public pool: {} = {};
 
   public set(key: string, value: ITxPoolTxDetails) {
     this.pool[key] = value;
   }
 
   public get(key: string, field: string): [ITxPoolTxDetails] {
-    const found = this.pool.filter((p: any) => p[field] === key);
-    return found;
+    let foundTxs: any = [];
+
+    if (field === 'transationHash') {
+      if (this.pool[key]) {
+        foundTxs.push(this.pool[key]);
+      }
+    } else {
+      this.stored().filter((
+        p: string) => {
+          if (this.pool[p][field] === key) {
+            foundTxs.push(this.pool[p]);
+          }
+        });
+    }
+    return foundTxs;
   }
 
   public has(key: string, field: string) {
@@ -35,7 +48,7 @@ export class Pool<T> {
   }
 
   public length(): number {
-    return this.pool.length;
+    return this.stored().length;
   }
 
   public stored() {
