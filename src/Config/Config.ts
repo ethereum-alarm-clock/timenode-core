@@ -9,6 +9,8 @@ import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import { getWeb3FromProviderUrl } from './helpers';
 
+declare const setTimeout: any;
+
 export default class Config implements IConfigParams {
   public autostart: boolean;
   public cache: Cache<ICachedTxDetails>;
