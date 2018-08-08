@@ -121,7 +121,7 @@ export default class Router {
 
           return TxStatus.Executed;
         } else {
-          this.config.logger.debug('Error: ${executionStatus}', txRequest.address);
+          this.config.logger.debug(`Error: ${executionStatus}`, txRequest.address);
         }
       } catch (e) {
         this.config.logger.error('Execution failed.', txRequest.address);
