@@ -160,6 +160,8 @@ export default class {
     this.config.logger.info(`[${request.address}] Discovered`);
     if (!this.config.cache.has(request.address)) {
       this.store(request);
+
+      this.config.statsDb.incrementDiscovered(this.config.wallet.getAddresses()[0]);
     }
   }
 

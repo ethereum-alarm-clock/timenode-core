@@ -94,6 +94,18 @@ describe('Stats Unit Tests', () => {
     });
   });
 
+  describe('incrementDiscovered()', () => {
+    it('increments discovered', () => {
+      assert.strictEqual(myStats.discovered, 0);
+
+      config.statsDb.incrementDiscovered(myAccount);
+      assert.strictEqual(myStats.discovered, 1);
+
+      config.statsDb.incrementDiscovered(myAccount);
+      assert.strictEqual(myStats.discovered, 2);
+    });
+  });
+
   describe('getStats()', () => {
     it('returns all stats', async () => {
       const stats = config.statsDb.getStats();

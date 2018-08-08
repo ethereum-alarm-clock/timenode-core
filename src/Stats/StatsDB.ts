@@ -33,6 +33,7 @@ export class StatsDB {
         this.stats.insert({
           account,
           claimed: 0,
+          discovered: 0,
           executed: 0,
           bounties: new BigNumber(0),
           costs: new BigNumber(0),
@@ -90,6 +91,13 @@ export class StatsDB {
     }
 
     found.failedClaims.push(transactionAddress);
+
+    this.stats.update(found);
+  }
+
+  public async incrementDiscovered(account: string) {
+    const found = this.stats.find({ account })[0];
+    found.discovered += 1;
 
     this.stats.update(found);
   }
