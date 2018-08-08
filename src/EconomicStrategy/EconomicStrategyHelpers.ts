@@ -133,15 +133,15 @@ const shouldExecuteTx = async (txRequest: any, config: Config): Promise<boolean>
 
   const gasCost = gasPrice.times(gasAmount);
   const expectedReward = deposit.plus(reward).plus(reimbursement);
-  const shouldExecuteTx = gasCost.lessThanOrEqualTo(expectedReward);
+  const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
 
   config.logger.debug(
     `[${
       txRequest.address
-    }] shouldExecuteTx ret ${shouldExecuteTx} gasCost=${gasCost.toNumber()} expectedReward=${expectedReward.toNumber()}`
+    }] shouldExecuteTx ret ${shouldExecute} gasCost=${gasCost.toNumber()} expectedReward=${expectedReward.toNumber()}`
   );
 
-  return shouldExecuteTx;
+  return shouldExecute;
 };
 
 export { shouldClaimTx, shouldExecuteTx, getExecutionGasPrice };
