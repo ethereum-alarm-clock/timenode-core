@@ -117,14 +117,14 @@ export default class Router {
         const executionStatus: ExecuteStatus = await this.actions.execute(txRequest);
 
         if (executionStatus === ExecuteStatus.SUCCESS) {
-          this.config.logger.info(`${txRequest.address} executed`);
+          this.config.logger.info(`[${txRequest.address}] executed`);
 
           return TxStatus.Executed;
         } else {
-          this.config.logger.debug(`${txRequest.address} error: ${executionStatus}`);
+          this.config.logger.debug(`[${txRequest.address}] error: ${executionStatus}`);
         }
       } catch (e) {
-        this.config.logger.error(`${txRequest.address} execution failed`);
+        this.config.logger.error(`[${txRequest.address}] execution failed`);
 
         //TODO handle gracefully?
         throw new Error(e);
