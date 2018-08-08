@@ -31,9 +31,14 @@ export default class Actions {
     }
 
     let claimingError;
+    let from;
 
     try {
-      const { receipt, from, error } = await this.config.wallet.sendFromNext(opts);
+      const walletReceipt = await this.config.wallet.sendFromNext(opts);
+
+      const { receipt, error } = walletReceipt;
+
+      from = walletReceipt.from;
 
       if (!error && isTransactionStatusSuccessful(receipt.status)) {
         await txRequest.refreshData();
@@ -55,16 +60,7 @@ export default class Actions {
       claimingError = err;
     }
 
-    if (this.config.cache.has(txRequest.address)) {
-      this.config.cache.get(txRequest.address).claimingFailed = true;
-    } else {
-      this.config.cache.set(txRequest.address, {
-        claimedBy: null,
-        claimingFailed: true,
-        wasCalled: false,
-        windowStart: null
-      });
-    }
+    this.config.statsDb.addFailedClaim(from, txRequest.address);
 
     this.config.logger.error(`[${txRequest.address}] error: ${claimingError}`);
 
