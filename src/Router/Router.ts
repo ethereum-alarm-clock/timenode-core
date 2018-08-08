@@ -26,7 +26,7 @@ export default class Router {
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = this.missed.bind(this);
     this.transitions[TxStatus.Done] = (txRequest: any) => {
-      this.config.logger.info(`[${txRequest.address}] Finished. Deleting from cache...`);
+      this.config.logger.info('Finished. Deleting from cache...', txRequest.address);
       this.config.cache.del(txRequest.address);
       return TxStatus.Done;
     };
@@ -61,17 +61,17 @@ export default class Router {
           const claimingStatus: ClaimStatus = await this.actions.claim(txRequest);
 
           if (claimingStatus === ClaimStatus.SUCCESS) {
-            this.config.logger.info(`[${txRequest.address}] claimed`);
+            this.config.logger.info('CLAIMED.', txRequest.address);
           } else {
-            this.config.logger.debug(`[${txRequest.address}] error: ${claimingStatus}`);
+            this.config.logger.debug(`Error: ${claimingStatus}`, txRequest.address);
           }
         } catch (e) {
-          this.config.logger.error(`[${txRequest.address}] claiming failed`);
+          this.config.logger.error('Claiming failed.', txRequest.address);
           // TODO handle gracefully?
           throw new Error(e);
         }
       } else {
-        this.config.logger.info(`[${txRequest.address}] not profitable to claim.`);
+        this.config.logger.info('Not profitable to claim.', txRequest.address);
         this.config.logger.debug(
           `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
         );
@@ -117,22 +117,20 @@ export default class Router {
         const executionStatus: ExecuteStatus = await this.actions.execute(txRequest);
 
         if (executionStatus === ExecuteStatus.SUCCESS) {
-          this.config.logger.info(`[${txRequest.address}] executed`);
+          this.config.logger.info('EXECUTED.', txRequest.address);
 
           return TxStatus.Executed;
         } else {
-          this.config.logger.debug(`[${txRequest.address}] error: ${executionStatus}`);
+          this.config.logger.debug(`Error: ${executionStatus}`, txRequest.address);
         }
       } catch (e) {
-        this.config.logger.error(`[${txRequest.address}] execution failed`);
+        this.config.logger.error('Execution failed.', txRequest.address);
 
         //TODO handle gracefully?
         throw new Error(e);
       }
     } else {
-      this.config.logger.info(
-        `[${txRequest.address}] not profitable to execute. Gas price too high`
-      );
+      this.config.logger.info('Not profitable to execute. Gas price too high.', txRequest.address);
     }
 
     return TxStatus.ExecutionWindow;
@@ -166,7 +164,8 @@ export default class Router {
 
     if (!localClaim) {
       this.config.logger.debug(
-        `[${txRequest.address}] In reserve window and not claimed by this TimeNode.`
+        `In reserve window and not claimed by this TimeNode.`,
+        txRequest.address
       );
     }
 
@@ -181,9 +180,8 @@ export default class Router {
 
     while (nextStatus !== status) {
       this.config.logger.debug(
-        `[${txRequest.address}] Transitioning from  ${TxStatus[status]} to ${
-          TxStatus[nextStatus]
-        } (${nextStatus})`
+        `Transitioning from ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`,
+        txRequest.address
       );
       status = nextStatus;
       nextStatus = await this.transitions[status](txRequest);

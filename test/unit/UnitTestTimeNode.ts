@@ -81,4 +81,22 @@ describe('TimeNode Unit Tests', () => {
       assert.equal(txs.length, 1);
     });
   });
+
+  describe('getUnsucessfullyClaimedTransactions()', () => {
+    it('returns empty array when no failed claims', () => {
+      const txs = timenode.getUnsucessfullyClaimedTransactions();
+      assert.equal(txs.length, 0);
+    });
+
+    it('returns failed claims when they are present', () => {
+      const failedClaimAddress = '0xe87529a6123a74320e13a6dabf3606630683c029';
+
+      config.statsDb.addFailedClaim(config.wallet.getAddresses()[0], failedClaimAddress);
+
+      const txs = timenode.getUnsucessfullyClaimedTransactions();
+      assert.equal(txs.length, 1);
+
+      assert.deepEqual(txs, ['0xe87529a6123a74320e13a6dabf3606630683c029']);
+    });
+  });
 });

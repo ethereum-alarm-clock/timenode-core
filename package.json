@@ -1,6 +1,6 @@
 {
   "name": "@ethereum-alarm-clock/timenode-core",
-  "version": "4.2.6",
+  "version": "4.2.8",
   "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
@@ -48,7 +48,7 @@
     "bignumber.js": "5.0.0",
     "eac.js-lib": "2.1.1",
     "ethereumjs-tx": "1.3.7",
-    "ethereumjs-wallet": "0.6.1",
+    "ethereumjs-wallet": "0.6.2",
     "lokijs": "1.5.5",
     "typescript": "2.9.1",
     "web3-providers-ws": "1.0.0-beta.34"
@@ -69,7 +69,7 @@
     "mocha-typescript": "1.1.17",
     "moment": "2.22.2",
     "nyc": "12.0.2",
-    "prettier": "1.14.0",
+    "prettier": "1.14.1",
     "ts-node": "6.2.0",
     "tslint": "5.10.0",
     "tslint-config-prettier": "1.14.0",
