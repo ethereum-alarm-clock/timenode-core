@@ -10,7 +10,6 @@ class Provider {
 
   constructor(opts?: any) {
     const found: any = {};
-    console.log('opts', opts);
     opts && opts.gas ? (found.gas = opts.gas) : undefined;
     opts && opts.input ? (found.input = opts.input) : undefined;
     opts && opts.value ? (found.value = opts.value) : undefined;
@@ -112,9 +111,7 @@ describe('hasPendingParity()', () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'parity', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
-    /* tslint:disable */
-    expect(pending).to.be.true;
-    /* tslint:enable */
+    assert(pending);
   });
 });
 
@@ -123,9 +120,7 @@ describe('hasPendingGeth()', () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'geth', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
-    /* tslint:disable */
-    expect(pending).to.be.true;
-    /* tslint:enable */
+    assert(pending);
   });
 });
 
@@ -134,9 +129,7 @@ describe('hasPending()', () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: '', gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
-    /* tslint:disable */
-    expect(pending).to.be.false;
-    /* tslint:enable */
+    assert.isFalse(pending);
   });
 });
 
