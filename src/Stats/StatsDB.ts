@@ -1,5 +1,4 @@
 import BigNumber from 'bignumber.js';
-// import * as EAC from 'eac.js-lib';
 
 declare const require: any;
 
@@ -22,7 +21,7 @@ export class StatsDB {
 
   // Takes an array of addresses and stores them as new stats objects.
   public initialize(accounts: string[]) {
-    accounts.forEach(async account => {
+    accounts.forEach(account => {
       const found = this.stats.find({ account })[0];
       if (found) {
         const bounties = found.bounties || 0;
@@ -37,14 +36,15 @@ export class StatsDB {
           executed: 0,
           bounties: new BigNumber(0),
           costs: new BigNumber(0),
-          executedTransactions: []
+          executedTransactions: [],
+          failedClaims: []
         });
       }
     });
   }
 
   // Takes the account which has claimed a transaction.
-  public async updateClaimed(account: string, cost: BigNumber) {
+  public updateClaimed(account: string, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
     found.claimed += 1;
     found.costs = found.costs.plus(cost);
@@ -53,7 +53,7 @@ export class StatsDB {
   }
 
   // Takes the account which has executed a transaction.
-  public async updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
+  public updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
     const found = this.stats.find({ account })[0];
 
     if (!found) {
@@ -70,6 +70,26 @@ export class StatsDB {
 
     found.bounties = found.bounties.plus(bounty);
     found.costs = found.costs.plus(cost);
+
+    this.stats.update(found);
+  }
+
+  public addFailedClaim(account: string, transactionAddress: string) {
+    const found = this.stats.find({ account })[0];
+
+    if (!found) {
+      return;
+    }
+
+    if (!found.failedClaims) {
+      found.failedClaims = [];
+    }
+
+    if (found.failedClaims.indexOf(transactionAddress) !== -1) {
+      return;
+    }
+
+    found.failedClaims.push(transactionAddress);
 
     this.stats.update(found);
   }

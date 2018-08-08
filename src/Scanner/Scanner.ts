@@ -283,7 +283,6 @@ export default class {
   public store(request: any) {
     this.config.cache.set(request.address, {
       claimedBy: null,
-      claimingFailed: false,
       wasCalled: false,
       windowStart: request.params[7]
     });
