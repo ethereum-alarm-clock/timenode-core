@@ -17,7 +17,6 @@ export default class Cache<T> {
 
   public set(key: string, value: T) {
     this.cache[key] = value;
-    this.logger.cache(`stored ${key} with value ${JSON.stringify(value)}`);
   }
 
   public get(key: string, fallback?: any): T {
@@ -30,22 +29,18 @@ export default class Cache<T> {
       return fallback;
     }
 
-    this.logger.cache(`accessed ${key}`);
     return value;
   }
 
   public has(key: string) {
     if (this.cache[key] === undefined) {
-      this.logger.cache(`miss ${key}`);
       return false;
     }
-    this.logger.cache(`hit ${key}`);
     return true;
   }
 
   public del(key: string) {
     delete this.cache[key];
-    this.logger.cache(`deleted ${key}`);
   }
 
   public length(): number {

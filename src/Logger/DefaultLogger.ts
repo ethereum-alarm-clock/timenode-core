@@ -3,27 +3,24 @@ import { ILogger } from './ILogger';
 declare const console: any;
 
 export class DefaultLogger implements ILogger {
-  public cache(msg: string): void {
-    this.formatPrint(msg, 'CACHE');
+  public debug(msg: string, address: string = ''): void {
+    this.formatPrint('DEBUG', msg, address);
   }
 
-  public debug(msg: string): void {
-    this.formatPrint(msg, 'DEBUG');
+  public error(msg: string, address: string = ''): void {
+    this.formatPrint('ERROR', msg, address);
   }
 
-  public error(msg: string): void {
-    this.formatPrint(msg, 'ERROR');
+  public info(msg: string, address: string = ''): void {
+    this.formatPrint('INFO', msg, address);
   }
 
-  public info(msg: string): void {
-    this.formatPrint(msg, 'INFO');
+  private formatPrint(kind: string, msg: string, address: string = ''): void {
+    const txRequest = address ? ` [${address}]` : '';
+    console.log(`${this.now()} [${kind}]${txRequest} ${msg}`);
   }
 
-  private formatPrint(msg: string, kind: string): void {
-    console.log(kind, this.timestamp(), msg);
-  }
-
-  private timestamp(): number {
-    return Math.floor(Date.now() / 1000);
+  private now(): string {
+    return new Date().toISOString();
   }
 }
