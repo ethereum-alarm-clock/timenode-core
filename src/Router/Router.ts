@@ -1,7 +1,7 @@
 import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus, ClaimStatus, ExecuteStatus } from '../Enum';
-import { shouldClaimTx } from '../EconomicStrategy';
+import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
 import { ITxRequest } from '../Types';
@@ -110,21 +110,29 @@ export default class Router {
       return TxStatus.ExecutionWindow;
     }
 
-    try {
-      const executed: ExecuteStatus = await this.actions.execute(txRequest);
+    const shouldExecute = await shouldExecuteTx(txRequest, this.config);
 
-      if (executed === ExecuteStatus.SUCCESS) {
-        this.config.logger.info(`[${txRequest.address}] executed`);
+    if (shouldExecute) {
+      try {
+        const executionStatus: ExecuteStatus = await this.actions.execute(txRequest);
 
-        return TxStatus.Executed;
-      } else {
-        this.config.logger.debug(`[${txRequest.address}] error: ${executed}`);
+        if (executionStatus === ExecuteStatus.SUCCESS) {
+          this.config.logger.info(`[${txRequest.address}] executed`);
+
+          return TxStatus.Executed;
+        } else {
+          this.config.logger.debug(`[${txRequest.address}] error: ${executionStatus}`);
+        }
+      } catch (e) {
+        this.config.logger.error(`[${txRequest.address}] execution failed`);
+
+        //TODO handle gracefully?
+        throw new Error(e);
       }
-    } catch (e) {
-      this.config.logger.error(`[${txRequest.address}] execution failed`);
-
-      //TODO handle gracefully?
-      throw new Error(e);
+    } else {
+      this.config.logger.info(
+        `[${txRequest.address}] not profitable to execute. Gas price too high`
+      );
     }
 
     return TxStatus.ExecutionWindow;

@@ -4,6 +4,7 @@ import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
+import { getExecutionGasPrice } from '../EconomicStrategy';
 import { TxSendErrors } from '../Enum/TxSendErrors';
 
 export function shortenAddress(address: string) {
@@ -198,17 +199,14 @@ export default class Actions {
   }
 
   private async getExecutionOpts(txRequest: any): Promise<any> {
-    const gas = txRequest.callGas
-      .add(180000)
-      .div(64)
-      .times(65)
-      .round();
+    const gas = this.config.util.calculateGasAmount(txRequest);
+    const gasPrice = await getExecutionGasPrice(txRequest, this.config);
 
     return {
       to: txRequest.address,
       value: 0,
       gas,
-      gasPrice: txRequest.gasPrice,
+      gasPrice,
       data: txRequest.executeData
     };
   }
