@@ -3,20 +3,21 @@ import { ILogger } from './ILogger';
 declare const console: any;
 
 export class DefaultLogger implements ILogger {
-  public debug(msg: string, txRequest: string = ''): void {
-    this.formatPrint('DEBUG', msg, txRequest);
+  public debug(msg: string, address: string = ''): void {
+    this.formatPrint('DEBUG', msg, address);
   }
 
-  public error(msg: string, txRequest: string = ''): void {
-    this.formatPrint('ERROR', msg, txRequest);
+  public error(msg: string, address: string = ''): void {
+    this.formatPrint('ERROR', msg, address);
   }
 
-  public info(msg: string, txRequest: string = ''): void {
-    this.formatPrint('INFO', msg, txRequest);
+  public info(msg: string, address: string = ''): void {
+    this.formatPrint('INFO', msg, address);
   }
 
-  private formatPrint(kind: string, msg: string, txRequest: string = ''): void {
-    console.log(`${this.now()} [${kind}]${txRequest ? ` [${txRequest}]` : ''} ${msg}`);
+  private formatPrint(kind: string, msg: string, address: string = ''): void {
+    const txRequest = address ? ` [${address}]` : '';
+    console.log(`${this.now()} [${kind}]${txRequest} ${msg}`);
   }
 
   private now(): string {
