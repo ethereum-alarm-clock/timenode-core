@@ -97,6 +97,11 @@ export class StatsDB {
 
   public async incrementDiscovered(account: string) {
     const found = this.stats.find({ account })[0];
+
+    if (!found) {
+      return;
+    }
+
     found.discovered += 1;
 
     this.stats.update(found);
