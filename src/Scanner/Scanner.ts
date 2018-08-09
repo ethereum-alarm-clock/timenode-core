@@ -89,7 +89,7 @@ export default class {
     this.cacheScanner = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
 
     // Mark that we've started.
-    // this.config.logger.info('Scanner STARTED');
+    this.config.logger.info('Scanner STARTED');
     this.scanning = true;
     return this.scanning;
   }
@@ -164,9 +164,11 @@ export default class {
       throw new Error(`[${request.address}] NOT VALID`);
     }
 
-    this.config.logger.info(`[${request.address}] Discovered`);
+    this.config.logger.info('Discovered.', request.address);
     if (!this.config.cache.has(request.address)) {
       this.store(request);
+
+      this.config.statsDb.incrementDiscovered(this.config.wallet.getAddresses()[0]);
     }
   }
 
@@ -184,52 +186,67 @@ export default class {
   }
 
   public async stopWatcher(bucket: Bucket) {
-    const watcher = this.eventWatchers[bucket];
-    if (watcher !== undefined) {
-      const reqFactory = await this.requestFactory;
-      await reqFactory.stopWatch(watcher);
-      delete this.eventWatchers[bucket];
+    try {
+      const watcher = this.eventWatchers[bucket];
+      if (watcher !== undefined) {
+        const reqFactory = await this.requestFactory;
+        await reqFactory.stopWatch(watcher);
+        delete this.eventWatchers[bucket];
 
-      this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been stopped`);
+        this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been stopped`);
+      }
+    } catch (err) {
+      this.config.logger.error(`Buckets: Stopping bucket=${bucket} watching failed!`);
     }
   }
 
   public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket) {
     const reqFactory = await this.requestFactory;
     const handleRequest = this.handleRequest.bind(this);
+    let currentBucket = previousBucket;
 
     if (bucket !== previousBucket) {
       await this.stopWatcher(previousBucket);
-      const watcher = await reqFactory.watchRequestsByBucket(bucket, handleRequest);
-      this.eventWatchers[bucket] = watcher;
 
-      this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
+      try {
+        const watcher = await reqFactory.watchRequestsByBucket(bucket, handleRequest);
+        this.eventWatchers[bucket] = watcher;
+        currentBucket = bucket;
+
+        this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
+      } catch (err) {
+        this.config.logger.error(`Buckets: Starting bucket=${bucket} watching failed!`);
+      }
     }
+
+    return currentBucket;
   }
 
   public async watchBlockchain(): Promise<void> {
     const buckets = await this.getBuckets();
 
+    this.config.logger.debug(`Buckets: before current buckets=${JSON.stringify(this.buckets)}`);
+
     // Start watching the current buckets right away.
-    await this.watchRequestsByBucket(
+    this.buckets.currentBuckets.blockBucket = await this.watchRequestsByBucket(
       buckets.currentBuckets.blockBucket,
       this.buckets.currentBuckets.blockBucket
     );
-    await this.watchRequestsByBucket(
+    this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
       buckets.nextBuckets.blockBucket,
       this.buckets.nextBuckets.blockBucket
     );
 
-    await this.watchRequestsByBucket(
+    this.buckets.currentBuckets.timestampBucket = await this.watchRequestsByBucket(
       buckets.currentBuckets.timestampBucket,
       this.buckets.currentBuckets.timestampBucket
     );
-    await this.watchRequestsByBucket(
+    this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
       buckets.nextBuckets.timestampBucket,
       this.buckets.nextBuckets.timestampBucket
     );
 
-    this.buckets = buckets;
+    this.config.logger.debug(`Buckets: after current buckets=${JSON.stringify(this.buckets)}`);
   }
 
   public isValid(requestAddress: string): boolean {
@@ -273,10 +290,8 @@ export default class {
   }
 
   public store(request: any) {
-    this.config.logger.info(`[${request.address}] Inputting to cache`);
     this.config.cache.set(request.address, {
       claimedBy: null,
-      claimingFailed: false,
       wasCalled: false,
       windowStart: request.params[7]
     });

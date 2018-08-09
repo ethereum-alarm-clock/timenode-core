@@ -1,4 +1,11 @@
+import Cache from '../Cache';
 import { FnSignatures } from '../Enum';
+
+interface PendingOpts {
+  type?: string;
+  checkGasPrice?: boolean;
+  minPrice?: number;
+}
 
 /**
  * Uses the Parity specific RPC request `parity_pendingTransactions` to search
@@ -6,19 +13,15 @@ import { FnSignatures } from '../Enum';
  * @param {TransactionRequest} txRequest
  * @param {string} type (optional) Type of pending request: claim,execute.
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
- * @param {number} exactPrice (optional) Expected gasPrice.
+ * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = (
-  conf: any,
-  txRequest: any,
-  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-) => {
+const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
-  return new Promise( async (resolve, reject) => {
-    try{
+  return new Promise(async (resolve, reject) => {
+    try {
       await provider.sendAsync(
         {
           jsonrpc: '2.0',
@@ -28,8 +31,9 @@ const hasPendingParity = (
         },
         async (err: Error, res: any) => {
           if (err || res.error || !res.result) {
-            const errMsg = (err && err.message) || err || (res.error && res.error.message) || res.error;
-            conf.logger.error(errMsg)
+            const errMsg =
+              (err && err.message) || err || (res.error && res.error.message) || res.error;
+            conf.logger.error(errMsg);
             return;
           }
 
@@ -38,8 +42,12 @@ const hasPendingParity = (
               const withValidGasPrice =
                 res.result[count] &&
                 (!opts.checkGasPrice ||
-                  (await hasValidGasPrice(conf, res.result[count], opts.exactPrice)));
-              if (res.result[count] && isOfType(res.result[count], opts.type) && withValidGasPrice) {
+                  (await hasValidGasPrice(conf, res.result[count], opts.minPrice)));
+              if (
+                res.result[count] &&
+                isOfType(res.result[count], opts.type) &&
+                withValidGasPrice
+              ) {
                 resolve(true);
               }
             }
@@ -60,19 +68,15 @@ const hasPendingParity = (
  * @param {TransactionRequest} txRequest
  * @param {string} type (optional) Type of pending request: claim,execute.
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
- * @param {number} exactPrice (optional) Expected gasPrice.
+ * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingGeth = (
-  conf: any,
-  txRequest: any,
-  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-) => {
+const hasPendingGeth = (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
-    try{
+    try {
       provider.sendAsync(
         {
           jsonrpc: '2.0',
@@ -82,8 +86,9 @@ const hasPendingGeth = (
         },
         async (err: Error, res: any) => {
           if (err || res.error || !res.result) {
-            const errMsg = (err && err.message) || err || (res.error && res.error.message) || res.error;
-            conf.logger.error(errMsg)
+            const errMsg =
+              (err && err.message) || err || (res.error && res.error.message) || res.error;
+            conf.logger.error(errMsg);
             return;
           }
 
@@ -96,7 +101,7 @@ const hasPendingGeth = (
                     (await hasValidGasPrice(
                       conf,
                       res.result.pending[account][nonce],
-                      opts.exactPrice
+                      opts.minPrice
                     )));
                 if (
                   res.result.pending[account][nonce] &&
@@ -123,19 +128,19 @@ const hasPendingGeth = (
  * for pending transactions in the transaction pool.
  * @param {Config} conf Config object.
  * @param {TransactionReceipt} transaction Ethereum transaction receipt
- * @param {number} exactPrice (optional) Expected gasPrice.
+ * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = async (conf: any, transaction: any, exactPrice?: any) => {
-  if (exactPrice) {
-    return exactPrice.valueOf() === transaction.gasPrice.valueOf();
+const hasValidGasPrice = async (conf: any, transaction: any, minPrice?: any) => {
+  if (minPrice) {
+    return minPrice.valueOf() === transaction.gasPrice.valueOf();
   }
   const spread = 0.3;
   let currentGasPrice: number;
   await new Promise((resolve, reject) => {
     conf.web3.eth.getGasPrice((err: Error, res: any) => {
       if (err) {
-        conf.logger.error(err)
+        conf.logger.error(err);
         return;
       }
       currentGasPrice = res;
@@ -166,21 +171,20 @@ const isOfType = (transaction: any, type?: string) => {
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {string} type (optional) Type of pending request: claim,execute.
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
- * @param {number} exactPrice (optional) Expected gasPrice to compare.
+ * @param {number} minPrice (optional) Expected gasPrice to compare.
  */
-const hasPending = async (
-  conf: any,
-  txRequest: any,
-  opts: { type?: string; checkGasPrice?: boolean; exactPrice?: any }
-) => {
+const hasPending = async (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
+  let result = false;
 
-    if (conf.client === 'parity') {
-      return hasPendingParity(conf, txRequest, opts);
-    } else if (conf.client === 'geth') {
-      return hasPendingGeth(conf, txRequest, opts);
-    } else {
-      return;
-    }
+  if (conf.client === 'parity') {
+    result = await hasPendingParity(conf, txRequest, opts);
+  } else if (conf.client === 'geth') {
+    result = await hasPendingGeth(conf, txRequest, opts);
+  }
+
+  conf.logger.debug(`hasPending=${result}`, txRequest.address);
+
+  return result;
 };
 
 export default hasPending;

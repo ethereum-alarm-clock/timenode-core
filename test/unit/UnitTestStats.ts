@@ -70,6 +70,42 @@ describe('Stats Unit Tests', () => {
     });
   });
 
+  describe('addFailedClaim()', () => {
+    it('before calling it array is empty', () => {
+      assert.deepEqual(myStats.failedClaims, []);
+    });
+
+    it('adds failed claim', () => {
+      const failedClaimAddress = '0xe87529a6123a74320e13a6dabf3606630683c029';
+      config.statsDb.addFailedClaim(myAccount, failedClaimAddress);
+
+      assert.deepEqual(myStats.failedClaims, ['0xe87529a6123a74320e13a6dabf3606630683c029']);
+    });
+
+    it('does not allow for duplicates of failed claims', () => {
+      const failedClaimAddress = '0xe87529a6123a74320e13a6dabf3606630683c029';
+      config.statsDb.addFailedClaim(myAccount, failedClaimAddress);
+
+      assert.deepEqual(myStats.failedClaims, ['0xe87529a6123a74320e13a6dabf3606630683c029']);
+
+      config.statsDb.addFailedClaim(myAccount, failedClaimAddress);
+
+      assert.deepEqual(myStats.failedClaims, ['0xe87529a6123a74320e13a6dabf3606630683c029']);
+    });
+  });
+
+  describe('incrementDiscovered()', () => {
+    it('increments discovered', () => {
+      assert.strictEqual(myStats.discovered, 0);
+
+      config.statsDb.incrementDiscovered(myAccount);
+      assert.strictEqual(myStats.discovered, 1);
+
+      config.statsDb.incrementDiscovered(myAccount);
+      assert.strictEqual(myStats.discovered, 2);
+    });
+  });
+
   describe('getStats()', () => {
     it('returns all stats', async () => {
       const stats = config.statsDb.getStats();
