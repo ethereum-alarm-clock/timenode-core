@@ -54,7 +54,7 @@ describe('TxPool unit tests', () => {
       expect(txPool.subs.pending).to.exist;
       expect(txPool.subs.latest).to.exist;
 
-      txPool.stop();
+      await txPool.stop();
       
       expect(txPool.subs.pending).to.not.exist;
       expect(txPool.subs.latest).to.not.exist;
