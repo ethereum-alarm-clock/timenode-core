@@ -1,9 +1,9 @@
 import * as loki from 'lokijs';
 import { Config } from '../../src/index';
-import MockLogger from './MockLogger';
 // import { createWalletKeystore } from './createWallet';
 import { providerUrl } from './network';
 import BigNumber from 'bignumber.js';
+import { DefaultLogger } from '../../src/Logger';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
@@ -21,9 +21,10 @@ const mockConfig = (preConfig?: any) => {
     economicStrategy: {
       maxDeposit: new BigNumber(0),
       minBalance: new BigNumber(0),
-      minProfitability: new BigNumber(0)
+      minProfitability: new BigNumber(0),
+      maxGasSubsidy: 100
     },
-    logger: new MockLogger(),
+    logger: new DefaultLogger(),
     ms: 4000,
     password,
     providerUrl,

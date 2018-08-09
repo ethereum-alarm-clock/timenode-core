@@ -56,17 +56,13 @@ describe('TimeNode', () => {
 
       timenode.startScanning();
 
-      const originalLoggerInfoMethod = timenode.config.logger.info;
-
-      timenode.config.logger.info = (msg: any) => {
-        if (msg.includes && msg.includes('executed')) {
-          const executedTransactionAddress = msg.split(' executed')[0];
-
-          if (scheduledTransactionsMap[executedTransactionAddress]) {
-            scheduledTransactionsMap[executedTransactionAddress].executionLogged = true;
+      timenode.config.logger.info = (msg: any, txRequest: string) => {
+        if (msg.includes && msg.includes('EXECUTED')) {
+          if (scheduledTransactionsMap[txRequest]) {
+            scheduledTransactionsMap[txRequest].executionLogged = true;
           }
         }
-        originalLoggerInfoMethod(msg);
+        console.log(txRequest, msg);
       };
 
       let allExecutionsLogged = false;
@@ -135,11 +131,11 @@ describe('TimeNode', () => {
       const originalLoggerInfoMethod = timenode.config.logger.info;
       let claimedLogged = false;
 
-      timenode.config.logger.info = (msg: any) => {
-        if (msg === `${TEST_TX_ADDRESS} claimed`) {
+      timenode.config.logger.info = (msg: any, txRequest: string) => {
+        if (msg === 'CLAIMED.' && txRequest === TEST_TX_ADDRESS) {
           claimedLogged = true;
         }
-        originalLoggerInfoMethod(msg);
+        console.log(txRequest, msg);
       };
 
       await new Promise(resolve => {
@@ -155,8 +151,9 @@ describe('TimeNode', () => {
             expect(TEST_TX_REQUEST.address).to.equal(TEST_TX_ADDRESS);
             expect(TEST_TX_REQUEST.claimData).to.equal('0x4e71d92d');
             expect(TEST_TX_REQUEST.claimedBy).to.equal(TIMENODE_ADDRESS);
-            expect(timenode.getClaimedNotExecutedTransactions().length).to.equal(2);
             expect(timenode.getClaimedNotExecutedTransactions()).to.include(TEST_TX_ADDRESS);
+
+            timenode.config.logger.info = originalLoggerInfoMethod;
 
             resolve();
           }
@@ -185,11 +182,11 @@ describe('TimeNode', () => {
       const originalLoggerInfoMethod = timenode.config.logger.info;
       let executionLogged = false;
 
-      timenode.config.logger.info = (msg: any) => {
-        if (msg === `${TEST_TX_ADDRESS} executed`) {
+      timenode.config.logger.info = (msg: any, txRequest: string) => {
+        if (msg === 'EXECUTED.' && txRequest === TEST_TX_ADDRESS) {
           executionLogged = true;
         }
-        originalLoggerInfoMethod(msg);
+        console.log(txRequest, msg);
       };
 
       await new Promise(resolve => {
@@ -204,7 +201,9 @@ describe('TimeNode', () => {
             assert.ok(TEST_TX_REQUEST.wasCalled, `${TEST_TX_ADDRESS} hasn't been called!`);
             assert.ok(TEST_TX_REQUEST.wasSuccessful, `${TEST_TX_ADDRESS} isn't successful!`);
 
-            expect(timenode.getClaimedNotExecutedTransactions()).to.deep.equal([]);
+            expect(timenode.getClaimedNotExecutedTransactions()).to.not.include(TEST_TX_ADDRESS);
+
+            timenode.config.logger.info = originalLoggerInfoMethod;
 
             resolve();
           }
