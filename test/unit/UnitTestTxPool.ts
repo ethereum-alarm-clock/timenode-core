@@ -46,6 +46,21 @@ describe('TxPool unit tests', () => {
     });
   })
 
+  describe('stop()', () => {
+    it('Successfully starts new pool', async () => {
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      await txPool.start();
+      
+      expect(txPool.subs.pending).to.exist;
+      expect(txPool.subs.latest).to.exist;
+
+      txPool.stop();
+      
+      expect(txPool.subs.pending).to.not.exist;
+      expect(txPool.subs.latest).to.not.exist;
+    });
+  })
+
   describe('TxPool flow', () => {
     it('has()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
@@ -104,6 +119,8 @@ describe('TxPool unit tests', () => {
       })
 
       expect(txPool.pool.length()).to.equal(1);
+
+      txPool.pool.wipe();
       expect(txPool.pool.isEmpty()).to.be.true;
     });
 

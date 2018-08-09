@@ -6,7 +6,7 @@ export interface ITxPoolTxDetails {
     from: string;
     input: string;
     gasPrice: BigNumber;
-    timestamp: Number;
+    timestamp: number;
     transactionHash: string;
 }
 
@@ -18,7 +18,7 @@ export class Pool {
   }
 
   public get(key: string, field: string): [ITxPoolTxDetails] {
-    let foundTxs: any = [];
+    const foundTxs: any = [];
   
     this.stored().filter((
       p: string) => {
