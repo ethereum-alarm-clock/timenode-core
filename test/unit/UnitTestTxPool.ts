@@ -48,7 +48,7 @@ describe('TxPool unit tests', () => {
 
   describe('TxPool flow', () => {
     it('has()', async () => {
-      const tx = TRANSACTIONS[Math.floor(Math.random()*10)];
+      const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
 
       txPool.pool.pool[tx] = {
@@ -59,7 +59,7 @@ describe('TxPool unit tests', () => {
     })
 
     it('set()', async () => {
-      const tx = TRANSACTIONS[Math.floor(Math.random()*10)];
+      const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
 
       txPool.pool.set(tx, {
@@ -68,5 +68,44 @@ describe('TxPool unit tests', () => {
 
       expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
     });
+
+    it('length()', async () => {
+      const count = Math.floor( Math.random() * TRANSACTIONS.length );
+
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      for( var i = 0; i < count; i++) {
+        txPool.pool.set(TRANSACTIONS[i], {
+          transactionHash : TRANSACTIONS[i]
+        })
+      }
+
+      expect(txPool.pool.length()).to.be.equal(count);
+    });
+
+    it('del()', async () => {
+      const tx = TRANSACTIONS[Math.floor(Math.random()*10)];
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+
+      txPool.pool.pool[tx] = {
+        transactionHash : tx
+      }
+
+      expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
+      txPool.pool.del(tx);
+      expect(txPool.pool.has(tx, 'transactionHash')).to.be.false;
+    });
+
+    it('wipe()', async () => {
+      const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+
+      txPool.pool.set(tx, {
+        transactionHash : tx
+      })
+
+      expect(txPool.pool.length()).to.equal(1);
+      expect(txPool.pool.isEmpty()).to.be.true;
+    });
+
   });
 });
