@@ -79,6 +79,7 @@ export class Wallet {
 
   public decrypt(encryptedKeyStores: (string | object)[], password: string) {
     encryptedKeyStores.forEach(keyStore => {
+      keyStore = typeof keyStore === 'object' ? JSON.stringify(keyStore) : keyStore;
       const wallet = ethWallet.fromV3(keyStore, password, true);
 
       if (wallet) {
