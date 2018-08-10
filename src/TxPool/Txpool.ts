@@ -12,8 +12,14 @@ export default class TxPool {
       this.pool = new Pool();
     }
 
+    public running () {
+        return !this.pool.isEmpty() || this.subs.pending || this.subs.latest;
+    }
+
     public async start () {
-        this.pool.wipe();
+        if (this.running()) {
+            await this.stop();
+        }
         await this.watchPending();
         await this.watchLatest();
     }
