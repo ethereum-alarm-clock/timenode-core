@@ -19,7 +19,6 @@ export default class Actions {
   }
 
   public async claim(txRequest: any): Promise<ClaimStatus> {
-    // Check if claiming is turned off.
     if (!this.config.claiming) {
       return ClaimStatus.NOT_ENABLED;
     }
@@ -31,38 +30,34 @@ export default class Actions {
     }
 
     let claimingError;
-    let from;
 
     try {
-      const walletReceipt = await this.config.wallet.sendFromNext(opts);
+      const { receipt, error, from } = await this.config.wallet.sendFromNext(opts);
 
-      const { receipt, error } = walletReceipt;
-
-      from = walletReceipt.from;
-
-      if (!error && isTransactionStatusSuccessful(receipt.status)) {
+      if (receipt) {
         await txRequest.refreshData();
 
         const gasUsed = new BigNumber(receipt.gasUsed);
-        const gasPrice = new BigNumber(txRequest.data.txData.gasPrice);
+        const gasPrice = new BigNumber(opts.gasPrice);
         const cost = gasUsed.mul(gasPrice);
 
-        this.config.cache.get(txRequest.address).claimedBy = from;
         this.config.statsDb.updateClaimed(from, cost);
+      }
+      if (!error && isTransactionStatusSuccessful(receipt.status)) {
+        this.config.cache.get(txRequest.address).claimedBy = from;
 
         return ClaimStatus.SUCCESS;
       } else if (error === TxSendErrors.SENDING_IN_PROGRESS) {
-        return ClaimStatus.PENDING;
+        return ClaimStatus.IN_PROGRESS;
       }
 
+      this.config.statsDb.addFailedClaim(from, txRequest.address);
       claimingError = error;
     } catch (err) {
       claimingError = err;
     }
 
-    this.config.statsDb.addFailedClaim(from, txRequest.address);
-
-    this.config.logger.error(`[${txRequest.address}] error: ${claimingError}`);
+    this.config.logger.error(`Error: ${claimingError}`, txRequest.address);
 
     return ClaimStatus.FAILED;
   }
