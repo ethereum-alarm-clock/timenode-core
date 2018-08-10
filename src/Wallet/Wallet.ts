@@ -160,7 +160,7 @@ export class Wallet {
       }
       return {
         from,
-        error: TxSendErrors.NOT_ENOUGH_FUNDS
+        status: TxSendErrors.NOT_ENOUGH_FUNDS
       };
     }
 
@@ -170,7 +170,7 @@ export class Wallet {
     if (!this.isWalletAbleToSendTx(idx)) {
       return {
         from,
-        error: TxSendErrors.SENDING_IN_PROGRESS
+        status: TxSendErrors.SENDING_IN_PROGRESS
       };
     }
 
@@ -189,7 +189,7 @@ export class Wallet {
       }
       return {
         from,
-        error: TxSendErrors.UNKNOWN_ERROR
+        status: TxSendErrors.UNKNOWN_ERROR
       };
     } finally {
       this.walletStates[from].sendingTxInProgress = false;

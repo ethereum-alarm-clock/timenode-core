@@ -181,8 +181,8 @@ describe('Wallet Unit Tests', () => {
     it('returns error when not enough balance on account and logs', async () => {
       wallet.create(1);
 
-      const receipt = await wallet.sendFromIndex(0, opts);
-      assert.equal(receipt.error, TxSendErrors.NOT_ENOUGH_FUNDS);
+      const { status } = await wallet.sendFromIndex(0, opts);
+      assert.equal(status, TxSendErrors.NOT_ENOUGH_FUNDS);
     });
 
     it('returns error when not enough balance on account and doesnt log', async () => {
@@ -190,7 +190,7 @@ describe('Wallet Unit Tests', () => {
       wallet.logger = null;
 
       const receipt = await wallet.sendFromIndex(0, opts);
-      assert.equal(receipt.error, TxSendErrors.NOT_ENOUGH_FUNDS);
+      assert.equal(receipt.status, TxSendErrors.NOT_ENOUGH_FUNDS);
     });
 
     it('returns error when sending a Tx is in progress', async () => {
@@ -215,7 +215,7 @@ describe('Wallet Unit Tests', () => {
       });
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      assert.equal(receipt.error, TxSendErrors.SENDING_IN_PROGRESS);
+      assert.equal(receipt.status, TxSendErrors.SENDING_IN_PROGRESS);
     });
 
     it('allows to send another transaction when previous one reverted', async () => {
@@ -241,7 +241,7 @@ describe('Wallet Unit Tests', () => {
           data: '0x1234'
         })
       );
-      assert.equal(receipt.error, TxSendErrors.UNKNOWN_ERROR);
+      assert.equal(receipt.status, TxSendErrors.UNKNOWN_ERROR);
       assert.isFalse(wallet.walletStates[address].sendingTxInProgress);
 
       receipt = await wallet.sendFromIndex(idx, opts);
@@ -275,7 +275,7 @@ describe('Wallet Unit Tests', () => {
     it('generates the next index and sends from it', async () => {
       wallet.create(5);
       const receipt = await wallet.sendFromNext(opts);
-      expect(receipt.error).to.exist;
+      expect(receipt.status).to.exist;
     });
   });
 });
