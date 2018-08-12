@@ -1,7 +1,7 @@
 {
   "name": "@ethereum-alarm-clock/timenode-core",
   "version": "4.2.9",
-  "description": "JavaScript library containing key logic for the Ethereum Alarm Clock TimeNode",
+  "description": "Contains key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
@@ -43,7 +43,6 @@
   },
   "homepage": "https://github.com/ethereum-alarm-clock/timenode-core#readme",
   "dependencies": {
-    "@types/es6-promise": "3.3.0",
     "babel-polyfill": "6.26.0",
     "bignumber.js": "5.0.0",
     "eac.js-lib": "2.0.2",
@@ -74,7 +73,6 @@
     "tslint": "5.10.0",
     "tslint-config-prettier": "1.14.0",
     "tslint-microsoft-contrib": "5.2.0",
-    "typings": "2.1.1",
     "web3": "0.20.6"
   },
   "nyc": {
