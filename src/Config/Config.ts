@@ -13,6 +13,13 @@ import BigNumber from 'bignumber.js';
 declare const setTimeout: any;
 
 export default class Config implements IConfigParams {
+  public DEFAULT_ECON_STRATEGY: object = {
+    maxDeposit: new BigNumber(0),
+    minBalance: new BigNumber(0),
+    minProfitability: new BigNumber(0),
+    maxGasSubsidy: 100
+  };
+
   public autostart: boolean;
   public cache: Cache<ICachedTxDetails>;
   public claiming: boolean;
@@ -37,12 +44,7 @@ export default class Config implements IConfigParams {
       throw new Error('Please set the providerUrl in the config object.');
     }
 
-    this.economicStrategy = params.economicStrategy || {
-      maxDeposit: new BigNumber(0),
-      minBalance: new BigNumber(0),
-      minProfitability: new BigNumber(0),
-      maxGasSubsidy: 100
-    };
+    this.economicStrategy = params.economicStrategy || this.DEFAULT_ECON_STRATEGY;
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
