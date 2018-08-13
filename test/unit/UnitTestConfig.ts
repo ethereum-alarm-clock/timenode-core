@@ -79,10 +79,10 @@ describe('Config unit tests', () => {
 
     it('check all values are set when added to config object', () => {
       const economicStrategy = {
-        maxDeposit: new BigNumber(0),
-        minBalance: new BigNumber(0),
-        minProfitability: new BigNumber(0),
-        maxGasSubsidy: 100
+        maxDeposit: new BigNumber(1),
+        minBalance: new BigNumber(5),
+        minProfitability: new BigNumber(0.01),
+        maxGasSubsidy: 200
       };
 
       const config = new Config({
