@@ -14,11 +14,7 @@ declare const setTimeout: any;
 
 interface AccountState {
   sendingTxInProgress: boolean;
-  tx: string;
-}
-
-interface AccountStateMap {
-  [Account: string]: AccountState;
+  to: string;
 }
 
 interface V3Wallet {
@@ -31,7 +27,7 @@ export class Wallet {
   public logger: ILogger;
   public nonce: number = 0;
   public web3: any;
-  public walletStates: AccountStateMap = {};
+  public walletStates: Map<string, AccountState> = new Map<string, AccountState>();
   private accounts: V3Wallet[] = [];
 
   constructor(web3: any, logger?: ILogger) {
@@ -55,7 +51,7 @@ export class Wallet {
 
     if (!this.accounts.some(a => a.getAddressString() === address)) {
       this.accounts.push(wallet);
-      this.walletStates[address] = {} as AccountState;
+      this.walletStates.set(address, {} as AccountState);
     }
 
     return wallet;
@@ -133,15 +129,15 @@ export class Wallet {
     }
 
     const from: string = this.accounts[idx].getAddressString();
-    const state = this.walletStates[from];
-
-    this.logger.debug(`Wallet:isWalletAbleToSendTx: idx=${idx} wallet=${from} tx=${state.tx}`);
-
-    return !state.sendingTxInProgress;
+    return !this.walletStates.get(from).sendingTxInProgress;
   }
 
   public isNextAccountFree(): boolean {
     return this.isWalletAbleToSendTx(this.nonce % this.accounts.length);
+  }
+
+  public hasPendingTransaction(to: string): boolean {
+    return Array.from(this.walletStates.values()).some((state: any) => state.to === to);
   }
 
   public async sendFromIndex(idx: number, opts: any): Promise<IWalletReceipt> {
@@ -152,6 +148,13 @@ export class Wallet {
     const account = this.accounts[idx];
     const from: string = account.getAddressString();
 
+    if (this.hasPendingTransaction(opts.to)) {
+      return {
+        from,
+        status: TxSendErrors.IN_PROGRESS
+      };
+    }
+
     const balance = await this.getBalanceOf(from);
 
     if (balance.eq(0)) {
@@ -160,7 +163,7 @@ export class Wallet {
       }
       return {
         from,
-        error: TxSendErrors.NOT_ENOUGH_FUNDS
+        status: TxSendErrors.NOT_ENOUGH_FUNDS
       };
     }
 
@@ -170,17 +173,20 @@ export class Wallet {
     if (!this.isWalletAbleToSendTx(idx)) {
       return {
         from,
-        error: TxSendErrors.SENDING_IN_PROGRESS
+        status: TxSendErrors.WALLET_BUSY
       };
     }
 
     let receipt;
     try {
-      this.walletStates[from].sendingTxInProgress = true;
-      const hash = await this.sendRawTransaction(signedTx);
-      this.walletStates[from].tx = hash;
+      this.walletStates.set(from, { sendingTxInProgress: true, to: opts.to });
 
+      this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
+
+      const hash = await this.sendRawTransaction(signedTx);
       receipt = await this.getTransactionReceipt(hash, from);
+
+      this.logger.debug(`Receipt: ${JSON.stringify(receipt)}`);
     } catch (error) {
       if (this.logger) {
         this.logger.debug(error);
@@ -189,14 +195,17 @@ export class Wallet {
       }
       return {
         from,
-        error: TxSendErrors.UNKNOWN_ERROR
+        status: TxSendErrors.UNKNOWN_ERROR
       };
     } finally {
-      this.walletStates[from].sendingTxInProgress = false;
-      this.walletStates[from].tx = '';
+      this.walletStates.set(from, {} as AccountState);
     }
 
-    return receipt;
+    const status = this.isTransactionStatusSuccessful(receipt.receipt.status)
+      ? TxSendErrors.OK
+      : TxSendErrors.FAILED;
+
+    return { receipt: receipt.receipt, from: receipt.from, status };
   }
 
   public getAccounts(): V3Wallet[] {
@@ -232,5 +241,12 @@ export class Wallet {
     tx.sign(Buffer.from(from.privKey, 'hex'));
 
     return tx;
+  }
+
+  private isTransactionStatusSuccessful(status: string | number): boolean {
+    if (status) {
+      return [1, '0x1', '0x01'].indexOf(status) !== -1;
+    }
+    return false;
   }
 }
