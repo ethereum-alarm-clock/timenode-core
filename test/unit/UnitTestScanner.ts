@@ -42,13 +42,13 @@ describe('Scanner Unit Tests', () => {
   });
 
   describe('start()', async () => {
-    it('fails to start scanner with Null client', (done) => {
+    it('fails to start scanner with Null client', done => {
       config.client = undefined;
       scanner.start();
       setTimeout(() => {
         expect(scanner.scanning).to.be.false;
         done();
-      }, (5000));
+      }, 5000);
     }).timeout(6000);
 
     it('returns true for scanning and chainScanner/cacheScanner', async () => {
@@ -60,10 +60,7 @@ describe('Scanner Unit Tests', () => {
 
     it('returns true when watching disabled', async () => {
       scanner.util.isWatchingEnabled = () => Promise.resolve(false);
-      await scanner.start();
-      assert.isTrue(scanner.scanning);
-      expect(scanner.cacheScanner).to.exist;
-      expect(scanner.chainScanner).to.exist;
+      expect(scanner.start).to.throw;
     }).timeout(5000);
   });
 
