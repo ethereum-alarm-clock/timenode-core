@@ -8,6 +8,7 @@ import { StatsDB } from '../Stats';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import { getWeb3FromProviderUrl } from './helpers';
+import BigNumber from 'bignumber.js';
 
 declare const setTimeout: any;
 
@@ -35,6 +36,13 @@ export default class Config implements IConfigParams {
     } else {
       throw new Error('Please set the providerUrl in the config object.');
     }
+
+    this.economicStrategy = params.economicStrategy || {
+      maxDeposit: new BigNumber(0),
+      minBalance: new BigNumber(0),
+      minProfitability: new BigNumber(0),
+      maxGasSubsidy: 100
+    };
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
@@ -78,7 +86,6 @@ export default class Config implements IConfigParams {
     this.statsDb = params.statsDb ? new StatsDB(this.web3, params.statsDb) : null;
 
     this.util = new W3Util(this.web3);
-    this.economicStrategy = params.economicStrategy;
   }
 
   public clientSet(): boolean {
