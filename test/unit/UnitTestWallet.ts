@@ -151,10 +151,10 @@ describe('Wallet Unit Tests', () => {
       wallet.create(1);
       const address = wallet.getAddresses()[0];
 
-      wallet.walletStates[address] = {
+      wallet.walletStates.set(address, {
         sendingTxInProgress: true,
-        tx: ''
-      };
+        to: '0x1234'
+      });
       assert.isFalse(wallet.isWalletAbleToSendTx(0));
     });
 
@@ -197,10 +197,10 @@ describe('Wallet Unit Tests', () => {
       wallet.create(1);
       const idx = 0;
       const address = wallet.getAddresses()[idx];
-      wallet.walletStates[address] = {
+      wallet.walletStates.set(address, {
         sendingTxInProgress: true,
-        tx: ''
-      };
+        to: address
+      });
 
       // Fund new wallet
       await new Promise(resolve => {
@@ -215,7 +215,7 @@ describe('Wallet Unit Tests', () => {
       });
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      assert.equal(receipt.status, TxSendErrors.SENDING_IN_PROGRESS);
+      assert.equal(receipt.status, TxSendErrors.WALLET_BUSY);
     });
 
     it('allows to send another transaction when previous one reverted', async () => {
@@ -242,7 +242,7 @@ describe('Wallet Unit Tests', () => {
         })
       );
       assert.equal(receipt.status, TxSendErrors.UNKNOWN_ERROR);
-      assert.isFalse(wallet.walletStates[address].sendingTxInProgress);
+      assert.isNotOk(wallet.walletStates.get(address).sendingTxInProgress);
 
       receipt = await wallet.sendFromIndex(idx, opts);
       assert.ok(isTransactionStatusSuccessful(receipt.receipt.status));

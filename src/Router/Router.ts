@@ -46,10 +46,7 @@ export default class Router {
   }
 
   public async claimWindow(txRequest: any): Promise<TxStatus> {
-    if (!(await txRequest.inClaimWindow())) {
-      return TxStatus.FreezePeriod;
-    }
-    if (txRequest.isClaimed) {
+    if (!(await txRequest.inClaimWindow()) || txRequest.isClaimed) {
       return TxStatus.FreezePeriod;
     }
 
@@ -61,9 +58,13 @@ export default class Router {
           const claimingStatus: ClaimStatus = await this.actions.claim(txRequest);
 
           this.handleClaimingResult(claimingStatus, txRequest);
-        } catch (e) {
-          this.config.logger.error('Claiming failed.', txRequest.address);
-          throw new Error(e);
+
+          if (claimingStatus === ClaimStatus.SUCCESS || claimingStatus === ClaimStatus.FAILED) {
+            return TxStatus.FreezePeriod;
+          }
+        } catch (err) {
+          this.config.logger.error(err, txRequest.address);
+          throw new Error(err);
         }
       } else {
         this.config.logger.info('Not profitable to claim.', txRequest.address);
@@ -189,9 +190,9 @@ export default class Router {
   private handleClaimingResult(claimingStatus: ClaimStatus, txRequest: any): void {
     switch (claimingStatus) {
       case ClaimStatus.SUCCESS:
-        this.config.logger.info('CLAIMED.', txRequest.address);
+        this.config.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case ClaimStatus.IN_PROGRESS:
+      case ClaimStatus.WALLET_BUSY:
       case ClaimStatus.NOT_ENABLED:
       case ClaimStatus.PENDING:
         this.config.logger.info(claimingStatus, txRequest.address);
