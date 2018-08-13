@@ -96,7 +96,8 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
     },
     now() {
       return new BigNumber(isBlock ? this.currentBlockNumber : moment().unix());
-    }
+    },
+    refreshData() {}
   };
 };
 
