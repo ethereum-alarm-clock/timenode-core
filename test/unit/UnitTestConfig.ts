@@ -24,7 +24,22 @@ describe('Config unit tests', () => {
       assert.isUndefined(config.client);
       expect(config.logger).to.exist;
       assert.isNull(config.wallet);
-      assert.equal(config.economicStrategy, config.DEFAULT_ECON_STRATEGY);
+      assert.equal(
+        config.economicStrategy.maxDeposit.toNumber(),
+        Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit
+      );
+      assert.equal(
+        config.economicStrategy.minBalance.toNumber(),
+        Config.DEFAULT_ECONOMIC_STRATEGY.minBalance
+      );
+      assert.equal(
+        config.economicStrategy.minProfitability.toNumber(),
+        Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability
+      );
+      assert.equal(
+        config.economicStrategy.maxGasSubsidy,
+        Config.DEFAULT_ECONOMIC_STRATEGY.maxGasSubsidy
+      );
     });
 
     it('Detect if config client is set', () => {

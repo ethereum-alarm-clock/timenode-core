@@ -13,10 +13,10 @@ import BigNumber from 'bignumber.js';
 declare const setTimeout: any;
 
 export default class Config implements IConfigParams {
-  public DEFAULT_ECON_STRATEGY: object = {
-    maxDeposit: new BigNumber(0),
-    minBalance: new BigNumber(0),
-    minProfitability: new BigNumber(0),
+  public static readonly DEFAULT_ECONOMIC_STRATEGY: any = {
+    maxDeposit: 0,
+    minBalance: 0,
+    minProfitability: 0,
     maxGasSubsidy: 100
   };
 
@@ -44,7 +44,8 @@ export default class Config implements IConfigParams {
       throw new Error('Please set the providerUrl in the config object.');
     }
 
-    this.economicStrategy = params.economicStrategy || this.DEFAULT_ECON_STRATEGY;
+    this.economicStrategy =
+      params.economicStrategy || this._economicStrategyToBN(Config.DEFAULT_ECONOMIC_STRATEGY);
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
@@ -170,5 +171,14 @@ export default class Config implements IConfigParams {
         this.client = 'none';
         this.logger.error(`Client: ${this.client.toUpperCase()}`);
       });
+  }
+
+  private _economicStrategyToBN(economicStrategy: IEconomicStrategy) {
+    return {
+      maxDeposit: new BigNumber(economicStrategy.maxDeposit),
+      minBalance: new BigNumber(economicStrategy.minBalance),
+      minProfitability: new BigNumber(economicStrategy.minProfitability),
+      maxGasSubsidy: economicStrategy.maxGasSubsidy
+    };
   }
 }

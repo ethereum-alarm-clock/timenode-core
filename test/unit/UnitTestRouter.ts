@@ -152,7 +152,8 @@ describe('Router Unit Tests', () => {
 
       it('returns FreezePeriod when claim window started and claiming enabled', async () => {
         const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
-        assert.equal(await router.claimWindow(tx), TxStatus.FreezePeriod);
+        const status = await router.claimWindow(tx);
+        assert.equal(status, TxStatus.FreezePeriod);
       });
 
       it('returns FreezePeriod when tx is already claimed', async () => {
