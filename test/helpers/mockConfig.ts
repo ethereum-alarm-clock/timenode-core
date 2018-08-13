@@ -18,12 +18,6 @@ const mockConfig = (preConfig?: any) => {
     autostart: true,
     claiming: true,
     disableDetection: true,
-    economicStrategy: {
-      maxDeposit: new BigNumber(0),
-      minBalance: new BigNumber(0),
-      minProfitability: new BigNumber(0),
-      maxGasSubsidy: 100
-    },
     logger: new DefaultLogger(),
     ms: 4000,
     password,
