@@ -169,14 +169,14 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns ClaimWindow when claim window started and claiming disabled', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         config.claiming = false;
         assert.equal(await router.claimWindow(tx), TxStatus.ClaimWindow);
         config.claiming = true;
       });
 
-      it('returns ClaimWindow when claim window started and claiming disabled', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
+      it('returns FreezePeriod when claim window started and claiming enabled', async () => {
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         assert.equal(await router.claimWindow(tx), TxStatus.FreezePeriod);
       });
 
@@ -369,12 +369,12 @@ describe('Router Unit Tests', () => {
       });
 
       it('returns FreezePeriod status when claiming enabled', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         assert.equal(await router.route(tx), TxStatus.FreezePeriod);
       });
 
       it('returns ClaimWindow status when claiming disabled', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
         config.claiming = false;
         assert.equal(await router.route(tx), TxStatus.ClaimWindow);
         config.claiming = true;
