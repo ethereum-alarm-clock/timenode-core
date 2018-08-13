@@ -5,7 +5,6 @@ declare const clearInterval: any;
 declare const setInterval: any;
 
 import { IBlock, IntervalId, ITxRequest } from '../Types';
-
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
@@ -69,23 +68,11 @@ export default class {
     if (!this.config.clientSet()) {
       await this.config.awaitClientSet();
     }
-    await this.txPool.start();
-
-    if (await this.util.isWatchingEnabled()) {
-      // Watching is enabled! start watching the chain.
-      this.config.logger.info('Watching ENABLED');
-      this.chainScanner = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
-    } else {
-      // Watchin disabled. We use old-school methods.
-      this.config.logger.info('Watching DISABLED');
-      this.config.logger.info('-Initiating Backup Scanner-');
-      this.chainScanner = await this.runAndSetInterval(
-        () => this.backupScanBlockchain(),
-        this.config.ms
-      );
+    if (!(await this.util.isWatchingEnabled())) {
+      throw new Error('We are currently supporting nodes with filtering capabilities');
     }
-
-    // Create the interval for processing the transaction requests in cache.
+    await this.txPool.start();
+    this.chainScanner = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
     this.cacheScanner = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
 
     // Mark that we've started.
@@ -170,19 +157,6 @@ export default class {
 
       this.config.statsDb.incrementDiscovered(this.config.wallet.getAddresses()[0]);
     }
-  }
-
-  public async backupScanBlockchain(): Promise<void> {
-    // TODO only init reqFactory once, so check here with a function before calling again
-    const reqFactory = await this.requestFactory;
-    const { currentBuckets, nextBuckets } = await this.getBuckets();
-    const handleRequest = this.handleRequest.bind(this);
-
-    // TODO: extract this out
-    (await reqFactory.getRequestsByBucket(currentBuckets.blockBucket)).map(handleRequest);
-    (await reqFactory.getRequestsByBucket(currentBuckets.timestampBucket)).map(handleRequest);
-    (await reqFactory.getRequestsByBucket(nextBuckets.blockBucket)).map(handleRequest);
-    (await reqFactory.getRequestsByBucket(nextBuckets.timestampBucket)).map(handleRequest);
   }
 
   public async stopWatcher(bucket: Bucket) {
