@@ -30,7 +30,8 @@ describe('Actions Unit Tests', async () => {
       return {
         from: config.wallet.getAddresses()[0],
         receipt: {
-          status: '0x0'
+          status: '0x0',
+          gasUsed: 22000
         }
       };
     };

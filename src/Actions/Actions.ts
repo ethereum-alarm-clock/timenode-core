@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
+import { isExecuted } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
@@ -19,169 +19,127 @@ export default class Actions {
   }
 
   public async claim(txRequest: any): Promise<ClaimStatus> {
-    // Check if claiming is turned off.
     if (!this.config.claiming) {
       return ClaimStatus.NOT_ENABLED;
     }
-
-    const opts = await this.getClaimingOpts(txRequest);
-
+    //TODO: merge wallet ifs into 1 getWalletStatus or something
+    if (this.config.wallet.hasPendingTransaction(txRequest.address)) {
+      return ClaimStatus.IN_PROGRESS;
+    }
+    if (!(await this.config.wallet.isNextAccountFree())) {
+      return ClaimStatus.WALLET_BUSY;
+    }
     if (await hasPending(this.config, txRequest, { type: 'claim' })) {
       return ClaimStatus.PENDING;
     }
 
-    let claimingError;
-    let from;
-
     try {
-      const walletReceipt = await this.config.wallet.sendFromNext(opts);
+      const opts = await this.getClaimingOpts(txRequest);
+      this.config.logger.info(`Claiming...`, txRequest.address);
 
-      const { receipt, error } = walletReceipt;
+      const { receipt, from, status } = await this.config.wallet.sendFromNext(opts);
+      await this.accountClaimingCost(receipt, txRequest, opts, from);
 
-      from = walletReceipt.from;
-
-      if (!error && isTransactionStatusSuccessful(receipt.status)) {
-        await txRequest.refreshData();
-
-        const gasUsed = new BigNumber(receipt.gasUsed);
-        const gasPrice = new BigNumber(txRequest.data.txData.gasPrice);
-        const cost = gasUsed.mul(gasPrice);
-
-        this.config.cache.get(txRequest.address).claimedBy = from;
-        this.config.statsDb.updateClaimed(from, cost);
-
-        return ClaimStatus.SUCCESS;
-      } else if (error === TxSendErrors.SENDING_IN_PROGRESS) {
-        return ClaimStatus.PENDING;
+      switch (status) {
+        case TxSendErrors.OK:
+          this.config.cache.get(txRequest.address).claimedBy = from;
+          return ClaimStatus.SUCCESS;
+        case TxSendErrors.WALLET_BUSY:
+          return ClaimStatus.WALLET_BUSY;
+        case TxSendErrors.IN_PROGRESS:
+          return ClaimStatus.IN_PROGRESS;
       }
 
-      claimingError = error;
+      this.config.statsDb.addFailedClaim(from, txRequest.address);
     } catch (err) {
-      claimingError = err;
+      this.config.logger.error(err);
     }
-
-    this.config.statsDb.addFailedClaim(from, txRequest.address);
-
-    this.config.logger.error(`[${txRequest.address}] error: ${claimingError}`);
 
     return ClaimStatus.FAILED;
   }
 
   public async execute(txRequest: any): Promise<any> {
-    if (
-      await hasPending(this.config, txRequest, {
-        type: 'execute',
-        minPrice: txRequest.gasPrice
-      })
-    ) {
-      return ExecuteStatus.PENDING;
+    if (this.config.wallet.hasPendingTransaction(txRequest.address)) {
+      return ExecuteStatus.IN_PROGRESS;
+    }
+    if (!(await this.config.wallet.isNextAccountFree())) {
+      return ExecuteStatus.WALLET_BUSY;
     }
 
-    const opts = await this.getExecutionOpts(txRequest);
-    const claimIndex = this.config.wallet.getAddresses().indexOf(txRequest.claimedBy);
-    this.config.logger.debug(`Actions:execute: claiming account index=${claimIndex}`);
+    try {
+      const opts = await this.getExecutionOpts(txRequest);
+      const claimIndex = this.config.wallet.getAddresses().indexOf(txRequest.claimedBy);
+      const wasClaimedByOurNode = claimIndex > -1;
+      let executionResult: IWalletReceipt;
 
-    const receipt =
-      claimIndex !== -1
-        ? await this.config.wallet.sendFromIndex(claimIndex, opts)
-        : await this.config.wallet.sendFromNext(opts);
+      if (wasClaimedByOurNode && txRequest.inReservedWindow()) {
+        this.config.logger.debug(
+          `Claimed by our node ${claimIndex} and inReservedWindow`,
+          txRequest.address
+        );
+        this.config.logger.info(`Executing...`, txRequest.address);
+        executionResult = await this.config.wallet.sendFromIndex(claimIndex, opts);
+      } else if (!(await this.hasPendingExecuteTransaction(txRequest))) {
+        this.config.logger.info(`Executing...`, txRequest.address);
+        executionResult = await this.config.wallet.sendFromNext(opts);
+      } else {
+        return ExecuteStatus.PENDING;
+      }
 
-    return await this.handleTransactionReceipt(txRequest, receipt);
+      const { receipt, from, status } = executionResult;
+
+      switch (status) {
+        case TxSendErrors.OK:
+          await this.handleSuccessfulExecution(txRequest, receipt, opts, from);
+          return ExecuteStatus.SUCCESS;
+        case TxSendErrors.WALLET_BUSY:
+          return ExecuteStatus.WALLET_BUSY;
+        case TxSendErrors.IN_PROGRESS:
+          return ExecuteStatus.IN_PROGRESS;
+      }
+    } catch (err) {
+      this.config.logger.error(err, txRequest.address);
+    }
+
+    return ExecuteStatus.FAILED;
   }
 
   public async cleanup(txRequest: any): Promise<boolean> {
     throw Error('Not implemented according to latest EAC changes.');
-
-    // Check if there is any ether left in a txRequest.
-    const txRequestBalance = await txRequest.getBalance();
-
-    if (txRequestBalance.equals(0)) {
-      return true;
-    }
-
-    if (txRequest.isCancelled) {
-      return true;
-    } else {
-      // Cancel it!
-      const gasEstimate = await this.config.util.estimateGas({
-        to: txRequest.address,
-        data: txRequest.cancelData
-      });
-
-      // Get latest block gas price.
-      const estGasPrice = await this.config.util.networkGasPrice();
-
-      const gasCostToCancel = estGasPrice.times(gasEstimate);
-
-      const opts = {
-        to: txRequest.address,
-        value: 0,
-        gas: gasEstimate + 21000,
-        gasPrice: estGasPrice,
-        data: txRequest.cancelData // TODO make constant
-      };
-
-      // Check to see if any of our accounts is the owner.
-      const ownerIndex = this.config.wallet.getAddresses().indexOf(txRequest.owner);
-      if (ownerIndex !== -1) {
-        const { error } = await this.config.wallet.sendFromIndex(ownerIndex, opts);
-        if (error) {
-          return;
-        }
-      } else {
-        if (gasCostToCancel.greaterThan(txRequestBalance)) {
-          // The txRequest doesn't have high enough balance to compensate.
-          // It's now considered dust.
-          return true;
-        }
-        const { error } = await this.config.wallet.sendFromNext(opts);
-        if (error) {
-          return;
-        }
-      }
-
-      //TODO get tx Obj from hash
-    }
   }
 
-  private async handleTransactionReceipt(
+  private async handleSuccessfulExecution(
     txRequest: any,
-    walletReceipt: IWalletReceipt
-  ): Promise<ExecuteStatus> {
-    const { receipt, from, error } = walletReceipt;
+    receipt: any,
+    opts: any,
+    from: string
+  ): Promise<void> {
+    let bounty = new BigNumber(0);
+    let cost = new BigNumber(0);
 
-    if (error) {
-      this.config.logger.debug(`Actions.execute: ${ExecuteStatus.FAILED}`);
-      return ExecuteStatus.FAILED;
+    if (isExecuted(receipt)) {
+      await txRequest.refreshData();
+
+      const data = receipt.logs[0].data;
+      bounty = this.config.web3.toDecimal(data.slice(0, 66));
+
+      this.config.cache.get(txRequest.address).wasCalled = true;
+    } else {
+      // If not executed, must add the gas cost into cost. Otherwise, TimeNode was
+      // reimbursed for gas.
+      const gasUsed = new BigNumber(receipt.gasUsed);
+      const gasPrice = new BigNumber(opts.gasPrice);
+      cost = gasUsed.mul(gasPrice);
     }
 
-    if (isTransactionStatusSuccessful(receipt.status)) {
-      let bounty = new BigNumber(0);
-      let cost = new BigNumber(0);
+    this.config.statsDb.updateExecuted(from, bounty, cost);
+  }
 
-      if (isExecuted(receipt)) {
-        await txRequest.refreshData();
-
-        const data = receipt.logs[0].data;
-        bounty = this.config.web3.toDecimal(data.slice(0, 66));
-
-        const cached = this.config.cache.get(txRequest.address);
-
-        if (cached) {
-          cached.wasCalled = true;
-        }
-      } else {
-        // If not executed, must add the gas cost into cost. Otherwise, TimeNode was
-        // reimbursed for gas.
-        cost = new BigNumber(receipt.gasUsed).mul(new BigNumber(txRequest.data.txData.gasPrice));
-      }
-
-      this.config.statsDb.updateExecuted(from, bounty, cost);
-
-      return ExecuteStatus.SUCCESS;
-    }
-
-    return ExecuteStatus.FAILED;
+  private async hasPendingExecuteTransaction(txRequest: any): Promise<boolean> {
+    return hasPending(this.config, txRequest, {
+      type: 'execute',
+      minPrice: txRequest.gasPrice
+    });
   }
 
   private async getClaimingOpts(txRequest: any): Promise<any> {
@@ -205,5 +163,16 @@ export default class Actions {
       gasPrice,
       data: txRequest.executeData
     };
+  }
+
+  private async accountClaimingCost(receipt: any, txRequest: any, opts: any, from: string) {
+    if (receipt) {
+      await txRequest.refreshData();
+      const gasUsed = new BigNumber(receipt.gasUsed);
+      const gasPrice = new BigNumber(opts.gasPrice);
+      const cost = gasUsed.mul(gasPrice);
+
+      this.config.statsDb.updateClaimed(from, cost);
+    }
   }
 }
