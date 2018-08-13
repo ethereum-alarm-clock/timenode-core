@@ -20,9 +20,9 @@ export class Pool {
   public get(key: string, field: string): [ITxPoolTxDetails] {
     const foundTxs: any = [];
   
-    this.stored().filter((
-      p: string) => {
-        if (this.pool[p][field] === key) {
+    this.stored().filter(
+      (p: string) => {
+        if ((field === 'transactionHash' && p === key) || this.pool[p][field] === key) {
           foundTxs.push(this.pool[p]);
         }
       });
