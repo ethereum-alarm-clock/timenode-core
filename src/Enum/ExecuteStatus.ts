@@ -1,6 +1,7 @@
 export enum ExecuteStatus {
-  PENDING = 'Another execution is already pending.',
-  FAILED = 'Unable to send the execute action.',
-  SUCCESS = 'Transaction executed successfully.',
-  NO_ACCOUNTS = 'All accounts in use'
+  PENDING = 'Execution: Skipped - Other execution found',
+  WALLET_BUSY = 'Execution: Skipped - Wallet is busy',
+  IN_PROGRESS = 'Execution: Skipped - In progress',
+  FAILED = 'Execution: Unable to send the execute action',
+  SUCCESS = 'Execution: Success'
 }
