@@ -184,6 +184,7 @@ export default class {
         this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
       } catch (err) {
         this.config.logger.error(`Buckets: Starting bucket=${bucket} watching failed!`);
+        this.config.logger.error(err.toString());
       }
     }
 

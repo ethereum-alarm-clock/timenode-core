@@ -1,5 +1,5 @@
-import * as EAC from 'eac.js-lib';
 import Cache from '../Cache';
+import * as EAC from 'eac.js-lib';
 import { Wallet } from '../Wallet';
 import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
@@ -10,6 +10,7 @@ import { ICachedTxDetails } from '../Cache/Cache';
 import { getWeb3FromProviderUrl } from './helpers';
 import BigNumber from 'bignumber.js';
 
+declare const require: any;
 declare const setTimeout: any;
 
 export default class Config implements IConfigParams {
