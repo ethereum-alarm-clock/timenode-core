@@ -30,7 +30,7 @@ export class Wallet {
   public walletStates: Map<string, AccountState> = new Map<string, AccountState>();
   private accounts: V3Wallet[] = [];
 
-  constructor(web3: any, logger?: ILogger = new DefaultLogger()) {
+  constructor(web3: any, logger: ILogger = new DefaultLogger()) {
     this.logger = logger;
     this.web3 = web3;
   }
