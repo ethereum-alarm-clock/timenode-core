@@ -1,6 +1,6 @@
 {
   "name": "@ethereum-alarm-clock/timenode-core",
-  "version": "4.2.9",
+  "version": "4.2.10",
   "description": "Contains key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
@@ -57,7 +57,7 @@
     "@types/chai": "4.1.4",
     "@types/ethereumjs-tx": "1.0.0",
     "@types/lokijs": "1.5.2",
-    "@types/node": "10.5.8",
+    "@types/node": "10.7.0",
     "bluebird": "3.5.1",
     "chai": "4.1.2",
     "coveralls": "3.0.2",
