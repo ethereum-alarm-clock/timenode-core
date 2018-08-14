@@ -8,10 +8,18 @@ import { StatsDB } from '../Stats';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import { getWeb3FromProviderUrl } from './helpers';
+import BigNumber from 'bignumber.js';
 
 declare const setTimeout: any;
 
 export default class Config implements IConfigParams {
+  public static readonly DEFAULT_ECONOMIC_STRATEGY: any = {
+    maxDeposit: 0,
+    minBalance: 0,
+    minProfitability: 0,
+    maxGasSubsidy: 100
+  };
+
   public autostart: boolean;
   public cache: Cache<ICachedTxDetails>;
   public claiming: boolean;
@@ -35,6 +43,9 @@ export default class Config implements IConfigParams {
     } else {
       throw new Error('Please set the providerUrl in the config object.');
     }
+
+    this.economicStrategy =
+      params.economicStrategy || this._economicStrategyToBN(Config.DEFAULT_ECONOMIC_STRATEGY);
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
@@ -78,7 +89,6 @@ export default class Config implements IConfigParams {
     this.statsDb = params.statsDb ? new StatsDB(this.web3, params.statsDb) : null;
 
     this.util = new W3Util(this.web3);
-    this.economicStrategy = params.economicStrategy;
   }
 
   public clientSet(): boolean {
@@ -161,5 +171,14 @@ export default class Config implements IConfigParams {
         this.client = 'none';
         this.logger.error(`Client: ${this.client.toUpperCase()}`);
       });
+  }
+
+  private _economicStrategyToBN(economicStrategy: IEconomicStrategy) {
+    return {
+      maxDeposit: new BigNumber(economicStrategy.maxDeposit),
+      minBalance: new BigNumber(economicStrategy.minBalance),
+      minProfitability: new BigNumber(economicStrategy.minProfitability),
+      maxGasSubsidy: economicStrategy.maxGasSubsidy
+    };
   }
 }
