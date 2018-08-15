@@ -3,4 +3,3 @@ export { mockConfig, PRIVATE_KEY } from './mockConfig';
 export { createWallet, createWalletKeystore } from './createWallet';
 export { providerUrl } from './network';
 export { calcEndowment } from './calcEndowment';
-export { clearStats } from './clearStats';

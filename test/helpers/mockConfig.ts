@@ -22,11 +22,7 @@ const mockConfig = (preConfig?: any) => {
     password,
     providerUrl,
     scanSpread: 0,
-    statsDb: new loki('stats.db', {
-      autoload: true,
-      autosave: true,
-      autosaveInterval: 4000
-    }),
+    statsDb: new loki('stats.db'),
     walletStores: wallet,
     walletStoresAsPrivateKeys: true
   });

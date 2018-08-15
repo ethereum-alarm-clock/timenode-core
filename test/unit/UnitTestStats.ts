@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { expect, assert } from 'chai';
 import { Config } from '../../src/index';
-import { mockConfig, clearStats } from '../helpers';
+import { mockConfig } from '../helpers';
 
 describe('Stats Unit Tests', () => {
   let config: Config;
@@ -12,8 +12,6 @@ describe('Stats Unit Tests', () => {
   let executionCost: BigNumber;
 
   const reset = async () => {
-    clearStats();
-
     config = mockConfig();
     myAccount = config.wallet.getAddresses()[0];
 
