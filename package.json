@@ -24,7 +24,6 @@
     "*.{ts,tsx}": [
       "tslint --fix --force",
       "prettier --write --config ./.prettierrc --config-precedence file-override",
-      "tsc",
       "git add"
     ]
   },

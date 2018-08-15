@@ -132,7 +132,7 @@ export default class Router {
     return TxStatus.ExecutionWindow;
   }
 
-  public async executed(txRequest: any): Promise<TxStatus> {
+  public async executed(): Promise<TxStatus> {
     /**
      * We don't cleanup because cleanup needs refactor according to latest logic in EAC
      * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
@@ -144,7 +144,7 @@ export default class Router {
     return TxStatus.Done;
   }
 
-  public async missed(txRequest: any): Promise<TxStatus> {
+  public async missed(): Promise<TxStatus> {
     // TODO cleanup
     return TxStatus.Done;
   }
