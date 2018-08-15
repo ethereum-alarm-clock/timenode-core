@@ -1,5 +1,4 @@
 import { expect, assert } from 'chai';
-
 import { TimeNode } from '../../src/index';
 import { mockConfig, MockTxRequest } from '../helpers';
 import Actions from '../../src/Actions';
