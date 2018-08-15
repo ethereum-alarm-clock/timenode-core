@@ -104,7 +104,7 @@ export default class Actions {
     return ExecuteStatus.FAILED;
   }
 
-  public async cleanup(txRequest: any): Promise<boolean> {
+  public async cleanup(): Promise<boolean> {
     throw Error('Not implemented according to latest EAC changes.');
   }
 

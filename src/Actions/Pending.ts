@@ -1,4 +1,3 @@
-import Cache from '../Cache';
 import { FnSignatures } from '../Enum';
 
 interface PendingOpts {
@@ -34,7 +33,7 @@ const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts): Promise
             const errMsg =
               (err && err.message) || err || (res.error && res.error.message) || res.error;
             conf.logger.error(errMsg);
-            return;
+            reject(err);
           }
 
           for (const count of Object.keys(res.result)) {
@@ -55,9 +54,9 @@ const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts): Promise
           resolve(false);
         }
       );
-    } catch (e) {
-      conf.logger.error(e.message);
-      return;
+    } catch (err) {
+      conf.logger.error(err.message);
+      reject(err);
     }
   });
 };
@@ -89,7 +88,7 @@ const hasPendingGeth = (conf: any, txRequest: any, opts: PendingOpts): Promise<b
             const errMsg =
               (err && err.message) || err || (res.error && res.error.message) || res.error;
             conf.logger.error(errMsg);
-            return;
+            reject(err);
           }
 
           for (const account of Object.keys(res.result.pending)) {
@@ -116,9 +115,9 @@ const hasPendingGeth = (conf: any, txRequest: any, opts: PendingOpts): Promise<b
           resolve(false);
         }
       );
-    } catch (e) {
-      conf.logger.error(e.message);
-      return;
+    } catch (err) {
+      conf.logger.error(err.message);
+      reject(err);
     }
   });
 };
@@ -141,7 +140,7 @@ const hasValidGasPrice = async (conf: any, transaction: any, minPrice?: any) => 
     conf.web3.eth.getGasPrice((err: Error, res: any) => {
       if (err) {
         conf.logger.error(err);
-        return;
+        reject();
       }
       currentGasPrice = res;
       resolve(true);

@@ -165,7 +165,6 @@ export default class Config implements IConfigParams {
           this.client = 'unknown';
         }
         this.logger.debug(`Client: ${this.client.toUpperCase()}`);
-        return;
       })
       .catch(() => {
         this.client = 'none';

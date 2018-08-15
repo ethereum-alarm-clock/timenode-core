@@ -9,7 +9,6 @@ const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02
 const mockConfig = (preConfig?: any) => {
   const client = preConfig && preConfig.client ? preConfig.client : 'unknown';
 
-  const filename = 'wallet.txt';
   const password = 'password123';
   const wallet = [PRIVATE_KEY]; //createWalletKeystore(web3, 1, filename, password);
 

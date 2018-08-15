@@ -25,7 +25,7 @@ export const getHelperMethods = (web3: any) => {
   }
 
   function waitUntilBlock(seconds: any, targetBlock: any) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const asyncIterator = function _asyncIterator() {
         return web3.eth.getBlock('latest', (e: any, _ref: any) => {
           const num = _ref.number;
