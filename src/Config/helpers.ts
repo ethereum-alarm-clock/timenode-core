@@ -8,7 +8,7 @@ const getWeb3FromProviderUrl = (providerUrl: string) => {
     provider = new Web3.providers.HttpProvider(providerUrl);
   } else if (providerUrl.includes('ws://') || providerUrl.includes('wss://')) {
     provider = new Web3WsProvider(providerUrl);
-    provider.__proto__.sendAsync = provider.__proto__.send;
+    provider.__proto__.sendAsync = provider.__proto__.sendAsync || provider.__proto__.send;
   }
 
   return new Web3(provider);
