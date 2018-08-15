@@ -1,7 +1,6 @@
 import { expect, assert } from 'chai';
-
 import { TimeNode } from '../../src/index';
-import { mockConfig, MockTxRequest } from '../helpers';
+import { mockConfig, MockTxRequest, clearStats } from '../helpers';
 import Actions from '../../src/Actions';
 import { shortenAddress } from '../../src/Actions/Actions';
 import {
@@ -18,6 +17,8 @@ describe('shortenAddress()', () => {
 });
 
 describe('Actions Unit Tests', async () => {
+  beforeEach(() => clearStats());
+
   it('sets claimingFailed to true when claim transaction reverts', async () => {
     const config = mockConfig();
     const timenode = new TimeNode(config);
