@@ -1,5 +1,4 @@
 import BigNumber from 'bignumber.js';
-import * as fs from 'fs';
 import { expect, assert } from 'chai';
 import { Config } from '../../src/index';
 import { mockConfig, clearStats } from '../helpers';
