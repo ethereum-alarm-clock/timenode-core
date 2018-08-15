@@ -13,6 +13,13 @@ export interface ITxPoolTxDetails {
 export class Pool {
   public pool: {} = {};
 
+  public preSet(key: string): boolean {
+    if (this.pool[key]) {
+      return false;
+    }
+    return this.pool[key] = true;
+  }
+
   public set(key: string, value: ITxPoolTxDetails) {
     this.pool[key] = value;
   }

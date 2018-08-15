@@ -42,11 +42,14 @@ export default class TxPool {
                 return this.config.logger.error(err);
             }
 
-            if (!this.pool.has(res, 'transactionHash')) {
+            if (this.pool.preSet(res)){
                 await this.config.web3.eth.getTransaction(res,
                     (txErr: any, tx: any) => {
                         if (txErr) {
                             return this.config.logger.error(txErr);
+                        }
+                        if (tx.blockNumber && tx.blockHash) {
+                            return this.pool.del(res);
                         }
 
                         const poolDetails: ITxPoolTxDetails = {
@@ -57,22 +60,24 @@ export default class TxPool {
                             timestamp: new Date().getTime(),
                             transactionHash: tx.hash,
                         }
-                        this.pool.set(res, poolDetails);
+
+                        if (this.pool.has(res, 'transactionHash')) {
+                            this.pool.set(res, poolDetails);
+                        }
                     });
+
             }
         })
     }
 
     public async watchLatest () {
-        this.subs.latest = await this.config.web3.eth.filter('latest');
+        this.subs.latest = await this.config.web3.eth.filter({fromBlock: 'latest', toBloock: 'pending'});
         this.subs.latest.watch( async (err: any, res: any) => {
             if (err) {
                 return this.config.logger.error(err);
             }
 
-            if (this.pool.has(res, 'transactionHash')) {
-                this.pool.del(res);
-            }
+            this.pool.del(res.transactionHash);
         })
     }
 }
