@@ -104,8 +104,6 @@ const PENDINGS = [
   }
 ];
 
-const randomClient = () => CLIENTS[Math.floor(Math.random() * CLIENTS.length)];
-
 describe('hasPendingParity()', () => {
   it('Detects valid Pending requests (parity)', async () => {
     const gasPrice = 1 * 1e12;
