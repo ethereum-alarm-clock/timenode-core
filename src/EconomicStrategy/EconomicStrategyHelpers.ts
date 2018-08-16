@@ -1,6 +1,7 @@
 import { IEconomicStrategy } from './IEconomicStrategy';
 import Config from '../Config';
 import { BigNumber } from 'bignumber.js';
+import { ITxRequest } from '../Types';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
@@ -25,10 +26,50 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy):
  */
 const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
   const minBalance = config.economicStrategy.minBalance;
-  const currentBalance = await config.wallet.getBalanceOf(config.wallet.getAddresses()[0]);
+
+  // Determine the next batter up to claim.
+  const next = this.config.wallet.nextAccountString;
+  const currentBalance = await config.wallet.getBalanceOf(next);
+
+  // Subtract the maximum gas costs of executing all currently claimed
+  // transactions. This is to ensure that a TimeNode does not fail to execute
+  // because it ran out of funds.
+  const txRequestsClaimed: string[] = config.cache
+    .stored()
+    .filter((address: string) => {
+      const cached = config.cache.get(address);
+
+      return cached && cached.windowStart.greaterThan(0);
+    })
+    .filter(async (address: string) => {
+      const txRequest = await config.eac.transactionRequest(address);
+      await txRequest.refreshData();
+
+      return txRequest.claimedBy === next;
+    });
+
+  this.config.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
+
+  const gasPricesPromise = txRequestsClaimed.map(async (address: string) => {
+    const txRequest = await config.eac.transactionRequest(address);
+    return txRequest.gasPrice;
+  });
+
+  const gasPrices = await Promise.all(gasPricesPromise);
+
+  const costOfExecutingFutureTransactions = gasPrices.reduce(
+    (sum: BigNumber, current: BigNumber) => {
+      const maxGasSubsidy = config.economicStrategy.maxGasSubsidy;
+      if (maxGasSubsidy) {
+        const maxGasPrice = current.plus(current.times(maxGasSubsidy / 100));
+        return sum.add(maxGasPrice);
+      }
+      return sum.add(current);
+    }
+  );
 
   if (minBalance) {
-    return currentBalance.gt(minBalance);
+    return currentBalance.gt(minBalance.add(costOfExecutingFutureTransactions));
   }
   return true;
 };

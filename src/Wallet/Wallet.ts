@@ -35,6 +35,14 @@ export class Wallet {
     this.web3 = web3;
   }
 
+  get nextAccount(): V3Wallet {
+    return this.accounts[this.nonce % this.accounts.length];
+  }
+
+  get nextAccountString(): string {
+    return this.nextAccount.getAddressString();
+  }
+
   public getBalanceOf(address: string): Promise<BigNumber> {
     return fromCallback((callback: any) => this.web3.eth.getBalance(address, callback));
   }
