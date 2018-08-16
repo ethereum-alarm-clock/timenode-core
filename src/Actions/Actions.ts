@@ -6,7 +6,7 @@ import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
 import { getExecutionGasPrice } from '../EconomicStrategy';
 import { TxSendErrors } from '../Enum/TxSendErrors';
-import { ITxRequest } from '../Types';
+import { ITxRequest, Address } from '../Types';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -19,7 +19,7 @@ export default class Actions {
     this.config = config;
   }
 
-  public async claim(txRequest: ITxRequest): Promise<ClaimStatus> {
+  public async claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus> {
     if (!this.config.claiming) {
       return ClaimStatus.NOT_ENABLED;
     }
@@ -27,8 +27,8 @@ export default class Actions {
     if (this.config.wallet.hasPendingTransaction(txRequest.address)) {
       return ClaimStatus.IN_PROGRESS;
     }
-    if (!(await this.config.wallet.isNextAccountFree())) {
-      return ClaimStatus.WALLET_BUSY;
+    if (!this.config.wallet.isAccountAbleToSendTx(nextAccount)) {
+      return ClaimStatus.ACCOUNT_BUSY;
     }
     if (await hasPending(this.config, txRequest, { type: 'claim' })) {
       return ClaimStatus.PENDING;
@@ -38,7 +38,7 @@ export default class Actions {
       const opts = await this.getClaimingOpts(txRequest);
       this.config.logger.info(`Claiming...`, txRequest.address);
 
-      const { receipt, from, status } = await this.config.wallet.sendFromNext(opts);
+      const { receipt, from, status } = await this.config.wallet.sendFromAccount(nextAccount, opts);
       await this.accountClaimingCost(receipt, txRequest, opts, from);
 
       switch (status) {
@@ -46,7 +46,7 @@ export default class Actions {
           this.config.cache.get(txRequest.address).claimedBy = from;
           return ClaimStatus.SUCCESS;
         case TxSendErrors.WALLET_BUSY:
-          return ClaimStatus.WALLET_BUSY;
+          return ClaimStatus.ACCOUNT_BUSY;
         case TxSendErrors.IN_PROGRESS:
           return ClaimStatus.IN_PROGRESS;
       }

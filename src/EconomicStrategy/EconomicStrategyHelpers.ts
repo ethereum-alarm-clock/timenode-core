@@ -1,7 +1,7 @@
 import { IEconomicStrategy } from './IEconomicStrategy';
 import Config from '../Config';
 import { BigNumber } from 'bignumber.js';
-import { ITxRequest } from '../Types';
+import { ITxRequest, Address } from '../Types';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
@@ -24,9 +24,45 @@ const exceedsMaxDeposit = (txRequest: ITxRequest, economicStrategy: IEconomicStr
  * Checks if the balance of the TimeNode is above a set limit.
  * @param {Config} config TimeNode configuration object.
  */
-const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
+const isAboveMinBalanceLimit = async (config: Config, nextAccount: Address): Promise<boolean> => {
   const minBalance = config.economicStrategy.minBalance;
-  const currentBalance = await config.wallet.getBalanceOf(config.wallet.getAddresses()[0]);
+
+  // Determine the next batter up to claim.
+  const currentBalance = await config.wallet.getBalanceOf(nextAccount);
+
+  // Subtract the maximum gas costs of executing all currently claimed
+  // transactions. This is to ensure that a TimeNode does not fail to execute
+  // because it ran out of funds.
+  const txRequestsClaimed: string[] = config.cache.getTxRequestsClaimedBy(nextAccount, config);
+
+  config.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
+
+  const gasPricesPromise = txRequestsClaimed.map(async (address: string) => {
+    const txRequest = await config.eac.transactionRequest(address);
+    await txRequest.refreshData();
+
+    return txRequest.gasPrice;
+  });
+
+  const gasPrices: BigNumber[] = await Promise.all(gasPricesPromise);
+
+  if (gasPrices.length) {
+    const maxGasSubsidy = config.economicStrategy.maxGasSubsidy;
+
+    const costOfExecutingFutureTransactions = gasPrices.reduce(
+      (sum: BigNumber, current: BigNumber) => {
+        if (maxGasSubsidy) {
+          const maxGasPrice = current.plus(current.times(maxGasSubsidy / 100));
+          return sum.add(maxGasPrice);
+        }
+        return sum.add(current);
+      }
+    );
+
+    if (minBalance) {
+      return currentBalance.gt(minBalance.add(costOfExecutingFutureTransactions));
+    }
+  }
 
   if (minBalance) {
     return currentBalance.gt(minBalance);
@@ -61,7 +97,11 @@ const isProfitable = async (
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {Config} config Configuration object.
  */
-const shouldClaimTx = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
+const shouldClaimTx = async (
+  txRequest: ITxRequest,
+  config: Config,
+  nextAccount: Address
+): Promise<boolean> => {
   if (!config.economicStrategy) {
     return true;
   }
@@ -71,7 +111,7 @@ const shouldClaimTx = async (txRequest: ITxRequest, config: Config): Promise<boo
     return false;
   }
 
-  const enoughBalance = await isAboveMinBalanceLimit(config);
+  const enoughBalance = await isAboveMinBalanceLimit(config, nextAccount);
   if (!enoughBalance) {
     return false;
   }

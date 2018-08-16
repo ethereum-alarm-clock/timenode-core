@@ -1,6 +1,5 @@
 import { BigNumber } from 'bignumber.js';
 
-// TODO this is only temporary
 export interface ITxRequest extends ITxRequestPending {
   claimedBy: string;
   requiredDeposit: BigNumber;
