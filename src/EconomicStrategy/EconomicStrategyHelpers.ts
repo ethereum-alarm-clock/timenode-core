@@ -75,6 +75,10 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
       return currentBalance.gt(minBalance.add(costOfExecutingFutureTransactions));
     }
   }
+
+  if (minBalance) {
+    return currentBalance.gt(minBalance);
+  }
   return true;
 };
 
