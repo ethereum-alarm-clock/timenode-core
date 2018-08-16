@@ -1,6 +1,7 @@
 import { IEconomicStrategy } from './IEconomicStrategy';
 import Config from '../Config';
 import { BigNumber } from 'bignumber.js';
+import { ITxRequest } from '../Types';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
@@ -8,7 +9,7 @@ import { BigNumber } from 'bignumber.js';
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
-const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy): boolean => {
+const exceedsMaxDeposit = (txRequest: ITxRequest, economicStrategy: IEconomicStrategy): boolean => {
   const requiredDeposit = txRequest.requiredDeposit;
   const maxDeposit = economicStrategy.maxDeposit;
 
@@ -40,7 +41,7 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
  * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
  */
 const isProfitable = async (
-  txRequest: any,
+  txRequest: ITxRequest,
   economicStrategy: IEconomicStrategy
 ): Promise<boolean> => {
   const paymentModifier = await txRequest.claimPaymentModifier();
@@ -60,7 +61,7 @@ const isProfitable = async (
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {Config} config Configuration object.
  */
-const shouldClaimTx = async (txRequest: any, config: Config): Promise<boolean> => {
+const shouldClaimTx = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
   if (!config.economicStrategy) {
     return true;
   }
@@ -86,7 +87,7 @@ const shouldClaimTx = async (txRequest: any, config: Config): Promise<boolean> =
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {Config} config Configuration object.
  */
-const getExecutionGasPrice = async (txRequest: any, config: Config): Promise<BigNumber> => {
+const getExecutionGasPrice = async (txRequest: ITxRequest, config: Config): Promise<BigNumber> => {
   const currentNetworkPrice = await config.util.networkGasPrice();
 
   if (!config.economicStrategy) {
@@ -120,7 +121,7 @@ const getExecutionGasPrice = async (txRequest: any, config: Config): Promise<Big
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {Config} config Configuration object.
  */
-const shouldExecuteTx = async (txRequest: any, config: Config): Promise<boolean> => {
+const shouldExecuteTx = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
   const isClaimedByMe = config.wallet.getAddresses().indexOf(txRequest.claimedBy) !== -1;
 
   const gasPrice = await this.getExecutionGasPrice(txRequest, config);

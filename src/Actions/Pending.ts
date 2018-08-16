@@ -1,10 +1,12 @@
 import Cache from '../Cache';
 import { FnSignatures } from '../Enum';
+import { ITxRequest } from '../Types';
+import BigNumber from 'bignumber.js';
 
 interface PendingOpts {
   type?: string;
   checkGasPrice?: boolean;
-  minPrice?: number;
+  minPrice?: BigNumber;
 }
 
 /**
@@ -16,7 +18,11 @@ interface PendingOpts {
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
+const hasPendingParity = (
+  conf: any,
+  txRequest: ITxRequest,
+  opts: PendingOpts
+): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
@@ -71,7 +77,7 @@ const hasPendingParity = (conf: any, txRequest: any, opts: PendingOpts): Promise
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingGeth = (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
+const hasPendingGeth = (conf: any, txRequest: ITxRequest, opts: PendingOpts): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
@@ -173,7 +179,11 @@ const isOfType = (transaction: any, type?: string) => {
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
  * @param {number} minPrice (optional) Expected gasPrice to compare.
  */
-const hasPending = async (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
+const hasPending = async (
+  conf: any,
+  txRequest: ITxRequest,
+  opts: PendingOpts
+): Promise<boolean> => {
   let result = false;
 
   if (conf.client === 'parity') {

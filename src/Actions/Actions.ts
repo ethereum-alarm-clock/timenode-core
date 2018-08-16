@@ -6,6 +6,7 @@ import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
 import { getExecutionGasPrice } from '../EconomicStrategy';
 import { TxSendErrors } from '../Enum/TxSendErrors';
+import { ITxRequest } from '../Types';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -18,7 +19,7 @@ export default class Actions {
     this.config = config;
   }
 
-  public async claim(txRequest: any): Promise<ClaimStatus> {
+  public async claim(txRequest: ITxRequest): Promise<ClaimStatus> {
     if (!this.config.claiming) {
       return ClaimStatus.NOT_ENABLED;
     }
@@ -58,7 +59,7 @@ export default class Actions {
     return ClaimStatus.FAILED;
   }
 
-  public async execute(txRequest: any): Promise<any> {
+  public async execute(txRequest: ITxRequest): Promise<any> {
     if (this.config.wallet.hasPendingTransaction(txRequest.address)) {
       return ExecuteStatus.IN_PROGRESS;
     }
@@ -104,12 +105,12 @@ export default class Actions {
     return ExecuteStatus.FAILED;
   }
 
-  public async cleanup(txRequest: any): Promise<boolean> {
+  public async cleanup(): Promise<boolean> {
     throw Error('Not implemented according to latest EAC changes.');
   }
 
   private async handleSuccessfulExecution(
-    txRequest: any,
+    txRequest: ITxRequest,
     receipt: any,
     opts: any,
     from: string
@@ -135,14 +136,14 @@ export default class Actions {
     this.config.statsDb.updateExecuted(from, bounty, cost);
   }
 
-  private async hasPendingExecuteTransaction(txRequest: any): Promise<boolean> {
+  private async hasPendingExecuteTransaction(txRequest: ITxRequest): Promise<boolean> {
     return hasPending(this.config, txRequest, {
       type: 'execute',
       minPrice: txRequest.gasPrice
     });
   }
 
-  private async getClaimingOpts(txRequest: any): Promise<any> {
+  private async getClaimingOpts(txRequest: ITxRequest): Promise<any> {
     return {
       to: txRequest.address,
       value: txRequest.requiredDeposit,
@@ -152,7 +153,7 @@ export default class Actions {
     };
   }
 
-  private async getExecutionOpts(txRequest: any): Promise<any> {
+  private async getExecutionOpts(txRequest: ITxRequest): Promise<any> {
     const gas = this.config.util.calculateGasAmount(txRequest);
     const gasPrice = await getExecutionGasPrice(txRequest, this.config);
 
@@ -165,7 +166,7 @@ export default class Actions {
     };
   }
 
-  private async accountClaimingCost(receipt: any, txRequest: any, opts: any, from: string) {
+  private async accountClaimingCost(receipt: any, txRequest: ITxRequest, opts: any, from: string) {
     if (receipt) {
       await txRequest.refreshData();
       const gasUsed = new BigNumber(receipt.gasUsed);

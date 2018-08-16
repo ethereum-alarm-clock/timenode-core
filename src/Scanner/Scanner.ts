@@ -102,7 +102,7 @@ export default class {
    * and should be stored in a TimeNodes cache.
    * @param txRequest Transaction Request Object
    */
-  public async isUpcoming(txRequest: any): Promise<boolean> {
+  public async isUpcoming(txRequest: ITxRequest): Promise<boolean> {
     return (
       (await txRequest.beforeClaimWindow()) ||
       (await txRequest.inClaimWindow()) ||
