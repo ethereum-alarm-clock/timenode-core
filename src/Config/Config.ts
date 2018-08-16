@@ -174,7 +174,7 @@ export default class Config implements IConfigParams {
         return client;
       })
       .catch(() => {
-        let client: any = 'none';
+        const client: any = 'none';
         this.logger.error(`Client: ${client.toUpperCase()}`);
         return client;
       });
