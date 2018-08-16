@@ -42,6 +42,12 @@ describe('Config unit tests', () => {
       );
     });
 
+    it('Detects absence of web3', async () => {
+      const config = new Config({ providerUrl, disableDetection: true });
+      config.web3 = undefined;
+      expect(config.getConnectedClient()).to.throw;
+    })
+
     it('Detect if config client is set', async () => {
       const config = new Config({ providerUrl, disableDetection: true });
       expect(config.clientSet(await this.client)).to.be.false;

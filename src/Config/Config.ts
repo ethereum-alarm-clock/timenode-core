@@ -109,9 +109,11 @@ export default class Config implements IConfigParams {
   }
 
   public async getConnectedClient(): Promise<string> {
-    return new Promise(async (resolve, reject): Promise<any>  => {
+    return new Promise(async (resolve): Promise<any>  => {
       if (!this.web3) {
-        reject(new Error('No Web3 set'));
+        const client: any = 'none';
+        this.logger.error(`Client: No web3!!!`);
+        return resolve(client);
       }
       try {
         const method = 'txpool_content';
@@ -135,9 +137,6 @@ export default class Config implements IConfigParams {
       }
     })
       .then(async (client?: string): Promise<any> => {
-        if (this.clientSet()) {
-          return Promise.resolve(this.client);
-        }
         if (client) {
           return Promise.resolve(client);
         }
@@ -165,19 +164,10 @@ export default class Config implements IConfigParams {
         });
       })
       .then(async (client?: any) => {
-        if (this.clientSet()) {
-          client = await this.client;
-        } else {
-          client = client || 'unknown';
-        }
+        client = client || 'unknown';
         this.logger.debug(`Client: ${client.toUpperCase()}`);
         return client;
       })
-      .catch(() => {
-        const client: any = 'none';
-        this.logger.error(`Client: ${client.toUpperCase()}`);
-        return client;
-      });
   }
 
   private _economicStrategyToBN(economicStrategy: IEconomicStrategy) {
