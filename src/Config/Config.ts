@@ -23,7 +23,7 @@ export default class Config implements IConfigParams {
   public autostart: boolean;
   public cache: Cache<ICachedTxDetails>;
   public claiming: boolean;
-  public client?: string;
+  public client?: Promise<string>;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
   public logger?: ILogger;
@@ -55,7 +55,11 @@ export default class Config implements IConfigParams {
     this.logger = params.logger || new DefaultLogger();
 
     if (!params.disableDetection) {
-      this.getConnectedClient();
+      try{
+        this.client = this.getConnectedClient();
+      } catch (e) {
+        this.logger.error(e.message);
+      }
     }
 
     this.cache = new Cache(this.logger);
@@ -91,26 +95,23 @@ export default class Config implements IConfigParams {
     this.util = new W3Util(this.web3);
   }
 
-  public clientSet(): boolean {
-    return typeof this.client === 'string';
+  public clientSet(client?: any): boolean {
+    client = client || this.client;
+    return typeof client === 'string';
   }
 
   public async awaitClientSet(): Promise<any> {
-    if (this.clientSet()) {
+    if (this.clientSet(await this.client)) {
       return true;
     } else {
-      return new Promise(resolve => {
-        setTimeout(() => {
-          resolve(this.awaitClientSet());
-        }, 100);
-      });
+      return false;
     }
   }
 
-  public async getConnectedClient(): Promise<any> {
-    return new Promise(async (resolve, reject) => {
+  public async getConnectedClient(): Promise<string> {
+    return new Promise(async (resolve, reject): Promise<any>  => {
       if (!this.web3) {
-        reject();
+        reject(new Error('No Web3 set'));
       }
       try {
         const method = 'txpool_content';
@@ -121,9 +122,9 @@ export default class Config implements IConfigParams {
             params: [],
             id: 0x07a
           },
-          async (err: Error, res: any) => {
+          async (err: Error, res: any): Promise<any> => {
             if (!err && !res.error && !this.clientSet()) {
-              this.client = 'geth';
+              resolve('geth');
             }
             resolve();
           }
@@ -133,11 +134,14 @@ export default class Config implements IConfigParams {
         resolve();
       }
     })
-      .then(async () => {
+      .then(async (client?: string): Promise<any> => {
         if (this.clientSet()) {
-          return;
+          return Promise.resolve(this.client);
         }
-        return new Promise(async (resolve, reject) => {
+        if (client) {
+          return Promise.resolve(client);
+        }
+        return new Promise(async (resolve, reject): Promise<any> => {
           try {
             const method = 'parity_pendingTransactions';
             await this.web3.currentProvider.sendAsync(
@@ -149,7 +153,7 @@ export default class Config implements IConfigParams {
               },
               async (err: Error, res: any) => {
                 if (!err && !res.error && !this.clientSet()) {
-                  this.client = 'parity';
+                  resolve('parity');
                 }
                 resolve();
               }
@@ -160,16 +164,19 @@ export default class Config implements IConfigParams {
           }
         });
       })
-      .then(() => {
-        if (!this.clientSet()) {
-          this.client = 'unknown';
+      .then(async (client?: any) => {
+        if (this.clientSet()) {
+          client = await this.client;
+        } else {
+          client = client || 'unknown';
         }
-        this.logger.debug(`Client: ${this.client.toUpperCase()}`);
-        return;
+        this.logger.debug(`Client: ${client.toUpperCase()}`);
+        return client;
       })
       .catch(() => {
-        this.client = 'none';
-        this.logger.error(`Client: ${this.client.toUpperCase()}`);
+        let client: any = 'none';
+        this.logger.error(`Client: ${client.toUpperCase()}`);
+        return client;
       });
   }
 

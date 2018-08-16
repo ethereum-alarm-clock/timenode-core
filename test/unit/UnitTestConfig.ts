@@ -21,9 +21,9 @@ describe('Config unit tests', () => {
       assert.equal(config.ms, 4000);
       assert.equal(config.scanSpread, 50);
       assert.isFalse(config.walletStoresAsPrivateKeys);
-      assert.isUndefined(config.client);
       expect(config.logger).to.exist;
       assert.isNull(config.wallet);
+      assert.isFalse(config.clientSet());
       assert.equal(
         config.economicStrategy.maxDeposit.toNumber(),
         Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit
@@ -42,16 +42,16 @@ describe('Config unit tests', () => {
       );
     });
 
-    it('Detect if config client is set', () => {
-      const config = new Config({ providerUrl });
-      expect(config.clientSet()).to.be.false;
+    it('Detect if config client is set', async () => {
+      const config = new Config({ providerUrl, disableDetection: true });
+      expect(config.clientSet(await this.client)).to.be.false;
     });
 
     it('Detect when config client is set', async () => {
       const config = new Config({ providerUrl });
       expect(config.clientSet()).to.be.false;
       await config.awaitClientSet();
-      expect(config.clientSet()).to.be.true;
+      expect(config.clientSet(await config.client)).to.be.true;
     });
 
     it('Detects correct config client is set', async () => {
@@ -83,9 +83,9 @@ describe('Config unit tests', () => {
         clients.map(async (client: string) => {
           const config = new Config({ providerUrl, disableDetection: true });
           config.web3 = Web3(client);
-          config.getConnectedClient();
+          config.client = config.getConnectedClient();
           await config.awaitClientSet();
-          found.push(config.client);
+          found.push(await config.client);
         })
       );
 
@@ -108,7 +108,6 @@ describe('Config unit tests', () => {
         ms: 10000,
         scanSpread: 100,
         walletStoresAsPrivateKeys: true,
-        client: 'parity',
         logger: new DefaultLogger(),
         walletStores: [PRIVATE_KEY]
       });

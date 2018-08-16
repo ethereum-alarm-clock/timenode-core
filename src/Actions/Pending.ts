@@ -176,9 +176,9 @@ const isOfType = (transaction: any, type?: string) => {
 const hasPending = async (conf: any, txRequest: any, opts: PendingOpts): Promise<boolean> => {
   let result = false;
 
-  if (conf.client === 'parity') {
+  if (await conf.client === 'parity') {
     result = await hasPendingParity(conf, txRequest, opts);
-  } else if (conf.client === 'geth') {
+  } else if (await conf.client === 'geth') {
     result = await hasPendingGeth(conf, txRequest, opts);
   }
 
