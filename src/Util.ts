@@ -95,4 +95,16 @@ export default class W3Util {
       );
     });
   }
+
+  public getTransaction(txHash: string): Promise<{}> {
+    return new Promise<{}> ((resolve, reject) => {
+      this.web3.eth.getTransaction(txHash, (err: any, tx: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(tx);
+        }
+      })
+    })
+  }
 }

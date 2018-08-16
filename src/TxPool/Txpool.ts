@@ -1,5 +1,7 @@
 import Config from '../Config';
 import { Pool, ITxPoolTxDetails } from './Pool';
+import W3Util from '../Util';
+
 const SCAN_INTERVAL = 5000;
 
 export default class TxPool {
@@ -7,10 +9,12 @@ export default class TxPool {
     public logger: any;
     public pool: any = [];
     public subs: any = {};
+    public util: W3Util;
   
     constructor(config: Config) {
       this.config = config;
       this.pool = new Pool();
+      this.util = config.util;
     }
 
     public running () {
@@ -48,29 +52,27 @@ export default class TxPool {
             }
 
             if (this.pool.preSet(res)){
-                await this.config.web3.eth.getTransaction(res,
-                    (txErr: any, tx: any) => {
-                        if (txErr) {
-                            return this.config.logger.error(txErr);
-                        }
-                        if (!tx || tx.blockNumber || tx.blockHash) {
-                            return this.pool.del(res);
-                        }
+                try {
+                    const tx:any = await this.util.getTransaction(res);
+                    if (!tx || tx.blockNumber || tx.blockHash) {
+                        return this.pool.del(res);
+                    }
 
-                        const poolDetails: ITxPoolTxDetails = {
-                            from: tx.from,
-                            to: tx.to,
-                            input: tx.input,
-                            gasPrice: tx.gasPrice,
-                            timestamp: new Date().getTime(),
-                            transactionHash: tx.hash,
-                        }
+                    const poolDetails: ITxPoolTxDetails = {
+                        from: tx.from,
+                        to: tx.to,
+                        input: tx.input,
+                        gasPrice: tx.gasPrice,
+                        timestamp: new Date().getTime(),
+                        transactionHash: tx.hash,
+                    }
 
-                        if (this.pool.has(res, 'transactionHash')) {
-                            this.pool.set(res, poolDetails);
-                        }
-                    });
-
+                    if (this.pool.has(res, 'transactionHash')) {
+                        this.pool.set(res, poolDetails);
+                    }
+                } catch (e) {
+                    return this.config.logger.error(e);
+                }
             }
         })
     }
@@ -92,16 +94,14 @@ export default class TxPool {
                 this.pool.stored()
                 .filter( (hash: string) => this.pool.get(hash, 'transactionHash').length > 0 )
                 .forEach( async (hash: string) => {
-                    await this.config.web3.eth.getTransaction(hash,
-                        (err: any, tx: any) => {
-                            if (err) {
-                                return this.config.logger.error(err);
-                            }
-                            if (!tx || tx.blockNumber || tx.blockHash) {
-                                return this.pool.del(hash);
-                            }
-                        })
-
+                    try {
+                        const tx: any = await this.util.getTransaction(hash);
+                        if (!tx || tx.blockNumber || tx.blockHash) {
+                            return this.pool.del(hash);
+                        }
+                    } catch (e) {
+                        return this.config.logger.error(e);
+                    }
                 })
             }, SCAN_INTERVAL
         )
