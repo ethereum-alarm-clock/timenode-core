@@ -28,7 +28,7 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
   const minBalance = config.economicStrategy.minBalance;
 
   // Determine the next batter up to claim.
-  const next = this.config.wallet.nextAccountString;
+  const next = config.wallet.nextAccountString;
   const currentBalance = await config.wallet.getBalanceOf(next);
 
   // Subtract the maximum gas costs of executing all currently claimed
@@ -48,7 +48,7 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
       return txRequest.claimedBy === next;
     });
 
-  this.config.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
+  config.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
 
   const gasPricesPromise = txRequestsClaimed.map(async (address: string) => {
     const txRequest = await config.eac.transactionRequest(address);
