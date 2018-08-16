@@ -42,7 +42,8 @@ describe('Actions Unit Tests', async () => {
     assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
     assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 0);
 
-    const claimingResult = await actions.claim(tx);
+    const nextAccount = config.wallet.nextAccount.getAddressString();
+    const claimingResult = await actions.claim(tx, nextAccount);
 
     assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
     assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 1);

@@ -8,6 +8,8 @@ import { IBlock, IntervalId, ITxRequest } from '../Types';
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
+import { BigNumber } from 'bignumber.js';
+import { ITxRequestRaw } from '../Types/ITxRequest';
 import TxPool from '../TxPool';
 
 export default class {
@@ -108,7 +110,7 @@ export default class {
    * and should be stored in a TimeNodes cache.
    * @param txRequest Transaction Request Object
    */
-  public async isUpcoming(txRequest: any): Promise<boolean> {
+  public async isUpcoming(txRequest: ITxRequest): Promise<boolean> {
     return (
       (await txRequest.beforeClaimWindow()) ||
       (await txRequest.inClaimWindow()) ||
@@ -146,7 +148,7 @@ export default class {
     };
   }
 
-  public handleRequest(request: any): void {
+  public handleRequest(request: ITxRequestRaw): void {
     if (!this.isValid(request.address)) {
       throw new Error(`[${request.address}] NOT VALID`);
     }
@@ -263,11 +265,11 @@ export default class {
     return CacheStates.REFRESHED; //0 = cache loaded successfully
   }
 
-  public store(request: any) {
-    this.config.cache.set(request.address, {
+  public store(txRequest: ITxRequestRaw) {
+    this.config.cache.set(txRequest.address, {
       claimedBy: null,
       wasCalled: false,
-      windowStart: request.params[7]
+      windowStart: txRequest.params[7]
     });
   }
 }
