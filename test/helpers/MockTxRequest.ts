@@ -2,8 +2,9 @@ import BigNumber from 'bignumber.js';
 import * as moment from 'moment';
 import * as Bb from 'bluebird';
 import { TxStatus, FnSignatures } from '../../src/Enum';
+import { ITxRequest } from '../../src/Types';
 
-const MockTxRequest = async (web3: any, isBlock?: boolean) => {
+const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> => {
   const from = '0x74f8e3501b00bd219e864650f5625cd4f9272a75';
   const claimedBy = '0x0000000000000000000000000000000000000000';
   const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
@@ -27,7 +28,6 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
   )) as number;
 
   return {
-    isBlock,
     address: '0x24f8e3501b00bd219e864650f5625cd4f9272a25',
     bounty: new BigNumber(web3.toWei(0.1, 'ether')),
     callGas: new BigNumber(Math.pow(10, 6)),
@@ -37,24 +37,12 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
     isClaimed: false,
     requiredDeposit,
     temporalUnit: isBlock ? 1 : 2,
-    currentBlockNumber: new BigNumber(currentBlockNumber),
     claimWindowStart: new BigNumber(isBlock ? blocksLater(100) : hoursLater(1)),
     windowStart: new BigNumber(isBlock ? blocksLater(300) : daysLater(1)),
     windowSize: oneHourWindowSize,
     freezePeriod: oneHourWindowSize, // ~1h
     reservedWindowSize: oneHourWindowSize,
-    receipt: {},
     wasCalled: false,
-    params: [
-      nonce,
-      from,
-      from,
-      new BigNumber(Math.pow(10, 6)),
-      new BigNumber(web3.toWei(21, 'gwei')),
-      new BigNumber(web3.toWei(0.01, 'ether')),
-      new BigNumber(web3.toWei(0.1, 'ether')),
-      'data'
-    ],
     get claimWindowEnd() {
       return this.windowStart.minus(this.freezePeriod);
     },
@@ -67,51 +55,54 @@ const MockTxRequest = async (web3: any, isBlock?: boolean) => {
     get executionWindowEnd() {
       return this.windowStart.plus(this.windowSize);
     },
-    claimPaymentModifier() {
+    async claimPaymentModifier(): Promise<BigNumber> {
       return new BigNumber(100);
     },
     isClaimedBy(address: string) {
       return this.claimedBy === address;
     },
-    beforeClaimWindow() {
-      return this.claimWindowStart.greaterThan(this.now());
+    async beforeClaimWindow(): Promise<boolean> {
+      return this.claimWindowStart.greaterThan(await this.now());
     },
-    inClaimWindow() {
-      const now = this.now();
+    async inClaimWindow() {
+      const now = await this.now();
       return this.claimWindowStart.lessThanOrEqualTo(now) && this.claimWindowEnd.greaterThan(now);
     },
-    inFreezePeriod() {
-      const now = this.now();
+    async inFreezePeriod() {
+      const now = await this.now();
       return this.claimWindowEnd.lessThanOrEqualTo(now) && this.freezePeriodEnd.greaterThan(now);
     },
-    inExecutionWindow() {
-      const now = this.now();
+    async inExecutionWindow() {
+      const now = await this.now();
       return (
         this.windowStart.lessThanOrEqualTo(now) && this.executionWindowEnd.greaterThanOrEqualTo(now)
       );
     },
-    inReservedWindow() {
-      const now = this.now();
+    async inReservedWindow() {
+      const now = await this.now();
       return this.windowStart.lessThanOrEqualTo(now) && this.reservedWindowEnd.greaterThan(now);
     },
-    now() {
-      return new BigNumber(isBlock ? this.currentBlockNumber : moment().unix());
+    async now(): Promise<BigNumber> {
+      return new BigNumber(isBlock ? new BigNumber(currentBlockNumber) : moment().unix());
     },
-    refreshData() {}
+    async refreshData(): Promise<any> {},
+    executeData: '',
+    isCancelled: false
   };
 };
 
-const mockTxStatus = (tx: any, status: TxStatus) => {
+const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxRequest> => {
   if (status === TxStatus.BeforeClaimWindow) {
     return tx;
   }
 
   if (status === TxStatus.ClaimWindow) {
-    const claimWindowStart = tx.isBlock
-      ? 0
-      : moment()
-          .subtract(1, 'hour')
-          .unix();
+    const claimWindowStart =
+      tx.temporalUnit == 1
+        ? 0
+        : moment()
+            .subtract(1, 'hour')
+            .unix();
     tx.claimWindowStart = new BigNumber(claimWindowStart);
   }
 
@@ -121,35 +112,37 @@ const mockTxStatus = (tx: any, status: TxStatus) => {
 
   if (status === TxStatus.ExecutionWindow) {
     tx.isClaimed = true;
-    tx.windowStart = tx.now();
+    tx.windowStart = await tx.now();
   }
 
   if (status === TxStatus.Executed) {
-    const windowStarts = tx.isBlock
-      ? 0
-      : moment()
-          .subtract(1, 'week')
-          .unix();
+    const windowStarts =
+      tx.temporalUnit == 1
+        ? 0
+        : moment()
+            .subtract(1, 'week')
+            .unix();
 
     tx.isClaimed = true;
     tx.wasCalled = true;
     tx.claimWindowStart = new BigNumber(windowStarts);
     tx.windowStart = new BigNumber(windowStarts);
-    if (tx.isBlock) {
+    if (tx.temporalUnit == 1) {
       tx.windowSize = new BigNumber(windowStarts);
     }
   }
 
   if (status === TxStatus.Missed) {
-    const windowStarts = tx.isBlock
-      ? 0
-      : moment()
-          .subtract(1, 'week')
-          .unix();
+    const windowStarts =
+      tx.temporalUnit == 1
+        ? 0
+        : moment()
+            .subtract(1, 'week')
+            .unix();
 
     tx.claimWindowStart = new BigNumber(windowStarts);
     tx.windowStart = new BigNumber(windowStarts);
-    if (tx.isBlock) {
+    if (tx.temporalUnit == 1) {
       tx.windowSize = new BigNumber(windowStarts);
     }
   }

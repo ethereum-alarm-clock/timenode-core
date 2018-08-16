@@ -9,14 +9,15 @@ import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { TxStatus, CacheStates } from '../../src/Enum';
 import { BucketSize } from '../../src/Buckets';
+import { ITxRequest } from '../../src/Types';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
 
 describe('Scanner Unit Tests', () => {
   let config: Config;
-  let txTimestamp: any;
-  let txBlock: any;
+  let txTimestamp: ITxRequest;
+  let txBlock: ITxRequest;
 
   let router: Router;
   let actions: Actions;
@@ -77,54 +78,54 @@ describe('Scanner Unit Tests', () => {
   describe('isUpcoming()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns true when tx is before claim window', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.BeforeClaimWindow);
+        const tx = await mockTxStatus(txTimestamp, TxStatus.BeforeClaimWindow);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in claim window', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
+        const tx = await mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in freeze period', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.FreezePeriod);
+        const tx = await mockTxStatus(txTimestamp, TxStatus.FreezePeriod);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in execution window', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.ExecutionWindow);
+        const tx = await mockTxStatus(txTimestamp, TxStatus.ExecutionWindow);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns false when tx is past execution window', async () => {
-        const tx = mockTxStatus(txTimestamp, TxStatus.Executed);
+        const tx = await mockTxStatus(txTimestamp, TxStatus.Executed);
         assert.isFalse(await scanner.isUpcoming(tx));
       });
     });
 
     describe(BLOCK_TX, () => {
       it('returns true when tx is before claim window', async () => {
-        const tx = mockTxStatus(txBlock, TxStatus.BeforeClaimWindow);
+        const tx = await mockTxStatus(txBlock, TxStatus.BeforeClaimWindow);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in claim window', async () => {
-        const tx = mockTxStatus(txBlock, TxStatus.ClaimWindow);
+        const tx = await mockTxStatus(txBlock, TxStatus.ClaimWindow);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in freeze period', async () => {
-        const tx = mockTxStatus(txBlock, TxStatus.FreezePeriod);
+        const tx = await mockTxStatus(txBlock, TxStatus.FreezePeriod);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns true when tx is in execution window', async () => {
-        const tx = mockTxStatus(txBlock, TxStatus.ExecutionWindow);
+        const tx = await mockTxStatus(txBlock, TxStatus.ExecutionWindow);
         assert.isTrue(await scanner.isUpcoming(tx));
       });
 
       it('returns false when tx is past execution window', async () => {
-        const tx = mockTxStatus(txBlock, TxStatus.Executed);
+        const tx = await mockTxStatus(txBlock, TxStatus.Executed);
         assert.isFalse(await scanner.isUpcoming(tx));
       });
     });
@@ -133,8 +134,8 @@ describe('Scanner Unit Tests', () => {
   describe('getCurrentBuckets()', () => {
     it('returns the current buckets', async () => {
       const block = {
-        number: txBlock.now().toNumber(),
-        timestamp: txTimestamp.now().toNumber()
+        number: (await txBlock.now()).toNumber(),
+        timestamp: (await txTimestamp.now()).toNumber()
       };
 
       const { blockBucket, timestampBucket } = await scanner.getCurrentBuckets(block);
@@ -147,8 +148,8 @@ describe('Scanner Unit Tests', () => {
   describe('getNextBuckets()', async () => {
     it('returns next buckets', async () => {
       const block = {
-        number: txBlock.now().toNumber(),
-        timestamp: txTimestamp.now().toNumber()
+        number: (await txBlock.now()).toNumber(),
+        timestamp: (await txTimestamp.now()).toNumber()
       };
 
       const { blockBucket, timestampBucket } = await scanner.getNextBuckets(block);
@@ -180,24 +181,25 @@ describe('Scanner Unit Tests', () => {
 
   describe('handleRequest()', () => {
     it('stores request into cache if discovered', () => {
-      scanner.handleRequest(txTimestamp);
+      const params = [].fill(new BigNumber(10), 0, 12);
+      const address = txTimestamp.address;
+
+      scanner.handleRequest({ address, params });
       expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
-      assert.equal(
-        scanner.config.cache.get(txTimestamp.address).windowStart,
-        txTimestamp.params[7]
-      );
+      assert.equal(scanner.config.cache.get(txTimestamp.address).windowStart, params[7]);
     });
 
     it('rejects request if invalid address', () => {
       const address = txTimestamp.address.substring(0, 3);
-      txTimestamp.address = address;
-      expect(() => scanner.handleRequest(txTimestamp)).to.throw();
+      const params = [].fill(new BigNumber(10), 0, 12);
+
+      expect(() => scanner.handleRequest({ address, params })).to.throw();
     });
   });
 
   describe('stopWatcher()', () => {
     it('clears the watcher', async () => {
-      const block = txBlock.now().toNumber();
+      const block = (await txBlock.now()).toNumber();
       await scanner.stopWatcher(block);
       expect(scanner.eventWatchers[block]).to.not.exist;
     });
@@ -205,7 +207,7 @@ describe('Scanner Unit Tests', () => {
 
   describe('stopWatcher()', () => {
     it('clears the watcher', async () => {
-      const bucket = txBlock.now().toNumber();
+      const bucket = (await txBlock.now()).toNumber();
       await scanner.stopWatcher(bucket);
       expect(scanner.eventWatchers[bucket]).to.not.exist;
     });
@@ -213,7 +215,7 @@ describe('Scanner Unit Tests', () => {
 
   describe('watchRequestsByBucket()', () => {
     it('starts watchers for a new bucket', async () => {
-      const bucket = txBlock.now().toNumber();
+      const bucket = (await txBlock.now()).toNumber();
       const previousBucket = bucket - BucketSize.block;
 
       await scanner.watchRequestsByBucket(bucket, previousBucket);
@@ -261,7 +263,8 @@ describe('Scanner Unit Tests', () => {
 
   describe('store()', () => {
     it('returns true when correct address format', () => {
-      scanner.store(txTimestamp);
+      const params = [].fill(new BigNumber(10), 0, 12);
+      scanner.store({ address: txTimestamp.address, params });
       expect(config.cache.get(txTimestamp.address)).to.exist;
     });
   });

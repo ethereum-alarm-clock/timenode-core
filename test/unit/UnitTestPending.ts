@@ -1,9 +1,10 @@
 import { expect, assert } from 'chai';
 
 import Config from '../../src/Config';
-import { mockConfig } from '../helpers';
+import { mockConfig, MockTxRequest } from '../helpers';
 import { FnSignatures } from '../../src/Enum';
 import hasPending from '../../src/Actions/Pending';
+import BigNumber from 'bignumber.js';
 
 class Provider {
   public result: any;
@@ -103,8 +104,6 @@ const PENDINGS = [
     to: startAddr + 1
   }
 ];
-
-const randomClient = () => CLIENTS[Math.floor(Math.random() * CLIENTS.length)];
 
 describe('hasPendingParity()', () => {
   it('Detects valid Pending requests (parity)', async () => {
@@ -249,7 +248,7 @@ describe('Pending Unit Tests', () => {
     const expected = [false, false];
     const results: any = [];
     const gasPrice = 1 * 1e12;
-    const minPrice = 0.9 * 1e12;
+    const minPrice = new BigNumber(0.9 * 1e12);
     const testConfigs: Config[] = CLIENTS.map(client =>
       preConfig(mockConfig(), {
         client,
