@@ -20,6 +20,25 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy):
   return false;
 };
 
+// const getTxRequestsClaimedBy(account: Address, config: Config): string[] {
+//   const storedInCache = this.stored();
+//   if (!storedInCache) {
+//     return [''];
+//   }
+
+//   return storedInCache
+//     .filter((txRequestAddress: Address) => {
+//       const cached = this.get(txRequestAddress);
+
+//       return cached;
+//     })
+//     .filter(async (txRequestAddress: Address) => {
+//       const txRequest = await config.eac.transactionRequest(txRequestAddress);
+//       await txRequest.refreshData();
+//       return txRequest.claimedBy === address;
+//     })
+// }
+
 /**
  * Checks if the balance of the TimeNode is above a set limit.
  * @param {Config} config TimeNode configuration object.

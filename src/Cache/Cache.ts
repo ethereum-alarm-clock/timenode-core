@@ -62,7 +62,7 @@ export default class Cache<T> {
       return [''];
     }
 
-    storedInCache
+    return storedInCache
       .filter((txRequestAddress: string) => {
         const cached = this.get(txRequestAddress);
 
