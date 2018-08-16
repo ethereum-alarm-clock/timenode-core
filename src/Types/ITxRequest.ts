@@ -1,10 +1,8 @@
 import { BigNumber } from 'bignumber.js';
 
 // TODO this is only temporary
-export interface ITxRequest {
-  address: string;
+export interface ITxRequest extends ITxRequestPending {
   claimedBy: string;
-  gasPrice: BigNumber;
   requiredDeposit: BigNumber;
   claimData: string;
   executeData: string;
@@ -14,13 +12,33 @@ export interface ITxRequest {
   isClaimed: boolean;
   wasCalled: boolean;
   executionWindowEnd: BigNumber;
+  temporalUnit: number;
+  claimWindowStart: BigNumber;
+  windowStart: BigNumber;
+  windowSize: BigNumber;
+  freezePeriod: BigNumber;
+  reservedWindowSize: BigNumber;
+  claimWindowEnd: BigNumber;
+  freezePeriodEnd: BigNumber;
+  reservedWindowEnd: BigNumber;
 
   refreshData(): Promise<any>;
   claimPaymentModifier(): Promise<BigNumber>; //TODO: refactor as BigNumber not required here
-  inReservedWindow(): boolean;
+  inReservedWindow(): Promise<boolean>;
   beforeClaimWindow(): Promise<boolean>;
   inClaimWindow(): Promise<boolean>;
   inFreezePeriod(): Promise<boolean>;
   inExecutionWindow(): Promise<boolean>;
   now(): Promise<BigNumber>;
+  isClaimedBy(address: string): boolean;
+}
+
+export interface ITxRequestPending {
+  address: string;
+  gasPrice: BigNumber;
+}
+
+export interface ITxRequestRaw {
+  address: string;
+  params: BigNumber[];
 }

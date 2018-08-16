@@ -8,6 +8,8 @@ import { IBlock, IntervalId, ITxRequest } from '../Types';
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
+import { BigNumber } from 'bignumber.js';
+import { ITxRequestRaw } from '../Types/ITxRequest';
 
 export default class {
   public config: Config;
@@ -140,7 +142,7 @@ export default class {
     };
   }
 
-  public handleRequest(request: any): void {
+  public handleRequest(request: ITxRequestRaw): void {
     if (!this.isValid(request.address)) {
       throw new Error(`[${request.address}] NOT VALID`);
     }
@@ -241,7 +243,7 @@ export default class {
       .stored()
       .filter((address: string) => {
         const cached = this.config.cache.get(address);
-
+        debugger;
         return cached && cached.windowStart.greaterThan(0);
       })
       .map((address: string) => this.config.eac.transactionRequest(address));
@@ -251,17 +253,18 @@ export default class {
     requests.forEach(async (txRequest: ITxRequest) => {
       await txRequest.refreshData();
 
+      debugger;
       this.router.route(txRequest);
     });
 
     return CacheStates.REFRESHED; //0 = cache loaded successfully
   }
 
-  public store(request: any) {
-    this.config.cache.set(request.address, {
+  public store(txRequest: ITxRequestRaw) {
+    this.config.cache.set(txRequest.address, {
       claimedBy: null,
       wasCalled: false,
-      windowStart: request.params[7]
+      windowStart: txRequest.params[7]
     });
   }
 }

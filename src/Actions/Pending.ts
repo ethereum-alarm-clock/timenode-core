@@ -2,6 +2,7 @@ import Cache from '../Cache';
 import { FnSignatures } from '../Enum';
 import { ITxRequest } from '../Types';
 import BigNumber from 'bignumber.js';
+import { ITxRequestPending } from '../Types/ITxRequest';
 
 interface PendingOpts {
   type?: string;
@@ -20,7 +21,7 @@ interface PendingOpts {
  */
 const hasPendingParity = (
   conf: any,
-  txRequest: ITxRequest,
+  txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
@@ -77,7 +78,11 @@ const hasPendingParity = (
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingGeth = (conf: any, txRequest: ITxRequest, opts: PendingOpts): Promise<boolean> => {
+const hasPendingGeth = (
+  conf: any,
+  txRequest: ITxRequestPending,
+  opts: PendingOpts
+): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
@@ -181,7 +186,7 @@ const isOfType = (transaction: any, type?: string) => {
  */
 const hasPending = async (
   conf: any,
-  txRequest: ITxRequest,
+  txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
   let result = false;
