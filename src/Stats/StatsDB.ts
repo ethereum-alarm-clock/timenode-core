@@ -2,6 +2,8 @@ import BigNumber from 'bignumber.js';
 
 declare const require: any;
 
+const COLLECTION_NAME: string = 'stats';
+
 // Wrapper over *some* storage solution (we use lokijs) to keep track of TimeNode actions
 export class StatsDB {
   public db: any;
@@ -15,22 +17,22 @@ export class StatsDB {
     // Must instantiate eac.js-lib like this for now for packaging to work.
     this.eac = require('eac.js-lib')(web3);
 
-    const fetchedStats = this.db.getCollection('stats');
-    this.stats = fetchedStats !== null ? fetchedStats : this.db.addCollection('stats');
+    const fetchedStats = this.db.getCollection(COLLECTION_NAME);
+
+    if (!fetchedStats) {
+      this.db.addCollection(COLLECTION_NAME);
+    }
   }
 
   // Takes an array of addresses and stores them as new stats objects.
   public initialize(accounts: string[]) {
     accounts.forEach(account => {
-      const found = this.stats.find({ account })[0];
+      const found = this.db.getCollection(COLLECTION_NAME).find({ account })[0];
       if (found) {
-        const bounties = found.bounties || 0;
-        const costs = found.costs || 0;
-
-        found.bounties = new BigNumber(bounties);
-        found.costs = new BigNumber(costs);
+        found.bounties = new BigNumber(found.bounties || 0);
+        found.costs = new BigNumber(found.costs || 0);
       } else {
-        this.stats.insert({
+        this.db.getCollection(COLLECTION_NAME).insert({
           account,
           claimed: 0,
           discovered: 0,
@@ -46,16 +48,16 @@ export class StatsDB {
 
   // Takes the account which has claimed a transaction.
   public updateClaimed(account: string, cost: BigNumber) {
-    const found = this.stats.find({ account })[0];
+    const found = this.db.getCollection(COLLECTION_NAME).find({ account })[0];
     found.claimed += 1;
     found.costs = found.costs.plus(cost);
 
-    this.stats.update(found);
+    this.db.getCollection(COLLECTION_NAME).update(found);
   }
 
   // Takes the account which has executed a transaction.
   public updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
-    const found = this.stats.find({ account })[0];
+    const found = this.db.getCollection(COLLECTION_NAME).find({ account })[0];
 
     if (!found) {
       return;
@@ -72,11 +74,11 @@ export class StatsDB {
     found.bounties = found.bounties.plus(bounty);
     found.costs = found.costs.plus(cost);
 
-    this.stats.update(found);
+    this.db.getCollection(COLLECTION_NAME).update(found);
   }
 
   public addFailedClaim(account: string, transactionAddress: string) {
-    const found = this.stats.find({ account })[0];
+    const found = this.db.getCollection(COLLECTION_NAME).find({ account })[0];
 
     if (!found) {
       return;
@@ -92,11 +94,11 @@ export class StatsDB {
 
     found.failedClaims.push(transactionAddress);
 
-    this.stats.update(found);
+    this.db.getCollection(COLLECTION_NAME).update(found);
   }
 
   public async incrementDiscovered(account: string) {
-    const found = this.stats.find({ account })[0];
+    const found = this.db.getCollection(COLLECTION_NAME).find({ account })[0];
 
     if (!found) {
       return;
@@ -104,12 +106,12 @@ export class StatsDB {
 
     found.discovered += 1;
 
-    this.stats.update(found);
+    this.db.getCollection(COLLECTION_NAME).update(found);
   }
 
   // Gets the stats
   // @returns an array of the DB objs
   public getStats() {
-    return this.stats.data;
+    return this.db.getCollection(COLLECTION_NAME).data;
   }
 }
