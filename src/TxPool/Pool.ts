@@ -1,6 +1,10 @@
 import { ILogger } from '../Logger';
 import BigNumber from 'bignumber.js';
 
+interface IPool {
+  [id: string]: boolean | ITxPoolTxDetails;
+}
+
 export interface ITxPoolTxDetails {
     to: string;
     from: string;
@@ -11,7 +15,7 @@ export interface ITxPoolTxDetails {
 }
 
 export class Pool {
-  public pool: {} = {};
+  public pool: IPool = {};
 
   public preSet(key: string): boolean {
     if (this.pool[key]) {
@@ -24,19 +28,13 @@ export class Pool {
     this.pool[key] = value;
   }
 
-  public get(key: string, field: string): [ITxPoolTxDetails] {
-    const foundTxs: any = [];
-  
-    this.stored().filter(
-      (p: string) => {
-        if ((field === 'transactionHash' && p === key) || this.pool[p][field] === key) {
-          foundTxs.push(this.pool[p]);
-        }
-      });
-    return foundTxs;
+  public get(key: string, field: string): (boolean | ITxPoolTxDetails)[] {
+    return this.stored().filter((p: string) =>
+      (field === 'transactionHash' && p === key) || this.pool[p][field] === key)
+      .map((key: string) => this.pool[key])
   }
 
-  public has(key: string, field: string) {
+  public has(key: string, field: string): boolean {
     return this.get(key, field).length > 0;
   }
 
@@ -45,14 +43,14 @@ export class Pool {
   }
 
   public wipe() {
-    this.pool = [];
+    this.pool = {};
   }
 
   public length(): number {
     return this.stored().length;
   }
 
-  public stored() {
+  public stored(): string[] {
     return Object.keys(this.pool);
   }
 
