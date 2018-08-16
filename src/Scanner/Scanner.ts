@@ -243,7 +243,7 @@ export default class {
       .stored()
       .filter((address: string) => {
         const cached = this.config.cache.get(address);
-        debugger;
+
         return cached && cached.windowStart.greaterThan(0);
       })
       .map((address: string) => this.config.eac.transactionRequest(address));
@@ -253,7 +253,6 @@ export default class {
     requests.forEach(async (txRequest: ITxRequest) => {
       await txRequest.refreshData();
 
-      debugger;
       this.router.route(txRequest);
     });
 
