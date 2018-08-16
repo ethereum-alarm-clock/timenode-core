@@ -52,6 +52,8 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
 
   const gasPricesPromise = txRequestsClaimed.map(async (address: string) => {
     const txRequest = await config.eac.transactionRequest(address);
+    await txRequest.refreshData();
+
     return txRequest.gasPrice;
   });
 
