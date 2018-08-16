@@ -58,7 +58,7 @@ export default class Router {
         try {
           const claimingStatus: ClaimStatus = await this.actions.claim(txRequest, nextAccount);
 
-          this.handleClaimingResult(claimingStatus, txRequest);
+          this.handleWalletTransactionResult(claimingStatus, txRequest);
 
           if (claimingStatus === ClaimStatus.SUCCESS || claimingStatus === ClaimStatus.FAILED) {
             return TxStatus.FreezePeriod;
@@ -113,18 +113,14 @@ export default class Router {
       try {
         const executionStatus: ExecuteStatus = await this.actions.execute(txRequest);
 
+        this.handleWalletTransactionResult(executionStatus, txRequest);
+
         if (executionStatus === ExecuteStatus.SUCCESS) {
-          this.config.logger.info('EXECUTED.', txRequest.address);
-
           return TxStatus.Executed;
-        } else {
-          this.config.logger.debug(`Error: ${executionStatus}`, txRequest.address);
         }
-      } catch (e) {
-        this.config.logger.error('Execution failed.', txRequest.address);
-
-        //TODO handle gracefully?
-        throw new Error(e);
+      } catch (err) {
+        this.config.logger.error(err, txRequest.address);
+        throw new Error(err);
       }
     } else {
       this.config.logger.info('Not profitable to execute. Gas price too high.', txRequest.address);
@@ -188,18 +184,28 @@ export default class Router {
     return nextStatus;
   }
 
-  private handleClaimingResult(claimingStatus: ClaimStatus, txRequest: any): void {
-    switch (claimingStatus) {
+  private handleWalletTransactionResult(status: ClaimStatus | ExecuteStatus, txRequest: any): void {
+    switch (status) {
       case ClaimStatus.SUCCESS:
         this.config.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
+        break;
+      case ExecuteStatus.SUCCESS:
+        this.config.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
       case ClaimStatus.ACCOUNT_BUSY:
       case ClaimStatus.NOT_ENABLED:
       case ClaimStatus.PENDING:
-        this.config.logger.info(claimingStatus, txRequest.address);
+      case ExecuteStatus.WALLET_BUSY:
+      case ExecuteStatus.PENDING:
+        this.config.logger.info(status, txRequest.address);
         break;
       case ClaimStatus.FAILED:
-        this.config.logger.error(claimingStatus, txRequest.address);
+      case ExecuteStatus.FAILED:
+        this.config.logger.error(status, txRequest.address);
+        break;
+      case ClaimStatus.IN_PROGRESS:
+      case ExecuteStatus.IN_PROGRESS:
+        // skip logging this status
         break;
     }
   }

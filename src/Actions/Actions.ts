@@ -59,7 +59,7 @@ export default class Actions {
     return ClaimStatus.FAILED;
   }
 
-  public async execute(txRequest: any): Promise<any> {
+  public async execute(txRequest: any): Promise<ExecuteStatus> {
     if (this.config.wallet.hasPendingTransaction(txRequest.address)) {
       return ExecuteStatus.IN_PROGRESS;
     }

@@ -182,8 +182,6 @@ const hasPending = async (conf: any, txRequest: any, opts: PendingOpts): Promise
     result = await hasPendingGeth(conf, txRequest, opts);
   }
 
-  conf.logger.debug(`hasPending=${result}`, txRequest.address);
-
   return result;
 };
 
