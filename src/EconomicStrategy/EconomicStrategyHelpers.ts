@@ -59,19 +59,21 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
 
   const gasPrices = await Promise.all(gasPricesPromise);
 
-  const costOfExecutingFutureTransactions = gasPrices.reduce(
-    (sum: BigNumber, current: BigNumber) => {
-      const maxGasSubsidy = config.economicStrategy.maxGasSubsidy;
-      if (maxGasSubsidy) {
-        const maxGasPrice = current.plus(current.times(maxGasSubsidy / 100));
-        return sum.add(maxGasPrice);
+  if (gasPrices.length) {
+    const costOfExecutingFutureTransactions = gasPrices.reduce(
+      (sum: BigNumber, current: BigNumber) => {
+        const maxGasSubsidy = config.economicStrategy.maxGasSubsidy;
+        if (maxGasSubsidy) {
+          const maxGasPrice = current.plus(current.times(maxGasSubsidy / 100));
+          return sum.add(maxGasPrice);
+        }
+        return sum.add(current);
       }
-      return sum.add(current);
-    }
-  );
+    );
 
-  if (minBalance) {
-    return currentBalance.gt(minBalance.add(costOfExecutingFutureTransactions));
+    if (minBalance) {
+      return currentBalance.gt(minBalance.add(costOfExecutingFutureTransactions));
+    }
   }
   return true;
 };
