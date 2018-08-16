@@ -4,7 +4,7 @@ import { TxStatus, ClaimStatus, ExecuteStatus } from '../Enum';
 import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
-import { ITxRequest } from '../Types';
+import { Address, ITxRequest } from '../Types';
 
 export default class Router {
   public actions: Actions;
@@ -51,11 +51,12 @@ export default class Router {
     }
 
     if (this.config.claiming) {
-      const shouldClaim = await shouldClaimTx(txRequest, this.config);
+      const nextAccount: Address = this.config.wallet.nextAccount.getAddressString();
+      const shouldClaim: boolean = await shouldClaimTx(txRequest, this.config, nextAccount);
 
       if (shouldClaim) {
         try {
-          const claimingStatus: ClaimStatus = await this.actions.claim(txRequest);
+          const claimingStatus: ClaimStatus = await this.actions.claim(txRequest, nextAccount);
 
           this.handleWalletTransactionResult(claimingStatus, txRequest);
 
@@ -191,7 +192,7 @@ export default class Router {
       case ExecuteStatus.SUCCESS:
         this.config.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case ClaimStatus.WALLET_BUSY:
+      case ClaimStatus.ACCOUNT_BUSY:
       case ClaimStatus.NOT_ENABLED:
       case ClaimStatus.PENDING:
       case ExecuteStatus.WALLET_BUSY:
