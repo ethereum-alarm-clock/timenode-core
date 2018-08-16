@@ -1,7 +1,7 @@
 import { IEconomicStrategy } from './IEconomicStrategy';
 import Config from '../Config';
 import { BigNumber } from 'bignumber.js';
-import { ITxRequest } from '../Types';
+import { ITxRequest, Address } from '../Types';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
@@ -24,29 +24,16 @@ const exceedsMaxDeposit = (txRequest: any, economicStrategy: IEconomicStrategy):
  * Checks if the balance of the TimeNode is above a set limit.
  * @param {Config} config TimeNode configuration object.
  */
-const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
+const isAboveMinBalanceLimit = async (config: Config, nextAccount: Address): Promise<boolean> => {
   const minBalance = config.economicStrategy.minBalance;
 
   // Determine the next batter up to claim.
-  const next = config.wallet.nextAccountString;
-  const currentBalance = await config.wallet.getBalanceOf(next);
+  const currentBalance = await config.wallet.getBalanceOf(nextAccount);
 
   // Subtract the maximum gas costs of executing all currently claimed
   // transactions. This is to ensure that a TimeNode does not fail to execute
   // because it ran out of funds.
-  const txRequestsClaimed: string[] = config.cache
-    .stored()
-    .filter((address: string) => {
-      const cached = config.cache.get(address);
-
-      return cached && cached.windowStart.greaterThan(0);
-    })
-    .filter(async (address: string) => {
-      const txRequest = await config.eac.transactionRequest(address);
-      await txRequest.refreshData();
-
-      return txRequest.claimedBy === next;
-    });
+  const txRequestsClaimed: string[] = config.cache.getTxRequestsClaimedBy(nextAccount, config);
 
   config.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
 
@@ -57,12 +44,13 @@ const isAboveMinBalanceLimit = async (config: Config): Promise<boolean> => {
     return txRequest.gasPrice;
   });
 
-  const gasPrices = await Promise.all(gasPricesPromise);
+  const gasPrices: BigNumber[] = await Promise.all(gasPricesPromise);
 
   if (gasPrices.length) {
+    const maxGasSubsidy = config.economicStrategy.maxGasSubsidy;
+
     const costOfExecutingFutureTransactions = gasPrices.reduce(
       (sum: BigNumber, current: BigNumber) => {
-        const maxGasSubsidy = config.economicStrategy.maxGasSubsidy;
         if (maxGasSubsidy) {
           const maxGasPrice = current.plus(current.times(maxGasSubsidy / 100));
           return sum.add(maxGasPrice);
@@ -109,7 +97,11 @@ const isProfitable = async (
  * @param {TransactionRequest} txRequest Transaction Request object to check.
  * @param {Config} config Configuration object.
  */
-const shouldClaimTx = async (txRequest: any, config: Config): Promise<boolean> => {
+const shouldClaimTx = async (
+  txRequest: any,
+  config: Config,
+  nextAccount: Address
+): Promise<boolean> => {
   if (!config.economicStrategy) {
     return true;
   }
@@ -119,7 +111,7 @@ const shouldClaimTx = async (txRequest: any, config: Config): Promise<boolean> =
     return false;
   }
 
-  const enoughBalance = await isAboveMinBalanceLimit(config);
+  const enoughBalance = await isAboveMinBalanceLimit(config, nextAccount);
   if (!enoughBalance) {
     return false;
   }

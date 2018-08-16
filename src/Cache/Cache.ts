@@ -1,5 +1,6 @@
-import { ILogger } from '../Logger';
+import { ILogger, DefaultLogger } from '../Logger';
 import BigNumber from 'bignumber.js';
+import { Config } from '..';
 
 export interface ICachedTxDetails {
   claimedBy: string;
@@ -11,7 +12,7 @@ export default class Cache<T> {
   public cache: {} = {};
   public logger: any;
 
-  constructor(logger: ILogger) {
+  constructor(logger: ILogger = new DefaultLogger()) {
     this.logger = logger;
   }
 
@@ -53,6 +54,25 @@ export default class Cache<T> {
 
   public isEmpty() {
     return this.length() === 0;
+  }
+
+  public getTxRequestsClaimedBy(address: string, config: Config): string[] {
+    const storedInCache = this.stored();
+    if (!storedInCache) {
+      return [''];
+    }
+
+    storedInCache
+      .filter((txRequestAddress: string) => {
+        const cached = this.get(txRequestAddress);
+
+        return cached;
+      })
+      .filter(async (txRequestAddress: string) => {
+        const txRequest = await config.eac.transactionRequest(txRequestAddress);
+        await txRequest.refreshData();
+        return txRequest.claimedBy === address;
+      });
   }
 }
 
