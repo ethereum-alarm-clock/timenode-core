@@ -1,5 +1,6 @@
 import Config from '../Config';
 import { Pool, ITxPoolTxDetails } from './Pool';
+const SCAN_INTERVAL = 5000;
 
 export default class TxPool {
     public config: Config;
@@ -22,6 +23,7 @@ export default class TxPool {
         }
         await this.watchPending();
         await this.watchLatest();
+        await this.clearMined();
     }
 
     public async stop () {
@@ -30,6 +32,9 @@ export default class TxPool {
         }
         if (this.subs.latest) {
             await this.subs.latest.stopWatching();
+        }
+        if (this.subs.mined) {
+            clearInterval(this.subs.mined);
         }
         this.pool.wipe();
         this.subs = {};
@@ -48,7 +53,7 @@ export default class TxPool {
                         if (txErr) {
                             return this.config.logger.error(txErr);
                         }
-                        if (tx.blockNumber && tx.blockHash) {
+                        if (!tx || tx.blockNumber || tx.blockHash) {
                             return this.pool.del(res);
                         }
 
@@ -79,5 +84,26 @@ export default class TxPool {
 
             this.pool.del(res.transactionHash);
         })
+    }
+
+    public async clearMined () {
+        this.subs.mined = setInterval(
+            () => {
+                this.pool.stored()
+                .filter( (hash: string) => this.pool.get(hash, 'transactionHash').length > 0 )
+                .forEach( async (hash: string) => {
+                    await this.config.web3.eth.getTransaction(hash,
+                        (err: any, tx: any) => {
+                            if (err) {
+                                return this.config.logger.error(err);
+                            }
+                            if (!tx || tx.blockNumber || tx.blockHash) {
+                                return this.pool.del(hash);
+                            }
+                        })
+
+                })
+            }, SCAN_INTERVAL
+        )
     }
 }
