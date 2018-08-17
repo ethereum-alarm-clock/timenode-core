@@ -31,7 +31,7 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns DEPOSIT_TOO_HIGH if transaction exceeds maxDeposit', async () => {
-      config.economicStrategy.maxDeposit = new BigNumber(2);
+      config.economicStrategy.maxDeposit = new BigNumber(1);
       const nextAccount = config.wallet.nextAccount.getAddressString();
       const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.DEPOSIT_TOO_HIGH);
