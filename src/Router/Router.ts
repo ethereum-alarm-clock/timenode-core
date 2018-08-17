@@ -52,7 +52,11 @@ export default class Router {
 
     if (this.config.claiming) {
       const nextAccount: Address = this.config.wallet.nextAccount.getAddressString();
-      const shouldClaimStatus = await shouldClaimTx(txRequest, this.config, nextAccount);
+      const shouldClaimStatus: EconomicStrategyStatus = await shouldClaimTx(
+        txRequest,
+        this.config,
+        nextAccount
+      );
 
       if (shouldClaimStatus === EconomicStrategyStatus.CLAIM) {
         try {
