@@ -3,6 +3,7 @@ import { assert } from 'chai';
 import { Config } from '../../src/index';
 import { mockConfig, MockTxRequest } from '../helpers';
 import { shouldClaimTx, getExecutionGasPrice, shouldExecuteTx } from '../../src/EconomicStrategy';
+import { EconomicStrategyStatus } from '../../src/Enum';
 
 describe('Economic Strategy Tests', () => {
   let config: Config;
@@ -16,38 +17,38 @@ describe('Economic Strategy Tests', () => {
   beforeEach(reset);
 
   describe('shouldClaimTx()', () => {
-    it('returns true if economic strategy not set', async () => {
+    it('returns CLAIM if economic strategy is default', async () => {
+      const nextAccount = config.wallet.nextAccount.getAddressString();
+      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
+    });
+
+    it('returns CLAIM if economic strategy not set', async () => {
       config.economicStrategy = null;
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
-      assert.isTrue(shouldClaim);
+      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
     });
 
-    it('returns true if economic strategy is zeroed', async () => {
+    it('returns DEPOSIT_TOO_HIGH if transaction exceeds maxDeposit', async () => {
+      config.economicStrategy.maxDeposit = new BigNumber(2);
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
-      assert.isTrue(shouldClaim);
+      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.DEPOSIT_TOO_HIGH);
     });
 
-    it('returns false if transaction exceeds maxDeposit', async () => {
-      config.economicStrategy.maxDeposit = new BigNumber(1);
-      const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
-      assert.isFalse(shouldClaim);
-    });
-
-    it('returns false if balance below minBalance', async () => {
+    it('returns INSUFFICIENT_BALANCE if balance below minBalance', async () => {
       config.economicStrategy.minBalance = new BigNumber(config.web3.toWei(101, 'ether'));
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
-      assert.isFalse(shouldClaim);
+      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.INSUFFICIENT_BALANCE);
     });
 
-    it('returns false if reward lower than minProfitability', async () => {
+    it('returns NOT_PROFITABLE if reward lower than minProfitability', async () => {
       config.economicStrategy.minProfitability = new BigNumber(config.web3.toWei(100, 'ether'));
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
-      assert.isFalse(shouldClaim);
+      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.NOT_PROFITABLE);
     });
   });
 

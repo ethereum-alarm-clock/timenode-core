@@ -1,6 +1,6 @@
 import Actions from '../Actions';
 import Config from '../Config';
-import { TxStatus, ClaimStatus, ExecuteStatus } from '../Enum';
+import { TxStatus, ClaimStatus, ExecuteStatus, EconomicStrategyStatus } from '../Enum';
 import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
@@ -52,9 +52,9 @@ export default class Router {
 
     if (this.config.claiming) {
       const nextAccount: Address = this.config.wallet.nextAccount.getAddressString();
-      const shouldClaim: boolean = await shouldClaimTx(txRequest, this.config, nextAccount);
+      const shouldClaimStatus = await shouldClaimTx(txRequest, this.config, nextAccount);
 
-      if (shouldClaim) {
+      if (shouldClaimStatus === EconomicStrategyStatus.CLAIM) {
         try {
           const claimingStatus: ClaimStatus = await this.actions.claim(txRequest, nextAccount);
 
@@ -68,7 +68,7 @@ export default class Router {
           throw new Error(err);
         }
       } else {
-        this.config.logger.info('Not profitable to claim.', txRequest.address);
+        this.config.logger.info(`Not profitable to claim: ${shouldClaimStatus}`);
         this.config.logger.debug(
           `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
         );

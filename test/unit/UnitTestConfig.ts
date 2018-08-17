@@ -26,15 +26,15 @@ describe('Config unit tests', () => {
       assert.isNull(config.wallet);
       assert.equal(
         config.economicStrategy.maxDeposit.toNumber(),
-        Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit
+        config.web3.toWei(Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit, 'ether')
       );
       assert.equal(
         config.economicStrategy.minBalance.toNumber(),
-        Config.DEFAULT_ECONOMIC_STRATEGY.minBalance
+        config.web3.toWei(Config.DEFAULT_ECONOMIC_STRATEGY.minBalance, 'ether')
       );
       assert.equal(
         config.economicStrategy.minProfitability.toNumber(),
-        Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability
+        config.web3.toWei(Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability, 'ether')
       );
       assert.equal(
         config.economicStrategy.maxGasSubsidy,
@@ -93,10 +93,11 @@ describe('Config unit tests', () => {
     });
 
     it('check all values are set when added to config object', () => {
+      const decimals = 1000000000000000000;
       const economicStrategy = {
-        maxDeposit: new BigNumber(1),
-        minBalance: new BigNumber(5),
-        minProfitability: new BigNumber(0.01),
+        maxDeposit: new BigNumber(1 * decimals),
+        minBalance: new BigNumber(5 * decimals),
+        minProfitability: new BigNumber(0.01 * decimals),
         maxGasSubsidy: 200
       };
 

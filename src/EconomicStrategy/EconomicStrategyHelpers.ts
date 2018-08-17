@@ -2,6 +2,7 @@ import { IEconomicStrategy } from './IEconomicStrategy';
 import Config from '../Config';
 import { BigNumber } from 'bignumber.js';
 import { ITxRequest, Address } from '../Types';
+import { EconomicStrategyStatus } from '../Enum';
 
 /**
  * Checks whether a transaction requires a deposit that's higher than a
@@ -101,24 +102,27 @@ const shouldClaimTx = async (
   txRequest: ITxRequest,
   config: Config,
   nextAccount: Address
-): Promise<boolean> => {
+): Promise<any> => {
   if (!config.economicStrategy) {
-    return true;
+    return EconomicStrategyStatus.CLAIM;
   }
 
   const profitable = await isProfitable(txRequest, config.economicStrategy);
   if (!profitable) {
-    return false;
+    return EconomicStrategyStatus.NOT_PROFITABLE;
   }
 
   const enoughBalance = await isAboveMinBalanceLimit(config, nextAccount);
   if (!enoughBalance) {
-    return false;
+    return EconomicStrategyStatus.INSUFFICIENT_BALANCE;
   }
 
   const exceedsDepositLimit = exceedsMaxDeposit(txRequest, config.economicStrategy);
+  if (exceedsDepositLimit) {
+    return EconomicStrategyStatus.DEPOSIT_TOO_HIGH;
+  }
 
-  return profitable && enoughBalance && !exceedsDepositLimit;
+  return EconomicStrategyStatus.CLAIM;
 };
 
 /**

@@ -14,7 +14,7 @@ declare const setTimeout: any;
 
 export default class Config implements IConfigParams {
   public static readonly DEFAULT_ECONOMIC_STRATEGY: any = {
-    maxDeposit: 0,
+    maxDeposit: 1,
     minBalance: 0,
     minProfitability: 0,
     maxGasSubsidy: 100
@@ -173,11 +173,12 @@ export default class Config implements IConfigParams {
       });
   }
 
-  private _economicStrategyToBN(economicStrategy: IEconomicStrategy) {
+  private _economicStrategyToBN(economicStrategy: any) {
+    const ethToBN = (num: number) => new BigNumber(this.web3.toWei(num, 'ether'));
     return {
-      maxDeposit: new BigNumber(economicStrategy.maxDeposit),
-      minBalance: new BigNumber(economicStrategy.minBalance),
-      minProfitability: new BigNumber(economicStrategy.minProfitability),
+      maxDeposit: ethToBN(economicStrategy.maxDeposit),
+      minBalance: ethToBN(economicStrategy.minBalance),
+      minProfitability: ethToBN(economicStrategy.minProfitability),
       maxGasSubsidy: economicStrategy.maxGasSubsidy
     };
   }
