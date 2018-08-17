@@ -55,6 +55,7 @@ export default class Config implements IConfigParams {
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
+    this.txPool = new TxPool(this);
 
     if (!params.disableDetection) {
       this.getConnectedClient();
@@ -91,7 +92,6 @@ export default class Config implements IConfigParams {
     this.statsDb = params.statsDb ? new StatsDB(this.web3, params.statsDb) : null;
 
     this.util = new W3Util(this.web3);
-    this.txPool = new TxPool(this);
   }
 
   public clientSet(): boolean {

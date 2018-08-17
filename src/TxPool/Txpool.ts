@@ -9,12 +9,14 @@ export default class TxPool {
     public logger: any;
     public pool: any = [];
     public subs: any = {};
-    public util: W3Util;
   
     constructor(config: Config) {
       this.config = config;
       this.pool = new Pool();
-      this.util = config.util;
+    }
+
+    public get util (): W3Util {
+        return this.config.util;
     }
 
     public running () {
