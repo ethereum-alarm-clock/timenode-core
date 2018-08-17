@@ -102,7 +102,7 @@ const shouldClaimTx = async (
   txRequest: ITxRequest,
   config: Config,
   nextAccount: Address
-): Promise<any> => {
+): Promise<EconomicStrategyStatus> => {
   if (!config.economicStrategy) {
     return EconomicStrategyStatus.CLAIM;
   }
