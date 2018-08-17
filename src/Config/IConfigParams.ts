@@ -3,7 +3,7 @@ import { ILogger } from '../Logger';
 
 export interface IConfigParams {
   autostart?: boolean;
-  client?: string;
+  client?: Promise<string>;
   claiming?: boolean;
   disableDetection?: boolean;
   economicStrategy?: IEconomicStrategy;
