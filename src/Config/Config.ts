@@ -13,10 +13,10 @@ import BigNumber from 'bignumber.js';
 declare const setTimeout: any;
 
 export default class Config implements IConfigParams {
-  public static readonly DEFAULT_ECONOMIC_STRATEGY: any = {
-    maxDeposit: 1,
-    minBalance: 0,
-    minProfitability: 0,
+  public static readonly DEFAULT_ECONOMIC_STRATEGY: IEconomicStrategy = {
+    maxDeposit: new BigNumber(1000000000000000000),
+    minBalance: new BigNumber(0),
+    minProfitability: new BigNumber(0),
     maxGasSubsidy: 100
   };
 
@@ -44,8 +44,7 @@ export default class Config implements IConfigParams {
       throw new Error('Please set the providerUrl in the config object.');
     }
 
-    this.economicStrategy =
-      params.economicStrategy || this._economicStrategyToBN(Config.DEFAULT_ECONOMIC_STRATEGY);
+    this.economicStrategy = params.economicStrategy || Config.DEFAULT_ECONOMIC_STRATEGY;
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
@@ -171,15 +170,5 @@ export default class Config implements IConfigParams {
         this.client = 'none';
         this.logger.error(`Client: ${this.client.toUpperCase()}`);
       });
-  }
-
-  private _economicStrategyToBN(economicStrategy: any) {
-    const ethToBN = (num: number) => new BigNumber(this.web3.toWei(num, 'ether'));
-    return {
-      maxDeposit: ethToBN(economicStrategy.maxDeposit),
-      minBalance: ethToBN(economicStrategy.minBalance),
-      minProfitability: ethToBN(economicStrategy.minProfitability),
-      maxGasSubsidy: economicStrategy.maxGasSubsidy
-    };
   }
 }

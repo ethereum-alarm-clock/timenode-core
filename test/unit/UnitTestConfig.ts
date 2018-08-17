@@ -24,17 +24,11 @@ describe('Config unit tests', () => {
       assert.isUndefined(config.client);
       expect(config.logger).to.exist;
       assert.isNull(config.wallet);
+      assert.equal(config.economicStrategy.maxDeposit, Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit);
+      assert.equal(config.economicStrategy.minBalance, Config.DEFAULT_ECONOMIC_STRATEGY.minBalance);
       assert.equal(
-        config.economicStrategy.maxDeposit.toNumber(),
-        config.web3.toWei(Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit, 'ether')
-      );
-      assert.equal(
-        config.economicStrategy.minBalance.toNumber(),
-        config.web3.toWei(Config.DEFAULT_ECONOMIC_STRATEGY.minBalance, 'ether')
-      );
-      assert.equal(
-        config.economicStrategy.minProfitability.toNumber(),
-        config.web3.toWei(Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability, 'ether')
+        config.economicStrategy.minProfitability,
+        Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability
       );
       assert.equal(
         config.economicStrategy.maxGasSubsidy,

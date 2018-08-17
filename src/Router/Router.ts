@@ -68,7 +68,7 @@ export default class Router {
           throw new Error(err);
         }
       } else {
-        this.config.logger.info(`Not profitable to claim: ${shouldClaimStatus}`);
+        this.config.logger.info(`Claiming: Skipped - ${shouldClaimStatus}`);
         this.config.logger.debug(
           `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
         );
