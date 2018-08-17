@@ -1,7 +1,7 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { fromCallback } from 'bluebird';
 import { BigNumber } from 'bignumber.js';
-import { ILogger } from '../Logger';
+import { ILogger, DefaultLogger } from '../Logger';
 import { TxSendErrors } from '../Enum/TxSendErrors';
 const ethTx = require('ethereumjs-tx');
 
@@ -31,7 +31,7 @@ export class Wallet {
   public walletStates: Map<string, AccountState> = new Map<string, AccountState>();
   private accounts: V3Wallet[] = [];
 
-  constructor(web3: any, logger?: ILogger) {
+  constructor(web3: any, logger: ILogger = new DefaultLogger()) {
     this.logger = logger;
     this.web3 = web3;
   }
