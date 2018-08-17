@@ -59,6 +59,9 @@ const pendingTx = (opts?: any) => {
 };
 
 const preConfig = (config: Config, opt?: any) => {
+  if (opt.noPool) {
+    config.txPool.stop();
+  }
   config.web3 = {
     currentProvider: opt.provider ? opt.provider : new Provider(opt),
     eth: {
@@ -71,7 +74,6 @@ const preConfig = (config: Config, opt?: any) => {
       }
     }
   };
-
   config.client = opt.client;
 
   return config;
@@ -108,7 +110,7 @@ const PENDINGS = [
 describe('hasPendingParity()', () => {
   it('Detects valid Pending requests (parity)', async () => {
     const gasPrice = 1 * 1e12;
-    const config = preConfig(mockConfig(), { client: 'parity', gasPrice });
+    const config = preConfig(mockConfig(), { client: 'parity', noPool: true, gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     assert(pending);
   });
@@ -117,7 +119,7 @@ describe('hasPendingParity()', () => {
 describe('hasPendingGeth()', () => {
   it('Detects valid Pending requests (geth)', async () => {
     const gasPrice = 1 * 1e12;
-    const config = preConfig(mockConfig(), { client: 'geth', gasPrice });
+    const config = preConfig(mockConfig(), { client: 'geth', noPool: true, gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     assert(pending);
   });
@@ -126,7 +128,7 @@ describe('hasPendingGeth()', () => {
 describe('hasPending()', () => {
   it('Unknown clients defaults to false', async () => {
     const gasPrice = 1 * 1e12;
-    const config = preConfig(mockConfig(), { client: '', gasPrice });
+    const config = preConfig(mockConfig(), { client: '', noPool: true, gasPrice });
     const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
     assert.isFalse(pending);
   });
@@ -141,7 +143,8 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.claim })
+        provider: new Provider({ input: FnSignatures.claim }),
+        noPool: true
       })
     );
     await Promise.all(
@@ -163,7 +166,8 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.execute })
+        provider: new Provider({ input: FnSignatures.execute }),
+        noPool: true
       })
     );
     await Promise.all(
@@ -186,7 +190,8 @@ describe('Pending Unit Tests', () => {
         client,
         gasPrice,
         netGasPrice: 15 * 1e13,
-        provider: new Provider({ input: FnSignatures.claim })
+        provider: new Provider({ input: FnSignatures.claim }),
+        noPool: true
       })
     );
     await Promise.all(
@@ -208,7 +213,8 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.execute })
+        provider: new Provider({ input: FnSignatures.execute }),
+        noPool: true
       })
     );
     await Promise.all(
@@ -230,7 +236,8 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.claim })
+        provider: new Provider({ input: FnSignatures.claim }),
+        noPool: true
       })
     );
     await Promise.all(
@@ -253,7 +260,8 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.execute })
+        provider: new Provider({ input: FnSignatures.execute }),
+        noPool: true
       })
     );
     await Promise.all(

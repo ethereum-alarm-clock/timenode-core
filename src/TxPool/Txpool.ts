@@ -78,7 +78,7 @@ export default class TxPool {
     }
 
     public async watchLatest () {
-        this.subs.latest = await this.config.web3.eth.filter({fromBlock: 'latest', toBloock: 'pending'});
+        this.subs.latest = await this.config.web3.eth.filter({fromBlock: 'latest', toBlock: 'pending'});
         this.subs.latest.watch( async (err: any, res: any) => {
             if (err) {
                 return this.config.logger.error(err);

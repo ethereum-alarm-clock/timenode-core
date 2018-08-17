@@ -49,7 +49,7 @@ export default class {
     this.scanning = false;
     this.router = router;
     this.requestFactory = config.eac.requestFactory();
-    this.txPool = new TxPool(config);
+    this.txPool = config.txPool;
   }
 
   public async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
