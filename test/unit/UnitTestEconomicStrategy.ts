@@ -18,30 +18,35 @@ describe('Economic Strategy Tests', () => {
   describe('shouldClaimTx()', () => {
     it('returns true if economic strategy not set', async () => {
       config.economicStrategy = null;
-      const shouldClaim = await shouldClaimTx(txTimestamp, config);
+      const nextAccount = config.wallet.nextAccount.getAddressString();
+      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
       assert.isTrue(shouldClaim);
     });
 
     it('returns true if economic strategy is zeroed', async () => {
-      const shouldClaim = await shouldClaimTx(txTimestamp, config);
+      const nextAccount = config.wallet.nextAccount.getAddressString();
+      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
       assert.isTrue(shouldClaim);
     });
 
     it('returns false if transaction exceeds maxDeposit', async () => {
       config.economicStrategy.maxDeposit = new BigNumber(1);
-      const shouldClaim = await shouldClaimTx(txTimestamp, config);
+      const nextAccount = config.wallet.nextAccount.getAddressString();
+      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
       assert.isFalse(shouldClaim);
     });
 
     it('returns false if balance below minBalance', async () => {
       config.economicStrategy.minBalance = new BigNumber(config.web3.toWei(101, 'ether'));
-      const shouldClaim = await shouldClaimTx(txTimestamp, config);
+      const nextAccount = config.wallet.nextAccount.getAddressString();
+      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
       assert.isFalse(shouldClaim);
     });
 
     it('returns false if reward lower than minProfitability', async () => {
       config.economicStrategy.minProfitability = new BigNumber(config.web3.toWei(100, 'ether'));
-      const shouldClaim = await shouldClaimTx(txTimestamp, config);
+      const nextAccount = config.wallet.nextAccount.getAddressString();
+      const shouldClaim = await shouldClaimTx(txTimestamp, config, nextAccount);
       assert.isFalse(shouldClaim);
     });
   });

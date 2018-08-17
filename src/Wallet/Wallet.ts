@@ -6,6 +6,7 @@ import { TxSendErrors } from '../Enum/TxSendErrors';
 const ethTx = require('ethereumjs-tx');
 
 import { IWalletReceipt } from './IWalletReceipt';
+import { Address } from '../Types';
 
 declare const Buffer: any;
 declare const require: any;
@@ -33,6 +34,10 @@ export class Wallet {
   constructor(web3: any, logger: ILogger = new DefaultLogger()) {
     this.logger = logger;
     this.web3 = web3;
+  }
+
+  get nextAccount(): V3Wallet {
+    return this.accounts[this.nonce % this.accounts.length];
   }
 
   public getBalanceOf(address: string): Promise<BigNumber> {
@@ -132,6 +137,10 @@ export class Wallet {
     return !this.walletStates.get(from).sendingTxInProgress;
   }
 
+  public isAccountAbleToSendTx(account: Address): boolean {
+    return !this.walletStates.get(account).sendingTxInProgress;
+  }
+
   public isNextAccountFree(): boolean {
     return this.isWalletAbleToSendTx(this.nonce % this.accounts.length);
   }
@@ -147,7 +156,10 @@ export class Wallet {
 
     const account = this.accounts[idx];
     const from: string = account.getAddressString();
+    return this.sendFromAccount(from, opts);
+  }
 
+  public async sendFromAccount(from: Address, opts: any): Promise<IWalletReceipt> {
     if (this.hasPendingTransaction(opts.to)) {
       return {
         from,
@@ -168,9 +180,12 @@ export class Wallet {
     }
 
     const nonce = this.web3.toHex(await this.getNonce(from));
-    const signedTx = await this.signTransaction(account, nonce, opts);
+    const v3Wallet = this.accounts.find((wallet: V3Wallet) => {
+      return wallet.getAddressString() === from;
+    });
+    const signedTx = await this.signTransaction(v3Wallet, nonce, opts);
 
-    if (!this.isWalletAbleToSendTx(idx)) {
+    if (!this.isAccountAbleToSendTx(from)) {
       return {
         from,
         status: TxSendErrors.WALLET_BUSY

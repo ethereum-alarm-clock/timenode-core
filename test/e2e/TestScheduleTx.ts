@@ -57,7 +57,9 @@ export const scheduleTestTx = async () => {
 
   const scheduler = await eac.scheduler();
 
-  let latestBlock = await Bb.fromCallback((callback: any) => web3.eth.getBlockNumber(callback));
+  let latestBlock: number = (await Bb.fromCallback((callback: any) =>
+    web3.eth.getBlockNumber(callback)
+  )) as number;
 
   /*
      * Since in transaction request library there's check that subtracts
@@ -68,7 +70,9 @@ export const scheduleTestTx = async () => {
     await waitUntilBlock(0, CLAIM_WINDOW_SIZE);
   }
 
-  latestBlock = await Bb.fromCallback((callback: any) => web3.eth.getBlockNumber(callback));
+  latestBlock = (await Bb.fromCallback((callback: any) =>
+    web3.eth.getBlockNumber(callback)
+  )) as number;
 
   const { callValue } = SCHEDULED_TX_PARAMS;
 
