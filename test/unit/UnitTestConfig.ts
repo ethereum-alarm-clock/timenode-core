@@ -24,16 +24,10 @@ describe('Config unit tests', () => {
       assert.isUndefined(config.client);
       expect(config.logger).to.exist;
       assert.isNull(config.wallet);
+      assert.equal(config.economicStrategy.maxDeposit, Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit);
+      assert.equal(config.economicStrategy.minBalance, Config.DEFAULT_ECONOMIC_STRATEGY.minBalance);
       assert.equal(
-        config.economicStrategy.maxDeposit.toNumber(),
-        Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit
-      );
-      assert.equal(
-        config.economicStrategy.minBalance.toNumber(),
-        Config.DEFAULT_ECONOMIC_STRATEGY.minBalance
-      );
-      assert.equal(
-        config.economicStrategy.minProfitability.toNumber(),
+        config.economicStrategy.minProfitability,
         Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability
       );
       assert.equal(
@@ -93,10 +87,11 @@ describe('Config unit tests', () => {
     });
 
     it('check all values are set when added to config object', () => {
+      const decimals = 1000000000000000000;
       const economicStrategy = {
-        maxDeposit: new BigNumber(1),
-        minBalance: new BigNumber(5),
-        minProfitability: new BigNumber(0.01),
+        maxDeposit: new BigNumber(1 * decimals),
+        minBalance: new BigNumber(5 * decimals),
+        minProfitability: new BigNumber(0.01 * decimals),
         maxGasSubsidy: 200
       };
 
