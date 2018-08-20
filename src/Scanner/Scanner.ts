@@ -8,15 +8,15 @@ import { IBlock, IntervalId, ITxRequest } from '../Types';
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
-import { BigNumber } from 'bignumber.js';
 import { ITxRequestRaw } from '../Types/ITxRequest';
 import TxPool from '../TxPool';
+import IRouter from '../Router';
 
 export default class {
   public config: Config;
   public util: W3Util;
   public scanning: boolean;
-  public router: any;
+  public router: IRouter;
   public requestFactory: Promise<any>;
   public txPool: TxPool;
 
@@ -43,7 +43,7 @@ export default class {
    * @param {number} ms Milliseconds of the scan interval.
    * @param {Config} config The TimeNode Config object.
    */
-  constructor(config: Config, router: any) {
+  constructor(config: Config, router: IRouter) {
     this.config = config;
     this.util = config.util;
     this.scanning = false;
@@ -176,7 +176,7 @@ export default class {
     }
   }
 
-  public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket) {
+  public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<number> {
     const reqFactory = await this.requestFactory;
     const handleRequest = this.handleRequest.bind(this);
     let currentBucket = previousBucket;
@@ -238,29 +238,19 @@ export default class {
     return true;
   }
 
-  // TODO meaningful return value
   public async scanCache(): Promise<CacheStates> {
     if (this.config.cache.isEmpty()) {
       return CacheStates.EMPTY; // 1 = cache is empty
     }
 
-    // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
-    const allTxRequests = this.config.cache
+    this.config.cache
       .stored()
-      .filter((address: string) => {
-        const cached = this.config.cache.get(address);
-
-        return cached && cached.windowStart.greaterThan(0);
-      })
-      .map((address: string) => this.config.eac.transactionRequest(address));
-
-    // Get fresh data on our transaction requests and route them into appropriate action.
-    const requests = await Promise.all(allTxRequests);
-    requests.forEach(async (txRequest: ITxRequest) => {
-      await txRequest.refreshData();
-
-      this.router.route(txRequest);
-    });
+      .filter((address: string) => this.config.cache.get(address))
+      .map((address: string) => this.config.eac.transactionRequest(address))
+      .forEach(async (txRequest: ITxRequest) => {
+        await txRequest.refreshData();
+        this.router.route(txRequest);
+      });
 
     return CacheStates.REFRESHED; //0 = cache loaded successfully
   }
