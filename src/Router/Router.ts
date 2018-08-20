@@ -6,7 +6,11 @@ import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 import W3Util from '../Util';
 import { Address, ITxRequest } from '../Types';
 
-export default class Router {
+export default interface IRouter {
+  route(txRequest: ITxRequest): Promise<TxStatus>;
+}
+
+export default class Router implements IRouter {
   public actions: Actions;
   public config: Config;
   public util: W3Util;
@@ -170,7 +174,7 @@ export default class Router {
     return localClaim;
   }
 
-  public async route(txRequest: ITxRequest): Promise<any> {
+  public async route(txRequest: ITxRequest): Promise<TxStatus> {
     let status: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
 
     const statusFunction = this.transitions[status];
