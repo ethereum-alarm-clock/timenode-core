@@ -1,19 +1,23 @@
-import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus, ClaimStatus, ExecuteStatus, EconomicStrategyStatus } from '../Enum';
 import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
 import { Address, ITxRequest } from '../Types';
+import IActions from '../Actions';
 
-export default class Router {
-  public actions: Actions;
+export default interface IRouter {
+  route(txRequest: ITxRequest): Promise<TxStatus>;
+}
+
+export default class Router implements IRouter {
+  public actions: IActions;
   public config: Config;
   public txRequestStates: object = {};
 
   public transitions: object = {};
 
-  constructor(config: Config, actions: any) {
+  constructor(config: Config, actions: IActions) {
     this.actions = actions;
     this.config = config;
 
@@ -172,7 +176,7 @@ export default class Router {
     return localClaim;
   }
 
-  public async route(txRequest: ITxRequest): Promise<any> {
+  public async route(txRequest: ITxRequest): Promise<TxStatus> {
     let status: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
 
     const statusFunction = this.transitions[status];

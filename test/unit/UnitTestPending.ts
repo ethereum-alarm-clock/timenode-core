@@ -11,10 +11,10 @@ class Provider {
 
   constructor(opts?: any) {
     const found: any = {};
-    opts && opts.gas ? (found.gas = opts.gas) : undefined;
-    opts && opts.input ? (found.input = opts.input) : undefined;
-    opts && opts.value ? (found.value = opts.value) : undefined;
-    opts && opts.gasPrice ? (found.gasPrice = opts.gasPrice) : undefined;
+    opts && opts.gas ? (found.gas = opts.gas) : undefined; // tslint:disable-line no-unused-expression
+    opts && opts.input ? (found.input = opts.input) : undefined; // tslint:disable-line no-unused-expression
+    opts && opts.value ? (found.value = opts.value) : undefined; // tslint:disable-line no-unused-expression
+    opts && opts.gasPrice ? (found.gasPrice = opts.gasPrice) : undefined; // tslint:disable-line no-unused-expression
 
     this.result = {
       result: PENDINGS.map(pending => Object.assign({}, pending, found))

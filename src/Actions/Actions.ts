@@ -12,7 +12,12 @@ export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
 }
 
-export default class Actions {
+export default interface IActions {
+  claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus>;
+  execute(txRequest: ITxRequest): Promise<ExecuteStatus>;
+}
+
+export default class Actions implements IActions {
   public config: Config;
 
   constructor(config: Config) {

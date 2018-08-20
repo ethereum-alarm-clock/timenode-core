@@ -12,6 +12,7 @@
         "module": "none"
     },
     "include": [
-        "./src/**/*"
+        "./src/**/*",
+        "./test/**/*"
     ]
 }

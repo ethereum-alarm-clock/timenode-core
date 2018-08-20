@@ -105,7 +105,8 @@ describe('Economic Strategy Tests', () => {
       txTimestamp.claimedBy = config.wallet.getAddresses()[0];
       txTimestamp.requiredDeposit = new BigNumber(config.web3.toWei(0, 'ether'));
       txTimestamp.bounty = new BigNumber(config.web3.toWei(0.1, 'gwei'));
-      config.util.networkGasPrice = () => new BigNumber(config.web3.toWei(100, 'gwei'));
+      config.util.networkGasPrice = () =>
+        Promise.resolve(new BigNumber(config.web3.toWei(100, 'gwei')));
 
       const shouldExecute = await shouldExecuteTx(txTimestamp, config);
       assert.isFalse(shouldExecute);
