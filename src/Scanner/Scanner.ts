@@ -237,17 +237,14 @@ export default class {
       return CacheStates.EMPTY; // 1 = cache is empty
     }
 
-    const routingRequests = this.config.cache
+    this.config.cache
       .stored()
       .filter((address: string) => this.config.cache.get(address))
       .map((address: string) => this.config.eac.transactionRequest(address))
-      .map(async (txRequest: ITxRequest) => {
+      .forEach(async (txRequest: ITxRequest) => {
         await txRequest.refreshData();
-
-        return this.router.route(txRequest);
+        this.router.route(txRequest);
       });
-
-    Promise.all(routingRequests);
 
     return CacheStates.REFRESHED; //0 = cache loaded successfully
   }
