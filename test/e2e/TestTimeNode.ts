@@ -8,6 +8,8 @@ const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
 describe('TimeNode', () => {
   const config = mockConfig();
 
+  const myAccount = config.wallet.getAddresses()[0];
+
   const { eac, web3 } = config;
 
   const { waitUntilBlock } = getHelperMethods(web3);
@@ -151,7 +153,9 @@ describe('TimeNode', () => {
             expect(TEST_TX_REQUEST.address).to.equal(TEST_TX_ADDRESS);
             expect(TEST_TX_REQUEST.claimData).to.equal('0x4e71d92d');
             expect(TEST_TX_REQUEST.claimedBy).to.equal(TIMENODE_ADDRESS);
-            expect(timenode.getClaimedNotExecutedTransactions()).to.include(TEST_TX_ADDRESS);
+            expect(timenode.getClaimedNotExecutedTransactions()[myAccount]).to.include(
+              TEST_TX_ADDRESS
+            );
 
             timenode.config.logger.info = originalLoggerInfoMethod;
 
@@ -201,7 +205,9 @@ describe('TimeNode', () => {
             assert.ok(TEST_TX_REQUEST.wasCalled, `${TEST_TX_ADDRESS} hasn't been called!`);
             assert.ok(TEST_TX_REQUEST.wasSuccessful, `${TEST_TX_ADDRESS} isn't successful!`);
 
-            expect(timenode.getClaimedNotExecutedTransactions()).to.not.include(TEST_TX_ADDRESS);
+            expect(timenode.getClaimedNotExecutedTransactions()[myAccount]).to.not.include(
+              TEST_TX_ADDRESS
+            );
 
             timenode.config.logger.info = originalLoggerInfoMethod;
 
