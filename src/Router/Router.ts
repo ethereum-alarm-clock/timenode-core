@@ -14,26 +14,24 @@ export default class Router implements IRouter {
   public actions: IActions;
   public config: Config;
   public util: W3Util;
-  public txRequestStates: object = {};
-
-  public transitions: object = {};
+  public txRequestStates: Map<string, TxStatus> = new Map<string, TxStatus>();
+  public transitions: Map<TxStatus, (request: ITxRequest) => Promise<TxStatus>> = new Map<
+    TxStatus,
+    (request: ITxRequest) => Promise<TxStatus>
+  >();
 
   constructor(config: Config, actions: IActions) {
     this.actions = actions;
     this.config = config;
     this.util = config.util;
 
-    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
-    this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
-    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod.bind(this);
-    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(this);
-    this.transitions[TxStatus.Executed] = this.executed.bind(this);
-    this.transitions[TxStatus.Missed] = this.missed.bind(this);
-    this.transitions[TxStatus.Done] = (txRequest: ITxRequest) => {
-      this.config.logger.info('Finished. Deleting from cache...', txRequest.address);
-      this.config.cache.del(txRequest.address);
-      return TxStatus.Done;
-    };
+    this.transitions.set(TxStatus.BeforeClaimWindow, this.beforeClaimWindow.bind(this));
+    this.transitions.set(TxStatus.ClaimWindow, this.claimWindow.bind(this));
+    this.transitions.set(TxStatus.FreezePeriod, this.freezePeriod.bind(this));
+    this.transitions.set(TxStatus.ExecutionWindow, this.executionWindow.bind(this));
+    this.transitions.set(TxStatus.Executed, this.executed.bind(this));
+    this.transitions.set(TxStatus.Missed, this.missed.bind(this));
+    this.transitions.set(TxStatus.Done, this.done.bind(this));
   }
 
   public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
@@ -175,9 +173,10 @@ export default class Router implements IRouter {
   }
 
   public async route(txRequest: ITxRequest): Promise<TxStatus> {
-    let status: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
+    let status: TxStatus =
+      this.txRequestStates.get(txRequest.address) || TxStatus.BeforeClaimWindow;
 
-    const statusFunction = this.transitions[status];
+    const statusFunction = this.transitions.get(status);
     let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
@@ -186,10 +185,10 @@ export default class Router implements IRouter {
         txRequest.address
       );
       status = nextStatus;
-      nextStatus = await this.transitions[status](txRequest);
+      nextStatus = await this.transitions.get(status)(txRequest);
     }
 
-    this.txRequestStates[txRequest.address] = nextStatus;
+    this.txRequestStates.set(txRequest.address, nextStatus);
     return nextStatus;
   }
 
@@ -220,5 +219,12 @@ export default class Router implements IRouter {
         // skip logging this status
         break;
     }
+  }
+
+  private async done(txRequest: ITxRequest): Promise<TxStatus> {
+    this.config.logger.info('Finished. Deleting from cache...', txRequest.address);
+    this.config.cache.del(txRequest.address);
+
+    return TxStatus.Done;
   }
 }
