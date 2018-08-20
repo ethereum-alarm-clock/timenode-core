@@ -30,7 +30,7 @@ export default class Actions {
     if (!this.config.wallet.isAccountAbleToSendTx(nextAccount)) {
       return ClaimStatus.ACCOUNT_BUSY;
     }
-    if (await hasPending(this.config, txRequest, { type: 'claim' })) {
+    if (await hasPending(this.config, txRequest, { type: 'claim', checkGasPrice: true })) {
       return ClaimStatus.PENDING;
     }
 
@@ -139,6 +139,7 @@ export default class Actions {
   private async hasPendingExecuteTransaction(txRequest: ITxRequest): Promise<boolean> {
     return hasPending(this.config, txRequest, {
       type: 'execute',
+      checkGasPrice: true,
       minPrice: txRequest.gasPrice
     });
   }

@@ -33,7 +33,7 @@ export default class Config implements IConfigParams {
   public scanSpread: any;
   public statsDb: StatsDB;
   public txPool: TxPool;
-  public util: any;
+  public util: W3Util;
   public wallet: Wallet;
   public web3: any;
   public walletStoresAsPrivateKeys: boolean;

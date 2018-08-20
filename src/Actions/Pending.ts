@@ -6,7 +6,7 @@ import { ITxRequestPending } from '../Types/ITxRequest';
 
 interface PendingOpts {
   type?: string;
-  checkGasPrice?: boolean;
+  checkGasPrice: boolean;
   minPrice?: BigNumber;
 }
 
@@ -146,28 +146,32 @@ const hasPendingGeth = (
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<object>} Transaction, if a pending transaction to this address exists.
  */
-const hasPendingPool = (
+const hasPendingPool = async (
   conf: Config,
   txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
+  let validPending: ITxPoolTxDetails[] = [];
 
-  return new Promise( async (resolve, reject) => {
-    const validPending = await conf.txPool.pool.get(txRequest.address, 'to')
+  try{
+    const currentGasPrice: BigNumber = await conf.util.networkGasPrice();
+    validPending = await conf.txPool.pool.get(txRequest.address, 'to')
       .filter( async(tx: ITxPoolTxDetails) => {
         const withValidGasPrice =
           (!opts.checkGasPrice ||
-            (await hasValidGasPrice(
-              conf,
+            (hasValidGasPrice(
+              currentGasPrice,
               tx,
               opts.minPrice
-            )));
-        return isOfType(tx, opts.type) &&
-        withValidGasPrice
+              )));
+        return isOfType(tx, opts.type) && withValidGasPrice
       })
-    resolve(validPending.length > 0);
-  })
+  } catch (e) {
+    conf.logger.info(e);
+  }
+  return validPending.length > 0;
+
 };
 
 /**
@@ -178,23 +182,12 @@ const hasPendingPool = (
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = async (conf: Config, transaction: any, minPrice?: any) => {
+const hasValidGasPrice = (networkPrice: BigNumber, transaction: any, minPrice?: any) => {
   if (minPrice) {
     return minPrice.valueOf() === transaction.gasPrice.valueOf();
   }
   const spread = 0.3;
-  let currentGasPrice: number;
-  await new Promise((resolve, reject) => {
-    conf.web3.eth.getGasPrice((err: any, res: any) => {
-      if (err) {
-        conf.logger.error(err);
-        return;
-      }
-      currentGasPrice = res;
-      resolve(true);
-    });
-  });
-  return currentGasPrice && spread * currentGasPrice.valueOf() <= transaction.gasPrice.valueOf();
+  return networkPrice && networkPrice.times(spread).valueOf() <= transaction.gasPrice.valueOf();
 };
 
 /**
@@ -225,8 +218,9 @@ const hasPending = async (
   txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
-  let result = false;
+  let result: boolean = false;
   if (conf.txPool && conf.txPool.running()) {
+
     result = await hasPendingPool(conf, txRequest, opts)
   } else if (conf.client === 'parity') {
     result = await hasPendingParity(conf, txRequest, opts);
