@@ -33,6 +33,9 @@ describe('TxPool unit tests', () => {
     it('Instantiates new pool', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
       expect(txPool.pool).to.exist;
+      expect(txPool.cache).to.exist;
+      expect(txPool.logger).to.exist;
+      expect(txPool.util).to.exist;
     });
   })
 
@@ -43,6 +46,7 @@ describe('TxPool unit tests', () => {
       
       expect(txPool.subs.pending).to.exist;
       expect(txPool.subs.latest).to.exist;
+      expect(txPool.subs.mined).to.exist;
     });
   })
 
@@ -53,18 +57,20 @@ describe('TxPool unit tests', () => {
       
       expect(txPool.subs.pending).to.exist;
       expect(txPool.subs.latest).to.exist;
+      expect(txPool.subs.mined).to.exist;
 
       await txPool.stop();
       
       expect(txPool.subs.pending).to.not.exist;
       expect(txPool.subs.latest).to.not.exist;
+      expect(txPool.subs.mined).to.not.exist;
     });
   })
 
   describe('TxPool flow', () => {
     it('has()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
       txPool.pool.pool[tx] = {
         transactionHash : tx
@@ -73,9 +79,18 @@ describe('TxPool unit tests', () => {
       expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
     })
 
+    it('preSet()', async () => {
+      const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+
+      expect(txPool.pool.preSet(tx)).to.be.true;
+      expect(txPool.pool.get(tx, 'transactionHash')).to.deep.equal([true]);
+      expect(txPool.pool.preSet(tx)).to.be.false;
+    });
+
     it('set()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
       txPool.pool.set(tx, {
         transactionHash : tx
@@ -87,7 +102,7 @@ describe('TxPool unit tests', () => {
     it('length()', async () => {
       const count = Math.floor( Math.random() * TRANSACTIONS.length );
 
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
       for( var i = 0; i < count; i++) {
         txPool.pool.set(TRANSACTIONS[i], {
           transactionHash : TRANSACTIONS[i]
@@ -97,9 +112,24 @@ describe('TxPool unit tests', () => {
       expect(txPool.pool.length()).to.be.equal(count);
     });
 
+    it('stored()', async () => {
+      const count = Math.floor( Math.random() * TRANSACTIONS.length );
+      const expected: any = [];
+
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+      for( var i = 0; i < count; i++) {
+        txPool.pool.set(TRANSACTIONS[i], {
+          transactionHash : TRANSACTIONS[i]
+        })
+        expected.push(TRANSACTIONS[i]);
+      }
+
+      expect(txPool.pool.stored()).to.deep.equal(expected);
+    });
+
     it('del()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*10)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
       txPool.pool.pool[tx] = {
         transactionHash : tx
@@ -112,7 +142,7 @@ describe('TxPool unit tests', () => {
 
     it('wipe()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
       txPool.pool.set(tx, {
         transactionHash : tx

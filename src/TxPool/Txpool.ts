@@ -37,7 +37,9 @@ export default class TxPool {
         }
         await this.watchPending();
         await this.watchLatest();
-        await this.clearMined();
+        if (this.running()) {
+            await this.clearMined();
+        }
         this.logger.debug('TxPool started');
     }
 
@@ -47,14 +49,14 @@ export default class TxPool {
                 await this.util.stopFilter(this.subs.pending);
             } catch (e) {
                 this.logger.error(e);
-        }
+            }
         }
         if (this.subs.latest) {
             try {
                 await this.util.stopFilter(this.subs.latest);
             } catch (e) {
                 this.logger.error(e);
-        }
+            }
         }
         if (this.subs.mined) {
             clearInterval(this.subs.mined);
@@ -66,46 +68,50 @@ export default class TxPool {
 
     public async watchPending () {
         this.subs.pending = await this.config.web3.eth.filter('pending');
-        this.subs.pending.watch( async (err: any, res: any) => {
-            if (err) {
-                return this.logger.error(err);
-            }
-
-            if (this.pool.preSet(res)){
-                try {
-                    const tx:any = await this.util.getTransaction(res);
-                    if (!tx || tx.blockNumber || tx.blockHash || !this.cache.has(tx.to)) {
-                        return this.pool.del(res);
-                    }
-
-                    const poolDetails: ITxPoolTxDetails = {
-                        from: tx.from,
-                        to: tx.to,
-                        input: tx.input,
-                        gasPrice: tx.gasPrice,
-                        timestamp: new Date().getTime(),
-                        transactionHash: tx.hash,
-                    }
-
-                    if (this.pool.has(res, 'transactionHash')) {
-                        this.pool.set(res, poolDetails);
-                    }
-                } catch (e) {
-                    return this.logger.error(e);
+        if (this.subs.pending) {
+            this.subs.pending.watch( async (err: any, res: any) => {
+                if (err) {
+                    return this.logger.error(err);
                 }
-            }
-        })
+
+                if (this.pool.preSet(res)){
+                    try {
+                        const tx:any = await this.util.getTransaction(res);
+                        if (!tx || tx.blockNumber || tx.blockHash || !this.cache.has(tx.to)) {
+                            return this.pool.del(res);
+                        }
+
+                        const poolDetails: ITxPoolTxDetails = {
+                            from: tx.from,
+                            to: tx.to,
+                            input: tx.input,
+                            gasPrice: tx.gasPrice,
+                            timestamp: new Date().getTime(),
+                            transactionHash: tx.hash,
+                        }
+
+                        if (this.pool.has(res, 'transactionHash')) {
+                            this.pool.set(res, poolDetails);
+                        }
+                    } catch (e) {
+                        return this.logger.error(e);
+                    }
+                }
+            })
+        }
     }
 
     public async watchLatest () {
         this.subs.latest = await this.config.web3.eth.filter({fromBlock: 'latest', toBlock: 'pending'});
-        this.subs.latest.watch( async (err: any, res: any) => {
-            if (err) {
-                return this.config.logger.error(err);
-            }
+        if (this.subs.latest) {
+            this.subs.latest.watch( async (err: any, res: any) => {
+                if (err) {
+                    return this.config.logger.error(err);
+                }
 
-            this.pool.del(res.transactionHash);
-        })
+                this.pool.del(res.transactionHash);
+            })
+        }
     }
 
     public async clearMined () {
