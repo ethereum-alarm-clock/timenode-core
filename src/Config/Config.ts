@@ -31,7 +31,7 @@ export default class Config implements IConfigParams {
   public providerUrl: string;
   public scanSpread: any;
   public statsDb: StatsDB;
-  public util: any;
+  public util: W3Util;
   public wallet: Wallet;
   public web3: any;
   public walletStoresAsPrivateKeys: boolean;
