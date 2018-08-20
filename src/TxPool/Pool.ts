@@ -31,7 +31,7 @@ export class Pool {
   public get(key: string, field: string): (boolean | ITxPoolTxDetails)[] {
     return this.stored().filter((p: string) =>
       (field === 'transactionHash' && p === key) || this.pool[p][field] === key)
-      .map((key: string) => this.pool[key])
+      .map((found: string) => this.pool[found])
   }
 
   public has(key: string, field: string): boolean {
