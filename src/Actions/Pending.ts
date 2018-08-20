@@ -3,6 +3,7 @@ import Config from '../Config';
 import BigNumber from 'bignumber.js';
 import { FnSignatures } from '../Enum';
 import { ITxRequestPending } from '../Types/ITxRequest';
+import { ITxRequest } from '../Types';
 
 interface PendingOpts {
   type?: string;
@@ -11,7 +12,7 @@ interface PendingOpts {
 }
 
 /**
- * Uses the Parity specific RPC request `parity_pendingTransactions` to search
+ * Uses the locally maintained TxPool to check
  * for pending transactions in the transaction pool.
  * @param {Config} conf Config object.
  * @param {TransactionRequest} txRequest
@@ -151,7 +152,6 @@ const hasPendingPool = async (
   txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
-  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   let validPending: ITxPoolTxDetails[] = [];
 
   try{
@@ -175,14 +175,13 @@ const hasPendingPool = async (
 };
 
 /**
- * Uses the Geth specific RPC request `txpool_content` to search
- * for pending transactions in the transaction pool.
+ * Checks that pending transactions in the transaction pool have valid gasPrices.
  * @param {Config} conf Config object.
  * @param {TransactionReceipt} transaction Ethereum transaction receipt
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = (networkPrice: BigNumber, transaction: any, minPrice?: any) => {
+const hasValidGasPrice = (networkPrice: BigNumber, transaction: ITxPoolTxDetails, minPrice?: BigNumber) => {
   if (minPrice) {
     return minPrice.valueOf() === transaction.gasPrice.valueOf();
   }
@@ -197,7 +196,7 @@ const hasValidGasPrice = (networkPrice: BigNumber, transaction: any, minPrice?: 
  * @param {string} type Type of pending request: claim,execute.
  * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
-const isOfType = (transaction: any, type?: string) => {
+const isOfType = (transaction: ITxPoolTxDetails, type?: string) => {
   if (transaction && !type) {
     return true;
   }
@@ -212,6 +211,7 @@ const isOfType = (transaction: any, type?: string) => {
  * @param {string} type (optional) Type of pending request: claim,execute.
  * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
  * @param {number} minPrice (optional) Expected gasPrice to compare.
+ * @returns {Promise<boolean>} True if a pending transaction to this address exists.
  */
 const hasPending = async (
   conf: Config,
