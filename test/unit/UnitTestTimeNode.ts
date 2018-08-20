@@ -65,7 +65,7 @@ describe('TimeNode Unit Tests', () => {
 
   describe('getClaimedNotExecutedTransactions()', () => {
     it('returns 0 when no transactions', () => {
-      const txs = timenode.getClaimedNotExecutedTransactions();
+      const txs = timenode.getClaimedNotExecutedTransactions()[myAccount];
       assert.equal(txs[0].length, 0);
     });
 
