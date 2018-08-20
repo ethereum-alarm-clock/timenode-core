@@ -9,7 +9,7 @@ describe('package.json', () => {
     const deps = Object.keys(packageJSON.dependencies).map(key => packageJSON.dependencies[key]);
     deps.forEach(depVersion => {
       nonExactPrefixes.forEach(badPrefix => {
-        expect(depVersion.includes(badPrefix)).to.be.false;
+        expect(depVersion.includes(badPrefix)).to.be.false; // tslint:disable-line no-unused-expression
       });
     });
   });
@@ -19,7 +19,7 @@ describe('package.json', () => {
     );
     deps.forEach(depVersion => {
       nonExactPrefixes.forEach(badPrefix => {
-        expect(depVersion.includes(badPrefix)).to.be.false;
+        expect(depVersion.includes(badPrefix)).to.be.false; // tslint:disable-line no-unused-expression
       });
     });
   });

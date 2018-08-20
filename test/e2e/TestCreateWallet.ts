@@ -12,12 +12,12 @@ if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('CreateWallet', () => {
     it('creates a new wallet', () => {
       const wallet = createWallet(web3, 1, filename, password);
-      expect(wallet).to.exist;
+      expect(wallet).to.exist; // tslint:disable-line no-unused-expression
     });
 
     it('creates a new encrypted wallet', () => {
       const encWallet = createWalletKeystore(web3, 1, filename, password);
-      expect(encWallet).to.exist;
+      expect(encWallet).to.exist; // tslint:disable-line no-unused-expression
     });
   });
 }

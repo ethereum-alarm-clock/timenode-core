@@ -6,19 +6,7 @@ export function calcEndowment(
   amountToSend: BigNumber = new BigNumber(0),
   gasPrice: BigNumber = new BigNumber(0),
   fee: BigNumber = new BigNumber(0),
-  payment: BigNumber = new BigNumber(0),
+  payment: BigNumber = new BigNumber(0)
 ) {
-  const {
-    Util: { calcEndowment },
-  } = eac;
-
-  const endowment = calcEndowment(
-    gasAmount,
-    amountToSend,
-    gasPrice,
-    fee,
-    payment
-  );
-
-  return endowment;
+  return eac.Util.calcEndowment(gasAmount, amountToSend, gasPrice, fee, payment);
 }

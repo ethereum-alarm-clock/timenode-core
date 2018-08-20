@@ -5,7 +5,7 @@ if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('Config', () => {
     it('creates a config from standard params', () => {
       const config = mockConfig();
-      expect(config).to.exist;
+      expect(config).to.exist; // tslint:disable-line no-unused-expression
     }).timeout(10000);
   });
 }

@@ -85,7 +85,9 @@ const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
     async now(): Promise<BigNumber> {
       return new BigNumber(isBlock ? new BigNumber(currentBlockNumber) : moment().unix());
     },
-    async refreshData(): Promise<any> {},
+    async refreshData(): Promise<any> {
+      return true;
+    },
     executeData: '',
     isCancelled: false
   };
@@ -98,7 +100,7 @@ const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxReques
 
   if (status === TxStatus.ClaimWindow) {
     const claimWindowStart =
-      tx.temporalUnit == 1
+      tx.temporalUnit === 1
         ? 0
         : moment()
             .subtract(1, 'hour')
@@ -117,7 +119,7 @@ const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxReques
 
   if (status === TxStatus.Executed) {
     const windowStarts =
-      tx.temporalUnit == 1
+      tx.temporalUnit === 1
         ? 0
         : moment()
             .subtract(1, 'week')
@@ -127,14 +129,14 @@ const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxReques
     tx.wasCalled = true;
     tx.claimWindowStart = new BigNumber(windowStarts);
     tx.windowStart = new BigNumber(windowStarts);
-    if (tx.temporalUnit == 1) {
+    if (tx.temporalUnit === 1) {
       tx.windowSize = new BigNumber(windowStarts);
     }
   }
 
   if (status === TxStatus.Missed) {
     const windowStarts =
-      tx.temporalUnit == 1
+      tx.temporalUnit === 1
         ? 0
         : moment()
             .subtract(1, 'week')
@@ -142,7 +144,7 @@ const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxReques
 
     tx.claimWindowStart = new BigNumber(windowStarts);
     tx.windowStart = new BigNumber(windowStarts);
-    if (tx.temporalUnit == 1) {
+    if (tx.temporalUnit === 1) {
       tx.windowSize = new BigNumber(windowStarts);
     }
   }
