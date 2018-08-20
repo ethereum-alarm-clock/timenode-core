@@ -120,7 +120,7 @@ describe('hasPendingGeth()', () => {
   it('Detects valid Pending requests (geth)', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'geth', noPool: true, gasPrice });
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), { checkGasPrice: true });
     assert(pending);
   });
 });
@@ -129,7 +129,7 @@ describe('hasPending()', () => {
   it('Unknown clients defaults to false', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: '', noPool: true, gasPrice });
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), { checkGasPrice: true });
     assert.isFalse(pending);
   });
 });
@@ -150,6 +150,7 @@ describe('Pending Unit Tests', () => {
     await Promise.all(
       testConfigs.map(async conf => {
         const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
+          checkGasPrice: true,
           type: 'claim'
         });
         results.push(pending);
@@ -173,6 +174,7 @@ describe('Pending Unit Tests', () => {
     await Promise.all(
       testConfigs.map(async conf => {
         const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
+          checkGasPrice: true,
           type: 'claim'
         });
         results.push(pending);
@@ -197,6 +199,7 @@ describe('Pending Unit Tests', () => {
     await Promise.all(
       testConfigs.map(async conf => {
         const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
+          checkGasPrice: true,
           type: 'claim'
         });
         results.push(pending);
@@ -220,6 +223,7 @@ describe('Pending Unit Tests', () => {
     await Promise.all(
       testConfigs.map(async conf => {
         const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
+          checkGasPrice: true,
           type: 'execute'
         });
         results.push(pending);
@@ -243,6 +247,7 @@ describe('Pending Unit Tests', () => {
     await Promise.all(
       testConfigs.map(async conf => {
         const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
+          checkGasPrice: true,
           type: 'execute'
         });
         results.push(pending);
@@ -267,6 +272,7 @@ describe('Pending Unit Tests', () => {
     await Promise.all(
       testConfigs.map(async conf => {
         const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice: minPrice }), {
+          checkGasPrice: true,
           type: 'execute',
           minPrice
         });
