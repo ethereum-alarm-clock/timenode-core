@@ -30,7 +30,7 @@ export class StatsDB {
   // Takes an array of addresses and stores them as new stats objects.
   public initialize(accounts: string[]) {
     accounts.forEach(account => {
-      const found = this.collection.find({ account })[0];
+      const found = this.getStats(account);
       if (found) {
         found.bounties = new BigNumber(found.bounties || 0);
         found.costs = new BigNumber(found.costs || 0);
@@ -51,7 +51,7 @@ export class StatsDB {
 
   // Takes the account which has claimed a transaction.
   public updateClaimed(account: string, cost: BigNumber) {
-    const found = this.collection.find({ account })[0];
+    const found = this.getStats(account);
     found.claimed += 1;
     found.costs = found.costs.plus(cost);
 
@@ -60,7 +60,7 @@ export class StatsDB {
 
   // Takes the account which has executed a transaction.
   public updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
-    const found = this.collection.find({ account })[0];
+    const found = this.getStats(account);
 
     if (!found) {
       return;
@@ -81,7 +81,7 @@ export class StatsDB {
   }
 
   public addFailedClaim(account: string, transactionAddress: string) {
-    const found = this.collection.find({ account })[0];
+    const found = this.getStats(account);
 
     if (!found) {
       return;
@@ -101,7 +101,7 @@ export class StatsDB {
   }
 
   public async incrementDiscovered(account: string) {
-    const found = this.collection.find({ account })[0];
+    const found = this.getStats(account);
 
     if (!found) {
       return;
@@ -112,14 +112,19 @@ export class StatsDB {
     this.collection.update(found);
   }
 
-  // Gets the stats
-  // @returns an array of the DB objs
-  public getStats() {
+  public getStats(account?: string) {
+    if (account) {
+      return this.collection.find({ account })[0];
+    }
     return this.collection.data;
   }
 
   public clearStats() {
-    this.collection.clear();
+    try {
+      this.collection.clear();
+    } catch (error) {
+      throw error;
+    }
   }
 
   public resetStats(accounts: string[]) {

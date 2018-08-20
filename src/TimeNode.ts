@@ -79,7 +79,7 @@ export default class TimeNode {
 
   public getUnsucessfullyClaimedTransactions(): string[] {
     const account = this.config.wallet.getAddresses()[0];
-    const stats = this.config.statsDb.getStats().find((stat: any) => stat.account === account);
+    const stats = this.config.statsDb.getStats(account);
 
     return stats.failedClaims;
   }
