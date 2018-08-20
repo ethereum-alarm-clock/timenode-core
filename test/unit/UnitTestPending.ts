@@ -111,7 +111,7 @@ describe('hasPendingParity()', () => {
   it('Detects valid Pending requests (parity)', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(mockConfig(), { client: 'parity', noPool: true, gasPrice });
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {});
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), { checkGasPrice: true });
     assert(pending);
   });
 });

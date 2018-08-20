@@ -46,12 +46,13 @@ const hasPendingParity = (
             return;
           }
 
+          const currentGasPrice: BigNumber = await conf.util.networkGasPrice();
           for (const count of Object.keys(res.result)) {
             if (res.result[count].to === txRequest.address) {
               const withValidGasPrice =
                 res.result[count] &&
                 (!opts.checkGasPrice ||
-                  (await hasValidGasPrice(conf, res.result[count], opts.minPrice)));
+                  (await hasValidGasPrice(currentGasPrice, res.result[count], opts.minPrice)));
               if (
                 res.result[count] &&
                 isOfType(res.result[count], opts.type) &&
@@ -106,6 +107,7 @@ const hasPendingGeth = (
             return;
           }
 
+          const currentGasPrice: BigNumber = await conf.util.networkGasPrice();
           for (const account of Object.keys(res.result.pending)) {
             for (const nonce in res.result.pending[account]) {
               if (res.result.pending[account][nonce].to === txRequest.address) {
@@ -113,7 +115,7 @@ const hasPendingGeth = (
                   res.result.pending[account][nonce] &&
                   (!opts.checkGasPrice ||
                     (await hasValidGasPrice(
-                      conf,
+                      currentGasPrice,
                       res.result.pending[account][nonce],
                       opts.minPrice
                     )));
