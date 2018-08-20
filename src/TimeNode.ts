@@ -91,7 +91,7 @@ export default class TimeNode {
 
     for (const account of accounts) {
       const stats = this.config.statsDb.getStats().find((stat: any) => stat.account === account);
-      unsuccessfulClaims[account] = stats.failedClaims;
+      unsuccessfulClaims[account] = stats.failedClaims ? stats.failedClaims : [];
     }
 
     return unsuccessfulClaims;
