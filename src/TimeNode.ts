@@ -63,30 +63,37 @@ export default class TimeNode {
 
   public getClaimedNotExecutedTransactions(): object {
     const cachedTransactionsAddresses = this.config.cache.stored();
-    const timenodeAddresses = this.config.wallet.getAddresses();
+    const accounts = this.config.wallet.getAddresses();
 
-    const transactions: {} = {};
-    for (const account of timenodeAddresses) {
-      transactions[account] = [];
+    const claimedPendingExecution: {} = {};
+
+    for (const account of accounts) {
+      claimedPendingExecution[account] = [];
     }
 
     for (const address of cachedTransactionsAddresses) {
       const cachedTx = this.config.cache.get(address);
 
-      const claimerIndex = timenodeAddresses.indexOf(cachedTx.claimedBy);
+      const claimerIndex = accounts.indexOf(cachedTx.claimedBy);
       if (claimerIndex !== -1 && !cachedTx.wasCalled) {
         const claimer = this.config.wallet.getAddresses()[claimerIndex];
-        transactions[claimer].push(address);
+        claimedPendingExecution[claimer].push(address);
       }
     }
 
-    return transactions;
+    return claimedPendingExecution;
   }
 
-  public getUnsucessfullyClaimedTransactions(): string[] {
-    const account = this.config.wallet.getAddresses()[0];
-    const stats = this.config.statsDb.getStats().find((stat: any) => stat.account === account);
+  public getUnsucessfullyClaimedTransactions(): object {
+    const accounts = this.config.wallet.getAddresses();
 
-    return stats.failedClaims;
+    const unsuccessfulClaims: {} = {};
+
+    for (const account of accounts) {
+      const stats = this.config.statsDb.getStats().find((stat: any) => stat.account === account);
+      unsuccessfulClaims[account] = stats.failedClaims;
+    }
+
+    return unsuccessfulClaims;
   }
 }
