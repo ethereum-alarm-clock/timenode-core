@@ -9,7 +9,7 @@ describe('TimeNode Unit Tests', () => {
 
   it('initializes a basic timenode', () => {
     timenode = new TimeNode(config);
-    expect(timenode).to.exist;
+    expect(timenode).to.exist; // tslint:disable-line no-unused-expression
   });
 
   describe('startScanning()', () => {
@@ -53,7 +53,7 @@ describe('TimeNode Unit Tests', () => {
         networkLogged = true;
       };
 
-      timenode.config.web3.version.getNetwork = (callback: Function) => {
+      timenode.config.web3.version.getNetwork = (callback: (err: any, res: any) => void) => {
         callback(null, true);
       };
 

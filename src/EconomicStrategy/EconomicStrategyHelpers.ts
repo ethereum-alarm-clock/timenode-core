@@ -166,12 +166,10 @@ const getExecutionGasPrice = async (txRequest: ITxRequest, config: Config): Prom
  * @param {Config} config Configuration object.
  */
 const shouldExecuteTx = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
-  const isClaimedByMe = config.wallet.getAddresses().indexOf(txRequest.claimedBy) !== -1;
-
   const gasPrice = await this.getExecutionGasPrice(txRequest, config);
   const gasAmount = config.util.calculateGasAmount(txRequest);
   const reimbursement = txRequest.gasPrice.times(gasAmount);
-  const deposit = isClaimedByMe ? txRequest.requiredDeposit : new BigNumber(0);
+  const deposit = txRequest.requiredDeposit;
 
   const paymentModifier = await txRequest.claimPaymentModifier();
   const reward = txRequest.bounty.times(paymentModifier);

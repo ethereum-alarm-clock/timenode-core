@@ -16,7 +16,7 @@ export default class W3Util {
       .round();
   }
 
-  public estimateGas(opts: any): Promise<any> {
+  public estimateGas(opts: any): Promise<number> {
     return new Promise((resolve, reject) => {
       this.web3.eth.estimateGas(opts, (e: any, r: any) => {
         if (e) {
@@ -28,7 +28,7 @@ export default class W3Util {
     });
   }
 
-  public networkGasPrice(): Promise<any> {
+  public networkGasPrice(): Promise<BigNumber> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getGasPrice((e: any, r: any) => {
         if (e) {
@@ -40,7 +40,7 @@ export default class W3Util {
     });
   }
 
-  public getReceipt(txHash: any): Promise<any> {
+  public getReceipt(txHash: string): Promise<any> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => {
         if (e) {
@@ -52,7 +52,7 @@ export default class W3Util {
     });
   }
 
-  public getBlockNumber(): Promise<any> {
+  public getBlockNumber(): Promise<number> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getBlockNumber((e: any, r: any) => {
         if (e) {
