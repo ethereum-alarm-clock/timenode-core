@@ -75,7 +75,8 @@ export default class TimeNode {
 
       const claimerIndex = timenodeAddresses.indexOf(cachedTx.claimedBy);
       if (claimerIndex !== -1 && !cachedTx.wasCalled) {
-        transactions[this.config.wallet.getAddresses[claimerIndex]].push(address);
+        const claimer = this.config.wallet.getAddresses()[claimerIndex];
+        transactions[claimer].push(address);
       }
     }
 
