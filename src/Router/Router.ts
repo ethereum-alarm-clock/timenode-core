@@ -1,10 +1,10 @@
 import Actions from '../Actions';
 import Config from '../Config';
-import { TxStatus, ClaimStatus, ExecuteStatus } from '../Enum';
+import { TxStatus, ClaimStatus, ExecuteStatus, EconomicStrategyStatus } from '../Enum';
 import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
-import { ITxRequest } from '../Types';
+import { Address, ITxRequest } from '../Types';
 
 export default class Router {
   public actions: Actions;
@@ -25,14 +25,14 @@ export default class Router {
     this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(this);
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = this.missed.bind(this);
-    this.transitions[TxStatus.Done] = (txRequest: any) => {
+    this.transitions[TxStatus.Done] = (txRequest: ITxRequest) => {
       this.config.logger.info('Finished. Deleting from cache...', txRequest.address);
       this.config.cache.del(txRequest.address);
       return TxStatus.Done;
     };
   }
 
-  public async beforeClaimWindow(txRequest: any): Promise<TxStatus> {
+  public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
     if (txRequest.isCancelled) {
       // TODO Status.CleanUp?
       return TxStatus.Executed;
@@ -45,19 +45,24 @@ export default class Router {
     return TxStatus.ClaimWindow;
   }
 
-  public async claimWindow(txRequest: any): Promise<TxStatus> {
+  public async claimWindow(txRequest: ITxRequest): Promise<TxStatus> {
     if (!(await txRequest.inClaimWindow()) || txRequest.isClaimed) {
       return TxStatus.FreezePeriod;
     }
 
     if (this.config.claiming) {
-      const shouldClaim = await shouldClaimTx(txRequest, this.config);
+      const nextAccount: Address = this.config.wallet.nextAccount.getAddressString();
+      const shouldClaimStatus: EconomicStrategyStatus = await shouldClaimTx(
+        txRequest,
+        this.config,
+        nextAccount
+      );
 
-      if (shouldClaim) {
+      if (shouldClaimStatus === EconomicStrategyStatus.CLAIM) {
         try {
-          const claimingStatus: ClaimStatus = await this.actions.claim(txRequest);
+          const claimingStatus: ClaimStatus = await this.actions.claim(txRequest, nextAccount);
 
-          this.handleClaimingResult(claimingStatus, txRequest);
+          this.handleWalletTransactionResult(claimingStatus, txRequest);
 
           if (claimingStatus === ClaimStatus.SUCCESS || claimingStatus === ClaimStatus.FAILED) {
             return TxStatus.FreezePeriod;
@@ -67,7 +72,7 @@ export default class Router {
           throw new Error(err);
         }
       } else {
-        this.config.logger.info('Not profitable to claim.', txRequest.address);
+        this.config.logger.info(`Claiming: Skipped - ${shouldClaimStatus}`, txRequest.address);
         this.config.logger.debug(
           `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
         );
@@ -77,7 +82,7 @@ export default class Router {
     return TxStatus.ClaimWindow;
   }
 
-  public async freezePeriod(txRequest: any): Promise<TxStatus> {
+  public async freezePeriod(txRequest: ITxRequest): Promise<TxStatus> {
     if (await txRequest.inFreezePeriod()) {
       return TxStatus.FreezePeriod;
     }
@@ -89,12 +94,12 @@ export default class Router {
     return TxStatus.FreezePeriod;
   }
 
-  public async inReservedWindowAndNotClaimedLocally(txRequest: any): Promise<boolean> {
+  public async inReservedWindowAndNotClaimedLocally(txRequest: ITxRequest): Promise<boolean> {
     const inReserved = await txRequest.inReservedWindow();
     return inReserved && txRequest.isClaimed && !this.isLocalClaim(txRequest);
   }
 
-  public async executionWindow(txRequest: any): Promise<TxStatus> {
+  public async executionWindow(txRequest: ITxRequest): Promise<TxStatus> {
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
     }
@@ -112,18 +117,14 @@ export default class Router {
       try {
         const executionStatus: ExecuteStatus = await this.actions.execute(txRequest);
 
+        this.handleWalletTransactionResult(executionStatus, txRequest);
+
         if (executionStatus === ExecuteStatus.SUCCESS) {
-          this.config.logger.info('EXECUTED.', txRequest.address);
-
           return TxStatus.Executed;
-        } else {
-          this.config.logger.debug(`Error: ${executionStatus}`, txRequest.address);
         }
-      } catch (e) {
-        this.config.logger.error('Execution failed.', txRequest.address);
-
-        //TODO handle gracefully?
-        throw new Error(e);
+      } catch (err) {
+        this.config.logger.error(err, txRequest.address);
+        throw new Error(err);
       }
     } else {
       this.config.logger.info('Not profitable to execute. Gas price too high.', txRequest.address);
@@ -132,7 +133,7 @@ export default class Router {
     return TxStatus.ExecutionWindow;
   }
 
-  public async executed(txRequest: any): Promise<TxStatus> {
+  public async executed(): Promise<TxStatus> {
     /**
      * We don't cleanup because cleanup needs refactor according to latest logic in EAC
      * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
@@ -144,18 +145,19 @@ export default class Router {
     return TxStatus.Done;
   }
 
-  public async missed(txRequest: any): Promise<TxStatus> {
+  public async missed(): Promise<TxStatus> {
     // TODO cleanup
     return TxStatus.Done;
   }
 
-  public async isTransactionMissed(txRequest: any): Promise<boolean> {
-    const afterExecutionWindow =
-      parseInt(txRequest.executionWindowEnd, 10) <= parseInt(await txRequest.now(), 10);
-    return Boolean(afterExecutionWindow && !txRequest.wasCalled);
+  public async isTransactionMissed(txRequest: ITxRequest): Promise<boolean> {
+    const now = await txRequest.now();
+    const afterExecutionWindow = txRequest.executionWindowEnd.lessThanOrEqualTo(now);
+
+    return afterExecutionWindow && !txRequest.wasCalled;
   }
 
-  public isLocalClaim(txRequest: any): boolean {
+  public isLocalClaim(txRequest: ITxRequest): boolean {
     const localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
 
     if (!localClaim) {
@@ -187,18 +189,31 @@ export default class Router {
     return nextStatus;
   }
 
-  private handleClaimingResult(claimingStatus: ClaimStatus, txRequest: any): void {
-    switch (claimingStatus) {
+  private handleWalletTransactionResult(
+    status: ClaimStatus | ExecuteStatus,
+    txRequest: ITxRequest
+  ): void {
+    switch (status) {
       case ClaimStatus.SUCCESS:
         this.config.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case ClaimStatus.WALLET_BUSY:
+      case ExecuteStatus.SUCCESS:
+        this.config.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
+        break;
+      case ClaimStatus.ACCOUNT_BUSY:
       case ClaimStatus.NOT_ENABLED:
       case ClaimStatus.PENDING:
-        this.config.logger.info(claimingStatus, txRequest.address);
+      case ExecuteStatus.WALLET_BUSY:
+      case ExecuteStatus.PENDING:
+        this.config.logger.info(status, txRequest.address);
         break;
       case ClaimStatus.FAILED:
-        this.config.logger.error(claimingStatus, txRequest.address);
+      case ExecuteStatus.FAILED:
+        this.config.logger.error(status, txRequest.address);
+        break;
+      case ClaimStatus.IN_PROGRESS:
+      case ExecuteStatus.IN_PROGRESS:
+        // skip logging this status
         break;
     }
   }

@@ -1,4 +1,4 @@
-import { IBlock } from './Types';
+import { IBlock, ITxRequest } from './Types';
 import BigNumber from 'bignumber.js';
 
 export default class W3Util {
@@ -8,7 +8,7 @@ export default class W3Util {
     this.web3 = web3;
   }
 
-  public calculateGasAmount(txRequest: any): BigNumber {
+  public calculateGasAmount(txRequest: ITxRequest): BigNumber {
     return txRequest.callGas
       .add(180000)
       .div(64)
