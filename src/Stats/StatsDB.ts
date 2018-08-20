@@ -63,12 +63,7 @@ export class StatsDB {
       return;
     }
 
-    // Only increment executed if transaction was actually executed, we check by
-    // seeing if any bounty was paid. Otherwise, don't increment.
-    if (bounty !== new BigNumber(0)) {
-      found.executed += 1;
-    }
-
+    found.executed += 1;
     found.executedTransactions.push({ timestamp: Date.now() });
 
     found.bounties = found.bounties.plus(bounty);
@@ -77,24 +72,12 @@ export class StatsDB {
     this.db.getCollection(COLLECTION_NAME).update(found);
   }
 
+  public addFailedExecution(account: string, transactionAddress: string) {
+    this.update(account, 'failedExecutions', transactionAddress);
+  }
+
   public addFailedClaim(account: string, transactionAddress: string) {
-    const found = this.db.getCollection(COLLECTION_NAME).find({ account })[0];
-
-    if (!found) {
-      return;
-    }
-
-    if (!found.failedClaims) {
-      found.failedClaims = [];
-    }
-
-    if (found.failedClaims.indexOf(transactionAddress) !== -1) {
-      return;
-    }
-
-    found.failedClaims.push(transactionAddress);
-
-    this.db.getCollection(COLLECTION_NAME).update(found);
+    this.update(account, 'failedClaims', transactionAddress);
   }
 
   public async incrementDiscovered(account: string) {
@@ -113,5 +96,25 @@ export class StatsDB {
   // @returns an array of the DB objs
   public getStats() {
     return this.db.getCollection(COLLECTION_NAME).data;
+  }
+
+  private update(account: string, table: string, value: string) {
+    const found = this.db.getCollection(COLLECTION_NAME).find({ account })[0];
+
+    if (!found) {
+      return;
+    }
+
+    if (!found[table]) {
+      found[table] = [];
+    }
+
+    if (found.failedClaims.indexOf(value) !== -1) {
+      return;
+    }
+
+    found.failedClaims.push(value);
+
+    this.db.getCollection(COLLECTION_NAME).update(found);
   }
 }

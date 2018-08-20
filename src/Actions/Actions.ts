@@ -130,12 +130,14 @@ export default class Actions implements IActions {
       bounty = this.config.web3.toDecimal(data.slice(0, 66));
 
       this.config.cache.get(txRequest.address).wasCalled = true;
+      this.config.statsDb.updateExecuted(from, bounty, cost);
     } else {
       // If not executed, must add the gas cost into cost. Otherwise, TimeNode was
       // reimbursed for gas.
       const gasUsed = new BigNumber(receipt.gasUsed);
       const gasPrice = new BigNumber(opts.gasPrice);
       cost = gasUsed.mul(gasPrice);
+      this.config.statsDb.addFailedExecution(from, receipt.address);
     }
 
     this.config.statsDb.updateExecuted(from, bounty, cost);
