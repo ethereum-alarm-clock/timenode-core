@@ -39,13 +39,13 @@ describe('Actions Unit Tests', async () => {
 
     const tx = await MockTxRequest(config.web3);
 
-    assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
-    assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 0);
+    assert.equal(timenode.getClaimedNotExecutedTransactions()[0].length, 0);
+    assert.equal(timenode.getUnsucessfullyClaimedTransactions()[0].length, 0);
 
     const nextAccount = config.wallet.nextAccount.getAddressString();
     const claimingResult = await actions.claim(tx, nextAccount);
 
-    assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
+    assert.equal(timenode.getClaimedNotExecutedTransactions()[0].length, 0);
     assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 1);
 
     assert.equal(claimingResult, ClaimStatus.FAILED);
