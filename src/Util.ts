@@ -107,4 +107,16 @@ export default class W3Util {
       })
     })
   }
+
+  public stopFilter (filter: any): Promise<boolean> {
+    return new Promise<boolean> ((resolve, reject) => {
+      filter.stopWatching((err: any, res: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      })
+    })
+  }
 }

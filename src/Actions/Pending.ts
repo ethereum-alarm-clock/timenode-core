@@ -152,7 +152,6 @@ const hasPendingPool = (
   opts: PendingOpts
 ): Promise<boolean> => {
   opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
-  const provider = conf.web3.currentProvider;
 
   return new Promise( async (resolve, reject) => {
     const validPending = await conf.txPool.pool.get(txRequest.address, 'to')
@@ -227,7 +226,6 @@ const hasPending = async (
   opts: PendingOpts
 ): Promise<boolean> => {
   let result = false;
-    console.log('pending', conf.txPool)
   if (conf.txPool && conf.txPool.running()) {
     result = await hasPendingPool(conf, txRequest, opts)
   } else if (conf.client === 'parity') {

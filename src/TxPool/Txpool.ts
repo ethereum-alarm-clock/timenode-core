@@ -1,18 +1,26 @@
 import Config from '../Config';
 import { Pool, ITxPoolTxDetails } from './Pool';
 import W3Util from '../Util';
+import Cache, { ICachedTxDetails } from '../Cache';
 
 const SCAN_INTERVAL = 5000;
 
 export default class TxPool {
     public config: Config;
-    public logger: any;
     public pool: any = [];
     public subs: any = {};
   
     constructor(config: Config) {
       this.config = config;
       this.pool = new Pool();
+    }
+
+    public get cache (): Cache<ICachedTxDetails> {
+        return this.config.cache;
+    }
+
+    public get logger (): any {
+        return this.config.logger;
     }
 
     public get util (): W3Util {
@@ -30,33 +38,43 @@ export default class TxPool {
         await this.watchPending();
         await this.watchLatest();
         await this.clearMined();
+        this.logger.debug('TxPool started');
     }
 
     public async stop () {
         if (this.subs.pending) {
-            await this.subs.pending.stopWatching();
+            try {
+                await this.util.stopFilter(this.subs.pending);
+            } catch (e) {
+                this.logger.error(e);
+        }
         }
         if (this.subs.latest) {
-            await this.subs.latest.stopWatching();
+            try {
+                await this.util.stopFilter(this.subs.latest);
+            } catch (e) {
+                this.logger.error(e);
+        }
         }
         if (this.subs.mined) {
             clearInterval(this.subs.mined);
         }
         this.pool.wipe();
         this.subs = {};
+        this.logger.debug('TxPool stopped');
     }
 
     public async watchPending () {
         this.subs.pending = await this.config.web3.eth.filter('pending');
         this.subs.pending.watch( async (err: any, res: any) => {
             if (err) {
-                return this.config.logger.error(err);
+                return this.logger.error(err);
             }
 
             if (this.pool.preSet(res)){
                 try {
                     const tx:any = await this.util.getTransaction(res);
-                    if (!tx || tx.blockNumber || tx.blockHash) {
+                    if (!tx || tx.blockNumber || tx.blockHash || !this.cache.has(tx.to)) {
                         return this.pool.del(res);
                     }
 
@@ -73,7 +91,7 @@ export default class TxPool {
                         this.pool.set(res, poolDetails);
                     }
                 } catch (e) {
-                    return this.config.logger.error(e);
+                    return this.logger.error(e);
                 }
             }
         })

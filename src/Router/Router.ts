@@ -9,7 +9,6 @@ import { Address, ITxRequest } from '../Types';
 export default class Router {
   public actions: Actions;
   public config: Config;
-  public util: W3Util;
   public txRequestStates: object = {};
 
   public transitions: object = {};
@@ -17,7 +16,6 @@ export default class Router {
   constructor(config: Config, actions: any) {
     this.actions = actions;
     this.config = config;
-    this.util = config.util;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
@@ -31,6 +29,10 @@ export default class Router {
       return TxStatus.Done;
     };
   }
+
+  public get util (): W3Util {
+    return this.config.util;
+  } 
 
   public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
     if (txRequest.isCancelled) {
