@@ -8,9 +8,7 @@ import { IBlock, IntervalId, ITxRequest } from '../Types';
 import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
-import { BigNumber } from 'bignumber.js';
 import { ITxRequestRaw } from '../Types/ITxRequest';
-import { map } from 'bluebird';
 import IRouter from '../Router';
 
 export default class {
@@ -234,13 +232,11 @@ export default class {
     return true;
   }
 
-  // TODO meaningful return value
   public async scanCache(): Promise<CacheStates> {
     if (this.config.cache.isEmpty()) {
       return CacheStates.EMPTY; // 1 = cache is empty
     }
 
-    // Get all transaction requests stored in cache and turn them into TransactionRequest objects.
     const routingRequests = this.config.cache
       .stored()
       .filter((address: string) => this.config.cache.get(address))

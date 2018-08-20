@@ -5,20 +5,21 @@ import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
 import { Address, ITxRequest } from '../Types';
+import IActions from '../Actions';
 
 export default interface IRouter {
   route(txRequest: ITxRequest): Promise<TxStatus>;
 }
 
 export default class Router implements IRouter {
-  public actions: Actions;
+  public actions: IActions;
   public config: Config;
   public util: W3Util;
   public txRequestStates: object = {};
 
   public transitions: object = {};
 
-  constructor(config: Config, actions: any) {
+  constructor(config: Config, actions: IActions) {
     this.actions = actions;
     this.config = config;
     this.util = config.util;
