@@ -57,7 +57,7 @@
     "@types/chai": "4.1.4",
     "@types/ethereumjs-tx": "1.0.0",
     "@types/lokijs": "1.5.2",
-    "@types/node": "10.7.0",
+    "@types/node": "10.7.1",
     "bluebird": "3.5.1",
     "chai": "4.1.2",
     "coveralls": "3.0.2",
@@ -71,7 +71,7 @@
     "prettier": "1.14.2",
     "ts-node": "6.2.0",
     "tslint": "5.10.0",
-    "tslint-config-prettier": "1.14.0",
+    "tslint-config-prettier": "1.15.0",
     "tslint-microsoft-contrib": "5.2.0",
     "web3": "0.20.6",
     "websocket": "1.0.26"
