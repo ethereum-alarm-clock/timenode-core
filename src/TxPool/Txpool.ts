@@ -7,7 +7,7 @@ const SCAN_INTERVAL = 5000;
 
 export default class TxPool {
     public config: Config;
-    public pool: any = [];
+    public pool: Pool;
     public subs: any = {};
   
     constructor(config: Config) {
