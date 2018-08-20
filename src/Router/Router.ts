@@ -1,4 +1,3 @@
-import Actions from '../Actions';
 import Config from '../Config';
 import { TxStatus, ClaimStatus, ExecuteStatus, EconomicStrategyStatus } from '../Enum';
 import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';

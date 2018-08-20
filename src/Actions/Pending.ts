@@ -1,6 +1,4 @@
-import Cache from '../Cache';
 import { FnSignatures } from '../Enum';
-import { ITxRequest } from '../Types';
 import BigNumber from 'bignumber.js';
 import { ITxRequestPending } from '../Types/ITxRequest';
 
