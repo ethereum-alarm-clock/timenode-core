@@ -4,11 +4,11 @@ import { StatsDB } from '../../src/Stats';
 import { assert } from 'chai';
 
 describe('Stats Unit Tests', () => {
-  const account_1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
-  const account_2: string = '0x0054a7eef4dc5d729115c71cba074151b3d41804';
+  const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
+  const account2: string = '0x0054a7eef4dc5d729115c71cba074151b3d41804';
 
-  const tx_1: string = '0xaa55bf414ecef0285dcece4ddf78a0ee8beb6707';
-  const tx_2: string = '0x9b7b4a8fdafda1b688c22fcb6f4bc97ed29ff676';
+  const tx1: string = '0xaa55bf414ecef0285dcece4ddf78a0ee8beb6707';
+  const tx2: string = '0x9b7b4a8fdafda1b688c22fcb6f4bc97ed29ff676';
   let stats: StatsDB;
 
   const reset = async () => {
@@ -19,23 +19,23 @@ describe('Stats Unit Tests', () => {
 
   describe('discovered()', () => {
     it('inserts discovered', async () => {
-      stats.discovered(account_1, tx_1);
-      stats.discovered(account_2, tx_1);
+      stats.discovered(account1, tx1);
+      stats.discovered(account2, tx1);
 
-      const account_1Discovered = stats.getDiscovered(account_1);
+      const discoveredAccount1 = stats.getDiscovered(account1);
 
-      assert.lengthOf(account_1Discovered, 1);
+      assert.lengthOf(discoveredAccount1, 1);
     });
 
     it('selects unique discovered', async () => {
-      stats.discovered(account_1, tx_1);
-      stats.discovered(account_1, tx_1);
-      stats.discovered(account_1, tx_1);
-      stats.discovered(account_2, tx_1);
+      stats.discovered(account1, tx1);
+      stats.discovered(account1, tx1);
+      stats.discovered(account1, tx1);
+      stats.discovered(account2, tx1);
 
-      const account_1Discovered = stats.getDiscovered(account_1);
+      const discoveredAccount1 = stats.getDiscovered(account1);
 
-      assert.lengthOf(account_1Discovered, 1);
+      assert.lengthOf(discoveredAccount1, 1);
     });
   });
 
@@ -44,30 +44,30 @@ describe('Stats Unit Tests', () => {
       const cost = new BigNumber(10);
       const expectedBounty = new BigNumber(0);
 
-      stats.claimed(account_1, tx_1, cost, true);
-      stats.claimed(account_2, tx_2, cost, true);
+      stats.claimed(account1, tx1, cost, true);
+      stats.claimed(account2, tx2, cost, true);
 
-      const successfulClaims = stats.getSuccessfulClaims(account_1);
+      const successfulClaimsAccount1 = stats.getSuccessfulClaims(account1);
 
-      assert.lengthOf(successfulClaims, 1);
-      assert.equal(successfulClaims[0].from, account_1);
-      assert.equal(successfulClaims[0].txAddress, tx_1);
+      assert.lengthOf(successfulClaimsAccount1, 1);
+      assert.equal(successfulClaimsAccount1[0].from, account1);
+      assert.equal(successfulClaimsAccount1[0].txAddress, tx1);
 
-      assert.isTrue(successfulClaims[0].cost.equals(cost));
-      assert.isTrue(successfulClaims[0].bounty.equals(expectedBounty));
+      assert.isTrue(successfulClaimsAccount1[0].cost.equals(cost));
+      assert.isTrue(successfulClaimsAccount1[0].bounty.equals(expectedBounty));
     });
 
     it('inserts and selects failed claims', async () => {
       const cost = new BigNumber(10);
 
-      stats.claimed(account_1, tx_1, cost, true);
-      stats.claimed(account_2, tx_2, cost, false);
+      stats.claimed(account1, tx1, cost, true);
+      stats.claimed(account2, tx2, cost, false);
 
-      const failedClaims_1 = stats.getFailedClaims(account_1);
-      const failedClaims_2 = stats.getFailedClaims(account_2);
+      const failedClaimsAccount1 = stats.getFailedClaims(account1);
+      const failedClaimsAccount2 = stats.getFailedClaims(account2);
 
-      assert.lengthOf(failedClaims_1, 0);
-      assert.lengthOf(failedClaims_2, 1);
+      assert.lengthOf(failedClaimsAccount1, 0);
+      assert.lengthOf(failedClaimsAccount2, 1);
     });
   });
 
@@ -76,31 +76,31 @@ describe('Stats Unit Tests', () => {
       const cost = new BigNumber(10);
       const bounty = new BigNumber(15);
 
-      stats.executed(account_1, tx_1, cost, bounty, true);
-      stats.executed(account_2, tx_2, cost, bounty, true);
+      stats.executed(account1, tx1, cost, bounty, true);
+      stats.executed(account2, tx2, cost, bounty, true);
 
-      const successfulExecutions = stats.getSuccessfulExecutions(account_1);
+      const successfulExecutionsAccount1 = stats.getSuccessfulExecutions(account1);
 
-      assert.lengthOf(successfulExecutions, 1);
-      assert.equal(successfulExecutions[0].from, account_1);
-      assert.equal(successfulExecutions[0].txAddress, tx_1);
+      assert.lengthOf(successfulExecutionsAccount1, 1);
+      assert.equal(successfulExecutionsAccount1[0].from, account1);
+      assert.equal(successfulExecutionsAccount1[0].txAddress, tx1);
 
-      assert.isTrue(successfulExecutions[0].cost.equals(cost));
-      assert.isTrue(successfulExecutions[0].bounty.equals(bounty));
+      assert.isTrue(successfulExecutionsAccount1[0].cost.equals(cost));
+      assert.isTrue(successfulExecutionsAccount1[0].bounty.equals(bounty));
     });
 
     it('inserts and selects failed executions', async () => {
       const cost = new BigNumber(10);
       const bounty = new BigNumber(0);
 
-      stats.executed(account_1, tx_1, cost, bounty, true);
-      stats.executed(account_2, tx_2, cost, bounty, false);
+      stats.executed(account1, tx1, cost, bounty, true);
+      stats.executed(account2, tx2, cost, bounty, false);
 
-      const failedExecutions_1 = stats.getFailedExecutions(account_1);
-      const failedExecutions_2 = stats.getFailedExecutions(account_2);
+      const failedExecutionsAccount1 = stats.getFailedExecutions(account1);
+      const failedExecutionsAccount2 = stats.getFailedExecutions(account2);
 
-      assert.lengthOf(failedExecutions_1, 0);
-      assert.lengthOf(failedExecutions_2, 1);
+      assert.lengthOf(failedExecutionsAccount1, 0);
+      assert.lengthOf(failedExecutionsAccount2, 1);
     });
   });
 });
