@@ -1,4 +1,4 @@
-import { assert } from 'chai';
+import { expect, assert } from 'chai';
 import BigNumber from 'bignumber.js';
 import { Pool } from '../../src/TxPool/Pool';
 import TxPool from '../../src/TxPool';
