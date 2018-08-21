@@ -11,7 +11,12 @@ import { CacheStates } from '../Enum';
 import { ITxRequestRaw } from '../Types/ITxRequest';
 import IRouter from '../Router';
 
-export default class {
+export interface IScanner {
+  start(): Promise<boolean>;
+  stop(): boolean;
+}
+
+export default class Scanner implements IScanner {
   public config: Config;
   public util: W3Util;
   public scanning: boolean;
@@ -52,20 +57,6 @@ export default class {
     this.bucketCalc = new BucketCalc(config, this.requestFactory);
   }
 
-  public async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
-    const wrapped = async () => {
-      try {
-        await fn();
-      } catch (e) {
-        this.config.logger.error(e);
-      }
-    };
-
-    await wrapped();
-
-    return setInterval(wrapped, interval);
-  }
-
   public async start(): Promise<boolean> {
     if (!this.config.clientSet()) {
       await this.config.awaitClientSet();
@@ -95,77 +86,6 @@ export default class {
     }
 
     return this.scanning;
-  }
-
-  /**
-   * Performs four checks:
-   *  - The TxRequest is before claim window.
-   *  - The TxRequest is in claim window.
-   *  - The TxRequest is in freeze period.
-   *  - The TxRequest is in execution window.
-   * These are the four conditions in which the TxRequest is upcoming,
-   * and should be stored in a TimeNodes cache.
-   * @param txRequest Transaction Request Object
-   */
-  public async isUpcoming(txRequest: ITxRequest): Promise<boolean> {
-    return (
-      (await txRequest.beforeClaimWindow()) ||
-      (await txRequest.inClaimWindow()) ||
-      (await txRequest.inFreezePeriod()) ||
-      (await txRequest.inExecutionWindow())
-    );
-  }
-
-  public handleRequest(request: ITxRequestRaw): void {
-    if (!this.isValid(request.address)) {
-      throw new Error(`[${request.address}] NOT VALID`);
-    }
-
-    this.config.logger.info('Discovered.', request.address);
-    if (!this.config.cache.has(request.address)) {
-      this.store(request);
-
-      this.config.wallet.getAddresses().forEach((address: Address) => {
-        this.config.statsDb.incrementDiscovered(address);
-      });
-    }
-  }
-
-  public async stopWatcher(bucket: Bucket) {
-    try {
-      const watcher = this.eventWatchers[bucket];
-      if (watcher !== undefined) {
-        const reqFactory = await this.requestFactory;
-        await reqFactory.stopWatch(watcher);
-        delete this.eventWatchers[bucket];
-
-        this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been stopped`);
-      }
-    } catch (err) {
-      this.config.logger.error(`Buckets: Stopping bucket=${bucket} watching failed!`);
-    }
-  }
-
-  public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<number> {
-    const reqFactory = await this.requestFactory;
-    const handleRequest = this.handleRequest.bind(this);
-    let currentBucket = previousBucket;
-
-    if (bucket !== previousBucket) {
-      await this.stopWatcher(previousBucket);
-
-      try {
-        const watcher = await reqFactory.watchRequestsByBucket(bucket, handleRequest);
-        this.eventWatchers[bucket] = watcher;
-        currentBucket = bucket;
-
-        this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
-      } catch (err) {
-        this.config.logger.error(`Buckets: Starting bucket=${bucket} watching failed!`);
-      }
-    }
-
-    return currentBucket;
   }
 
   public async watchBlockchain(): Promise<void> {
@@ -231,5 +151,89 @@ export default class {
       wasCalled: false,
       windowStart: txRequest.params[7]
     });
+  }
+
+  private handleRequest(request: ITxRequestRaw): void {
+    if (!this.isValid(request.address)) {
+      throw new Error(`[${request.address}] NOT VALID`);
+    }
+
+    this.config.logger.info('Discovered.', request.address);
+    if (!this.config.cache.has(request.address)) {
+      this.store(request);
+
+      this.config.wallet.getAddresses().forEach((address: Address) => {
+        this.config.statsDb.incrementDiscovered(address);
+      });
+    }
+  }
+
+  /**
+   * Performs four checks:
+   *  - The TxRequest is before claim window.
+   *  - The TxRequest is in claim window.
+   *  - The TxRequest is in freeze period.
+   *  - The TxRequest is in execution window.
+   * These are the four conditions in which the TxRequest is upcoming,
+   * and should be stored in a TimeNodes cache.
+   * @param txRequest Transaction Request Object
+   */
+  private async isUpcoming(txRequest: ITxRequest): Promise<boolean> {
+    return (
+      (await txRequest.beforeClaimWindow()) ||
+      (await txRequest.inClaimWindow()) ||
+      (await txRequest.inFreezePeriod()) ||
+      (await txRequest.inExecutionWindow())
+    );
+  }
+
+  private async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
+    const wrapped = async () => {
+      try {
+        await fn();
+      } catch (e) {
+        this.config.logger.error(e);
+      }
+    };
+
+    await wrapped();
+    return setInterval(wrapped, interval);
+  }
+
+  private async stopWatcher(bucket: Bucket) {
+    try {
+      const watcher = this.eventWatchers[bucket];
+      if (watcher !== undefined) {
+        const reqFactory = await this.requestFactory;
+        await reqFactory.stopWatch(watcher);
+        delete this.eventWatchers[bucket];
+
+        this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been stopped`);
+      }
+    } catch (err) {
+      this.config.logger.error(`Buckets: Stopping bucket=${bucket} watching failed!`);
+    }
+  }
+
+  private async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<number> {
+    const reqFactory = await this.requestFactory;
+    const handleRequest = this.handleRequest.bind(this);
+    let currentBucket = previousBucket;
+
+    if (bucket !== previousBucket) {
+      await this.stopWatcher(previousBucket);
+
+      try {
+        const watcher = await reqFactory.watchRequestsByBucket(bucket, handleRequest);
+        this.eventWatchers[bucket] = watcher;
+        currentBucket = bucket;
+
+        this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
+      } catch (err) {
+        this.config.logger.error(`Buckets: Starting bucket=${bucket} watching failed!`);
+      }
+    }
+
+    return currentBucket;
   }
 }
