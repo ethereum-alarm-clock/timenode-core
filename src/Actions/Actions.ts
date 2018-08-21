@@ -7,6 +7,7 @@ import { ExecuteStatus, ClaimStatus } from '../Enum';
 import { getExecutionGasPrice } from '../EconomicStrategy';
 import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ITxRequest, Address } from '../Types';
+import { stat } from 'fs';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -96,8 +97,7 @@ export default class Actions implements IActions {
 
       switch (status) {
         case TxSendErrors.OK:
-          await this.handleSuccessfulExecution(txRequest, receipt, opts, from);
-          return ExecuteStatus.SUCCESS;
+          return await this.handleSuccessfulExecution(txRequest, receipt, opts, from);
         case TxSendErrors.WALLET_BUSY:
           return ExecuteStatus.WALLET_BUSY;
         case TxSendErrors.IN_PROGRESS:
@@ -119,9 +119,10 @@ export default class Actions implements IActions {
     receipt: any,
     opts: any,
     from: string
-  ): Promise<void> {
+  ): Promise<ExecuteStatus> {
     let bounty = new BigNumber(0);
     let cost = new BigNumber(0);
+    let status;
 
     if (isExecuted(receipt)) {
       await txRequest.refreshData();
@@ -130,15 +131,16 @@ export default class Actions implements IActions {
       bounty = this.config.web3.toDecimal(data.slice(0, 66));
 
       this.config.cache.get(txRequest.address).wasCalled = true;
+      status = ExecuteStatus.SUCCESS;
     } else {
-      // If not executed, must add the gas cost into cost. Otherwise, TimeNode was
-      // reimbursed for gas.
       const gasUsed = new BigNumber(receipt.gasUsed);
       const gasPrice = new BigNumber(opts.gasPrice);
       cost = gasUsed.mul(gasPrice);
+      status = ExecuteStatus.FAILED;
     }
 
     this.config.statsDb.updateExecuted(from, bounty, cost);
+    return status;
   }
 
   private async hasPendingExecuteTransaction(txRequest: ITxRequest): Promise<boolean> {
