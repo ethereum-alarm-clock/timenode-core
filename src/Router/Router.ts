@@ -13,7 +13,6 @@ export default interface IRouter {
 export default class Router implements IRouter {
   public actions: IActions;
   public config: Config;
-  public util: W3Util;
   public txRequestStates: object = {};
 
   public transitions: object = {};
@@ -21,7 +20,6 @@ export default class Router implements IRouter {
   constructor(config: Config, actions: IActions) {
     this.actions = actions;
     this.config = config;
-    this.util = config.util;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
@@ -35,6 +33,10 @@ export default class Router implements IRouter {
       return TxStatus.Done;
     };
   }
+
+  public get util (): W3Util {
+    return this.config.util;
+  } 
 
   public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
     if (txRequest.isCancelled) {

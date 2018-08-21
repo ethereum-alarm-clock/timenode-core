@@ -9,6 +9,7 @@ import { Bucket, IBucketPair, IBuckets, BucketCalc, IBucketCalc } from '../Bucke
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
 import { ITxRequestRaw } from '../Types/ITxRequest';
+import TxPool from '../TxPool';
 import IRouter from '../Router';
 
 export interface IScanner {
@@ -22,6 +23,7 @@ export default class Scanner implements IScanner {
   public scanning: boolean;
   public router: IRouter;
   public requestFactory: Promise<any>;
+  public txPool: TxPool;
 
   // Child Scanners, tracked by the ID of their interval
   public cacheScanner: IntervalId;
@@ -53,6 +55,7 @@ export default class Scanner implements IScanner {
     this.util = config.util;
     this.scanning = false;
     this.router = router;
+    this.txPool = config.txPool;
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config, this.requestFactory);
   }
@@ -65,6 +68,8 @@ export default class Scanner implements IScanner {
       throw new Error('TimeNode is only supported using WebSockets. Use a wss:// provider!');
     }
 
+    await this.txPool.start();
+    
     this.cacheScanner = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
     this.chainScanner = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
 
@@ -79,6 +84,9 @@ export default class Scanner implements IScanner {
       // Clear scanning intervals.
       clearInterval(this.cacheScanner);
       clearInterval(this.chainScanner);
+
+      this.txPool.stop();
+
 
       // Mark that we've stopped.
       this.config.logger.info('Scanner STOPPED');
@@ -102,8 +110,8 @@ export default class Scanner implements IScanner {
     if (!this.config.cache.has(request.address)) {
       this.store(request);
 
-      this.config.wallet.getAddresses().forEach((address: Address) => {
-        this.config.statsDb.incrementDiscovered(address);
+      this.config.wallet.getAddresses().forEach((from: Address) => {
+        this.config.statsDb.discovered(from, request.address);
       });
     }
   }
