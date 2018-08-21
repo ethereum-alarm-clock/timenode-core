@@ -1,7 +1,7 @@
 import { ILogger } from '../Logger';
 import BigNumber from 'bignumber.js';
 
-interface IPool {
+export interface IPool {
   [id: string]: boolean | ITxPoolTxDetails;
 }
 
