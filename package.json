@@ -13,7 +13,7 @@
     "lint": "tslint --project .",
     "lint-fix": "tslint --fix --project .",
     "precommit": "lint-staged",
-    "postinstall": "npm run build",
+    "prepack": "npm run build",
     "test": "npm run test:e2e && npm run test:unit",
     "test:e2e": "mocha --timeout 50000 -r ts-node/register test/e2e/*.ts --exit",
     "test:unit": "mocha --timeout 50000 -r ts-node/register test/unit/*.ts --exit",
