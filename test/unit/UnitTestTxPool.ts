@@ -45,8 +45,8 @@ describe('TxPool unit tests', () => {
   describe('constructor()', () => {
     it('Instantiates new pool', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
-      assert.exists(txPool.pool);
-      assert.exists(txPool.config);
+      expect(txPool.pool).to.exist;
+      expect(txPool.config).to.exist;
     });
   })
 
@@ -55,9 +55,9 @@ describe('TxPool unit tests', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
       await txPool.start();
       
-      assert.exists(txPool.subs.pending);
-      assert.exists(txPool.subs.latest);
-      assert.exists(txPool.subs.mined);
+      expect(txPool.subs.pending).to.exist;
+      expect(txPool.subs.latest).to.exist;
+      expect(txPool.subs.mined).to.exist;
     });
   })
 
@@ -125,7 +125,7 @@ describe('TxPool unit tests', () => {
       const expected: any = [];
 
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
-      for( var i = 0; i < count; i++) {
+      for( let i = 0; i < count; i++) {
         txPool.pool.set(TRANSACTIONS[i], mockTxDetails({
           transactionHash : TRANSACTIONS[i],
           from: ADDRESSES[i],
