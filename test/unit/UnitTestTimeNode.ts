@@ -5,6 +5,7 @@ import { BigNumber } from 'bignumber.js';
 
 describe('TimeNode Unit Tests', () => {
   const config: Config = mockConfig();
+  const myAccount = config.wallet.getAddresses()[0];
   let timenode: TimeNode;
 
   it('initializes a basic timenode', () => {
@@ -64,7 +65,7 @@ describe('TimeNode Unit Tests', () => {
 
   describe('getClaimedNotExecutedTransactions()', () => {
     it('returns 0 when no transactions', () => {
-      const txs = timenode.getClaimedNotExecutedTransactions();
+      const txs = timenode.getClaimedNotExecutedTransactions()[myAccount];
       assert.equal(txs.length, 0);
     });
 
@@ -77,14 +78,14 @@ describe('TimeNode Unit Tests', () => {
       };
       config.cache.set('tx', tx);
 
-      const txs = timenode.getClaimedNotExecutedTransactions();
+      const txs = timenode.getClaimedNotExecutedTransactions()[myAccount];
       assert.equal(txs.length, 1);
     });
   });
 
   describe('getUnsucessfullyClaimedTransactions()', () => {
     it('returns empty array when no failed claims', () => {
-      const txs = timenode.getUnsucessfullyClaimedTransactions();
+      const txs = timenode.getUnsucessfullyClaimedTransactions()[myAccount];
       assert.equal(txs.length, 0);
     });
 
@@ -93,7 +94,7 @@ describe('TimeNode Unit Tests', () => {
 
       config.statsDb.addFailedClaim(config.wallet.getAddresses()[0], failedClaimAddress);
 
-      const txs = timenode.getUnsucessfullyClaimedTransactions();
+      const txs = timenode.getUnsucessfullyClaimedTransactions()[myAccount];
       assert.equal(txs.length, 1);
 
       assert.deepEqual(txs, ['0xe87529a6123a74320e13a6dabf3606630683c029']);

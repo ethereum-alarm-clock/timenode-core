@@ -4,8 +4,8 @@ import Config from '../Config';
 declare const clearInterval: any;
 declare const setInterval: any;
 
-import { IBlock, IntervalId, ITxRequest } from '../Types';
-import { Bucket, IBucketPair, IBuckets, BucketSize } from '../Buckets';
+import { IBlock, IntervalId, ITxRequest, Address } from '../Types';
+import { Bucket, IBucketPair, IBuckets, BucketCalc, BucketSize, IBucketCalc } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
 import { ITxRequestRaw } from '../Types/ITxRequest';
@@ -21,6 +21,8 @@ export default class {
   // Child Scanners, tracked by the ID of their interval
   public cacheScanner: IntervalId;
   public chainScanner: IntervalId;
+
+  public bucketCalc: IBucketCalc;
 
   public buckets: IBuckets = {
     currentBuckets: {
@@ -47,6 +49,7 @@ export default class {
     this.scanning = false;
     this.router = router;
     this.requestFactory = config.eac.requestFactory();
+    this.bucketCalc = new BucketCalc(config, this.requestFactory);
   }
 
   public async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
@@ -113,35 +116,6 @@ export default class {
     );
   }
 
-  //TODO move this to requestFactory instance
-  public async getCurrentBuckets(latest: IBlock): Promise<IBucketPair> {
-    const reqFactory = await this.requestFactory;
-
-    return {
-      blockBucket: reqFactory.calcBucket(latest.number, 1),
-      timestampBucket: reqFactory.calcBucket(latest.timestamp, 2)
-    };
-  }
-
-  public async getNextBuckets(latest: IBlock): Promise<IBucketPair> {
-    const reqFactory = await this.requestFactory;
-    const nextBlockInterval = latest.number + BucketSize.block;
-    const nextTsInterval = latest.timestamp + BucketSize.timestamp;
-
-    return {
-      blockBucket: reqFactory.calcBucket(nextBlockInterval, 1),
-      timestampBucket: reqFactory.calcBucket(nextTsInterval, 2)
-    };
-  }
-
-  public async getBuckets(): Promise<IBuckets> {
-    const latest: IBlock = await this.util.getBlock('latest');
-    return {
-      currentBuckets: await this.getCurrentBuckets(latest),
-      nextBuckets: await this.getNextBuckets(latest)
-    };
-  }
-
   public handleRequest(request: ITxRequestRaw): void {
     if (!this.isValid(request.address)) {
       throw new Error(`[${request.address}] NOT VALID`);
@@ -151,7 +125,9 @@ export default class {
     if (!this.config.cache.has(request.address)) {
       this.store(request);
 
-      this.config.statsDb.incrementDiscovered(this.config.wallet.getAddresses()[0]);
+      this.config.wallet.getAddresses().forEach((address: Address) => {
+        this.config.statsDb.incrementDiscovered(address);
+      });
     }
   }
 
@@ -193,7 +169,7 @@ export default class {
   }
 
   public async watchBlockchain(): Promise<void> {
-    const buckets = await this.getBuckets();
+    const buckets = await this.bucketCalc.getBuckets();
 
     this.config.logger.debug(`Buckets: before current buckets=${JSON.stringify(this.buckets)}`);
 
