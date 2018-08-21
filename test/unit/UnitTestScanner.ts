@@ -70,8 +70,8 @@ describe('Scanner Unit Tests', () => {
       await scanner.start();
       await scanner.stop();
       assert.isNotTrue(scanner.scanning);
-      assert.equal(scanner.cacheInterval, null);
-      assert.equal(scanner.chainInterval, null);
+      assert.equal(scanner.cacheInterval[0], null);
+      assert.equal(scanner.chainInterval[0], null);
     }).timeout(5000);
   });
 
