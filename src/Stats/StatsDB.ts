@@ -1,16 +1,12 @@
 import BigNumber from 'bignumber.js';
 
-declare const require: any;
-
-const COLLECTION_NAME: string = 'timenode-stats';
-
-export enum StatsEntryAction {
+enum StatsEntryAction {
   Discover,
   Claim,
   Execute
 }
 
-export enum StatsEntryResult {
+enum StatsEntryResult {
   NOK,
   OK
 }
@@ -26,17 +22,22 @@ export interface IStatsEntry {
 }
 
 export class StatsDB {
-  public db: any;
+  private COLLECTION_NAME: string = 'timenode-stats';
+  private db: any;
 
   constructor(db: any) {
     this.db = db;
 
     if (!this.collection) {
-      this.db.addCollection(COLLECTION_NAME);
+      this.db.addCollection(this.COLLECTION_NAME);
     }
   }
 
   public discovered(from: string, txAddress: string) {
+    if (this.exists(from, txAddress, StatsEntryAction.Discover)) {
+      return;
+    }
+
     this.insert({
       from,
       txAddress,
@@ -48,16 +49,66 @@ export class StatsDB {
     });
   }
 
+  public claimed(from: string, txAddress: string, cost: BigNumber, success: boolean) {
+    this.insert({
+      from,
+      txAddress,
+      timestamp: new Date().getTime(),
+      action: StatsEntryAction.Claim,
+      cost,
+      bounty: new BigNumber(0),
+      result: success ? StatsEntryResult.OK : StatsEntryResult.NOK
+    });
+  }
+
+  public executed(
+    from: string,
+    txAddress: string,
+    cost: BigNumber,
+    bounty: BigNumber,
+    success: boolean
+  ) {
+    this.insert({
+      from,
+      txAddress,
+      timestamp: new Date().getTime(),
+      action: StatsEntryAction.Execute,
+      cost,
+      bounty,
+      result: success ? StatsEntryResult.OK : StatsEntryResult.NOK
+    });
+  }
+
+  public getFailedExecutions(from: string): IStatsEntry[] {
+    return this.select(from, StatsEntryAction.Execute, StatsEntryResult.NOK);
+  }
+
+  public getSuccessfulExecutions(from: string): IStatsEntry[] {
+    return this.select(from, StatsEntryAction.Execute, StatsEntryResult.OK);
+  }
+
+  public getFailedClaims(from: string): IStatsEntry[] {
+    return this.select(from, StatsEntryAction.Claim, StatsEntryResult.NOK);
+  }
+
+  public getSuccessfulClaims(from: string): IStatsEntry[] {
+    return this.select(from, StatsEntryAction.Claim, StatsEntryResult.OK);
+  }
+
   public getDiscovered(from: string): IStatsEntry[] {
     return this.select(from, StatsEntryAction.Discover, StatsEntryResult.OK);
   }
 
   private get collection() {
-    return this.db.getCollection(COLLECTION_NAME);
+    return this.db.getCollection(this.COLLECTION_NAME);
   }
 
-  public select(from: string, action: StatsEntryAction, result: StatsEntryResult): IStatsEntry[] {
+  private select(from: string, action: StatsEntryAction, result: StatsEntryResult): IStatsEntry[] {
     return this.collection.find({ from, action, result });
+  }
+
+  private exists(from: string, txAddress: string, action: StatsEntryAction): boolean {
+    return this.collection.find({ from, txAddress, action }).length >= 1;
   }
 
   private insert(entry: IStatsEntry) {
