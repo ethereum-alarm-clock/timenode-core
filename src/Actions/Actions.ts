@@ -7,7 +7,6 @@ import { ExecuteStatus, ClaimStatus } from '../Enum';
 import { getExecutionGasPrice } from '../EconomicStrategy';
 import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ITxRequest, Address } from '../Types';
-import { stat } from 'fs';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
