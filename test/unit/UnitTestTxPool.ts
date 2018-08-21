@@ -1,4 +1,5 @@
 import { expect, assert } from 'chai';
+import BigNumber from 'bignumber.js';
 import { Pool } from '../../src/TxPool/Pool';
 import TxPool from '../../src/TxPool';
 import { Config } from '../../src';
@@ -26,6 +27,18 @@ const TRANSACTIONS = [
   '0x733b185fdb6f77d07de61d6fd77f4854102f6fc935c9b8a5a45365adae0bc859',
   '0xad08860f3d0c9b0f22b6a48f01b992d2c614dc94e8c19fd21d8dc9a007038e0d'
 ]
+
+const mockTxDetails = (opts: any) => {
+  opts.gasPrice = opts.gasPrice || 0x20;
+  return {
+    transactionHash : opts.transactionHash || 0x0,
+    gasPrice: new BigNumber(opts.gasPrice),
+    from: opts.from || 0x0,
+    to: opts.to || 0x0,
+    input: opts.input || '0x0',
+    timestamp: opts.input || new Date().getTime()
+  }
+}
 
 
 describe('TxPool unit tests', () => {
@@ -68,16 +81,6 @@ describe('TxPool unit tests', () => {
   })
 
   describe('TxPool flow', () => {
-    it('has()', async () => {
-      const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
-
-      txPool.pool.pool[tx] = {
-        transactionHash : tx
-      }
-
-      expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
-    })
 
     it('preSet()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
@@ -90,11 +93,16 @@ describe('TxPool unit tests', () => {
 
     it('set()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
+      const from = ADDRESSES[Math.floor(Math.random()*TRANSACTIONS.length)];
+      const to = ADDRESSES[Math.floor(Math.random()*TRANSACTIONS.length)];
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
-      txPool.pool.set(tx, {
-        transactionHash : tx
-      })
+      txPool.pool.set(tx, mockTxDetails({
+        transactionHash : tx,
+        gasPrice: new BigNumber(0x20),
+        from,
+        to,
+      }))
 
       expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
     });
@@ -104,9 +112,11 @@ describe('TxPool unit tests', () => {
 
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
       for( var i = 0; i < count; i++) {
-        txPool.pool.set(TRANSACTIONS[i], {
-          transactionHash : TRANSACTIONS[i]
-        })
+        txPool.pool.set(TRANSACTIONS[i], mockTxDetails({
+          transactionHash : TRANSACTIONS[i],
+          from: ADDRESSES[i],
+          to: ADDRESSES[i]
+        }))
       }
 
       expect(txPool.pool.length()).to.be.equal(count);
@@ -118,9 +128,11 @@ describe('TxPool unit tests', () => {
 
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
       for( var i = 0; i < count; i++) {
-        txPool.pool.set(TRANSACTIONS[i], {
-          transactionHash : TRANSACTIONS[i]
-        })
+        txPool.pool.set(TRANSACTIONS[i], mockTxDetails({
+          transactionHash : TRANSACTIONS[i],
+          from: ADDRESSES[i],
+          to: ADDRESSES[i]
+        }))
         expected.push(TRANSACTIONS[i]);
       }
 
@@ -131,9 +143,9 @@ describe('TxPool unit tests', () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*10)];
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
-      txPool.pool.pool[tx] = {
+      txPool.pool.pool[tx] = mockTxDetails({
         transactionHash : tx
-      }
+      })
 
       expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
       txPool.pool.del(tx);
@@ -144,9 +156,9 @@ describe('TxPool unit tests', () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
-      txPool.pool.set(tx, {
+      txPool.pool.set(tx, mockTxDetails({
         transactionHash : tx
-      })
+      }))
 
       expect(txPool.pool.length()).to.equal(1);
 

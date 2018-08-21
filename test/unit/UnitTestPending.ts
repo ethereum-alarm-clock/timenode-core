@@ -59,6 +59,7 @@ const pendingTx = (opts?: any) => {
 };
 
 const preConfig = (config: Config, opt?: any) => {
+  opt.noPool = opt.noPool === false ? opt.noPool : true;
   if (opt.noPool) {
     config.txPool.stop();
   }
@@ -143,8 +144,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.claim }),
-        noPool: true
+        provider: new Provider({ input: FnSignatures.claim })
       })
     );
     await Promise.all(
@@ -167,8 +167,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.execute }),
-        noPool: true
+        provider: new Provider({ input: FnSignatures.execute })
       })
     );
     await Promise.all(
@@ -192,8 +191,7 @@ describe('Pending Unit Tests', () => {
         client,
         gasPrice,
         netGasPrice: 15 * 1e13,
-        provider: new Provider({ input: FnSignatures.claim }),
-        noPool: true
+        provider: new Provider({ input: FnSignatures.claim })
       })
     );
     await Promise.all(
@@ -216,8 +214,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.execute }),
-        noPool: true
+        provider: new Provider({ input: FnSignatures.execute })
       })
     );
     await Promise.all(
@@ -240,8 +237,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.claim }),
-        noPool: true
+        provider: new Provider({ input: FnSignatures.claim })
       })
     );
     await Promise.all(
@@ -265,8 +261,7 @@ describe('Pending Unit Tests', () => {
       preConfig(mockConfig(), {
         client,
         gasPrice,
-        provider: new Provider({ input: FnSignatures.execute }),
-        noPool: true
+        provider: new Provider({ input: FnSignatures.execute })
       })
     );
     await Promise.all(

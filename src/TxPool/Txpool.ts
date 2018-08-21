@@ -28,7 +28,7 @@ export default class TxPool {
     }
 
     public running () {
-        return !this.pool.isEmpty() || this.subs.pending || this.subs.latest;
+        return !this.pool.isEmpty() || !!this.subs.pending || !!this.subs.latest;
     }
 
     public async start () {

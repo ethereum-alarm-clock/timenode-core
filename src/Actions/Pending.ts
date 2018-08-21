@@ -154,7 +154,7 @@ const hasPendingPool = async (
   txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
-  let validPending: ITxPoolTxDetails[] = [];
+  let validPending: (boolean | ITxPoolTxDetails)[] = [];
 
   try{
     const currentGasPrice: BigNumber = await conf.util.networkGasPrice();
