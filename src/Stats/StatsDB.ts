@@ -2,133 +2,65 @@ import BigNumber from 'bignumber.js';
 
 declare const require: any;
 
-const COLLECTION_NAME: string = 'stats';
+const COLLECTION_NAME: string = 'timenode-stats';
 
-// Wrapper over *some* storage solution (we use lokijs) to keep track of TimeNode actions
+export enum StatsEntryAction {
+  Discover,
+  Claim,
+  Execute
+}
+
+export enum StatsEntryResult {
+  NOK,
+  OK
+}
+
+export interface IStatsEntry {
+  from: string;
+  txAddress: string;
+  timestamp: number;
+  action: StatsEntryAction;
+  cost: BigNumber;
+  bounty: BigNumber;
+  result: StatsEntryResult;
+}
+
 export class StatsDB {
   public db: any;
-  public eac: any;
-  public web3: any;
 
-  constructor(web3: any, db: any) {
+  constructor(db: any) {
     this.db = db;
-    this.web3 = web3;
-    // Must instantiate eac.js-lib like this for now for packaging to work.
-    this.eac = require('eac.js-lib')(web3);
 
-    const fetchedStats = this.collection;
-
-    if (!fetchedStats) {
+    if (!this.collection) {
       this.db.addCollection(COLLECTION_NAME);
     }
   }
 
-  public get collection() {
-    return this.db.getCollection(COLLECTION_NAME);
-  }
-
-  // Takes an array of addresses and stores them as new stats objects.
-  public initialize(accounts: string[]) {
-    accounts.forEach(account => {
-      const found = this.getStats(account);
-      if (found) {
-        found.bounties = new BigNumber(found.bounties || 0);
-        found.costs = new BigNumber(found.costs || 0);
-      } else {
-        this.collection.insert({
-          account,
-          claimed: 0,
-          discovered: 0,
-          executed: 0,
-          bounties: new BigNumber(0),
-          costs: new BigNumber(0),
-          executedTransactions: [],
-          failedClaims: []
-        });
-      }
+  public discovered(from: string, txAddress: string) {
+    this.insert({
+      from,
+      txAddress,
+      timestamp: new Date().getTime(),
+      action: StatsEntryAction.Discover,
+      cost: new BigNumber(0),
+      bounty: new BigNumber(0),
+      result: StatsEntryResult.OK
     });
   }
 
-  // Takes the account which has claimed a transaction.
-  public updateClaimed(account: string, cost: BigNumber) {
-    const found = this.getStats(account);
-    found.claimed += 1;
-    found.costs = found.costs.plus(cost);
-
-    this.collection.update(found);
+  public getDiscovered(from: string): IStatsEntry[] {
+    return this.select(from, StatsEntryAction.Discover, StatsEntryResult.OK);
   }
 
-  // Takes the account which has executed a transaction.
-  public updateExecuted(account: string, bounty: BigNumber, cost: BigNumber) {
-    const found = this.getStats(account);
-
-    if (!found) {
-      return;
-    }
-
-    // Only increment executed if transaction was actually executed, we check by
-    // seeing if any bounty was paid. Otherwise, don't increment.
-    if (bounty !== new BigNumber(0)) {
-      found.executed += 1;
-    }
-
-    found.executedTransactions.push({ timestamp: Date.now() });
-
-    found.bounties = found.bounties.plus(bounty);
-    found.costs = found.costs.plus(cost);
-
-    this.collection.update(found);
+  private get collection() {
+    return this.db.getCollection(COLLECTION_NAME);
   }
 
-  public addFailedClaim(account: string, transactionAddress: string) {
-    const found = this.getStats(account);
-
-    if (!found) {
-      return;
-    }
-
-    if (!found.failedClaims) {
-      found.failedClaims = [];
-    }
-
-    if (found.failedClaims.indexOf(transactionAddress) !== -1) {
-      return;
-    }
-
-    found.failedClaims.push(transactionAddress);
-
-    this.collection.update(found);
+  public select(from: string, action: StatsEntryAction, result: StatsEntryResult): IStatsEntry[] {
+    return this.collection.find({ from, action, result });
   }
 
-  public async incrementDiscovered(account: string) {
-    const found = this.getStats(account);
-
-    if (!found) {
-      return;
-    }
-
-    found.discovered += 1;
-
-    this.collection.update(found);
-  }
-
-  public getStats(account?: string) {
-    if (account) {
-      return this.collection.find({ account })[0];
-    }
-    return this.collection.data;
-  }
-
-  public clearStats() {
-    try {
-      this.collection.clear();
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  public resetStats(accounts: string[]) {
-    this.clearStats();
-    this.initialize(accounts);
+  private insert(entry: IStatsEntry) {
+    this.collection.insert(entry);
   }
 }
