@@ -45,8 +45,8 @@ describe('TxPool unit tests', () => {
   describe('constructor()', () => {
     it('Instantiates new pool', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
-      expect(txPool.pool).to.exist;
-      expect(txPool.config).to.exist;
+      assert.exists(txPool.pool);
+      assert.exists(txPool.config);
     });
   })
 
@@ -55,9 +55,9 @@ describe('TxPool unit tests', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
       await txPool.start();
       
-      expect(txPool.subs.pending).to.exist;
-      expect(txPool.subs.latest).to.exist;
-      expect(txPool.subs.mined).to.exist;
+      assert.exists(txPool.subs.pending);
+      assert.exists(txPool.subs.latest);
+      assert.exists(txPool.subs.mined);
     });
   })
 
@@ -84,9 +84,9 @@ describe('TxPool unit tests', () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
 
-      expect(txPool.pool.preSet(tx)).to.be.true;
+      assert.isTrue(txPool.pool.preSet(tx));
       expect(txPool.pool.get(tx, 'transactionHash')).to.deep.equal([true]);
-      expect(txPool.pool.preSet(tx)).to.be.false;
+      assert.isFalse(txPool.pool.preSet(tx));
     });
 
     it('set()', async () => {
@@ -102,7 +102,7 @@ describe('TxPool unit tests', () => {
         to,
       }))
 
-      expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
+      assert.isFalse(txPool.pool.has(tx, 'transactionHash'));
     });
 
     it('length()', async () => {
@@ -145,9 +145,9 @@ describe('TxPool unit tests', () => {
         transactionHash : tx
       })
 
-      expect(txPool.pool.has(tx, 'transactionHash')).to.be.true;
+      assert.isTrue(txPool.pool.has(tx, 'transactionHash'));
       txPool.pool.del(tx);
-      expect(txPool.pool.has(tx, 'transactionHash')).to.be.false;
+      assert.isFalse(txPool.pool.has(tx, 'transactionHash'));
     });
 
     it('wipe()', async () => {
@@ -161,7 +161,7 @@ describe('TxPool unit tests', () => {
       expect(txPool.pool.length()).to.equal(1);
 
       txPool.pool.wipe();
-      expect(txPool.pool.isEmpty()).to.be.true;
+      assert.isTrue(txPool.pool.isEmpty());
     });
 
   });
