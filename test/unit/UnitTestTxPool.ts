@@ -102,7 +102,7 @@ describe('TxPool unit tests', () => {
         to,
       }))
 
-      assert.isFalse(txPool.pool.has(tx, 'transactionHash'));
+      assert.isTrue(txPool.pool.has(tx, 'transactionHash'));
     });
 
     it('length()', async () => {
