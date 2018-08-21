@@ -88,71 +88,6 @@ export default class Scanner implements IScanner {
     return this.scanning;
   }
 
-  public async watchBlockchain(): Promise<void> {
-    const buckets = await this.bucketCalc.getBuckets();
-
-    this.config.logger.debug(`Buckets: before current buckets=${JSON.stringify(this.buckets)}`);
-
-    // Start watching the current buckets right away.
-    this.buckets.currentBuckets.blockBucket = await this.watchRequestsByBucket(
-      buckets.currentBuckets.blockBucket,
-      this.buckets.currentBuckets.blockBucket
-    );
-    this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
-      buckets.nextBuckets.blockBucket,
-      this.buckets.nextBuckets.blockBucket
-    );
-
-    this.buckets.currentBuckets.timestampBucket = await this.watchRequestsByBucket(
-      buckets.currentBuckets.timestampBucket,
-      this.buckets.currentBuckets.timestampBucket
-    );
-    this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
-      buckets.nextBuckets.timestampBucket,
-      this.buckets.nextBuckets.timestampBucket
-    );
-
-    this.config.logger.debug(`Buckets: after current buckets=${JSON.stringify(this.buckets)}`);
-  }
-
-  public isValid(requestAddress: string): boolean {
-    if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
-      this.config.logger.debug('Warning.. Transaction Request with NULL_ADDRESS found.');
-      return false;
-    } else if (!this.config.eac.Util.checkValidAddress(requestAddress)) {
-      // This should, conceivably, never happen unless there is a bug in eac.js-lib.
-      throw new Error(
-        `[${requestAddress}] Received invalid response from Request Tracker - CRITICAL BUG`
-      );
-    }
-    return true;
-  }
-
-  public async scanCache(): Promise<CacheStates> {
-    if (this.config.cache.isEmpty()) {
-      return CacheStates.EMPTY; // 1 = cache is empty
-    }
-
-    this.config.cache
-      .stored()
-      .filter((address: string) => this.config.cache.get(address))
-      .map((address: string) => this.config.eac.transactionRequest(address))
-      .forEach(async (txRequest: ITxRequest) => {
-        await txRequest.refreshData();
-        this.router.route(txRequest);
-      });
-
-    return CacheStates.REFRESHED; //0 = cache loaded successfully
-  }
-
-  public store(txRequest: ITxRequestRaw) {
-    this.config.cache.set(txRequest.address, {
-      claimedBy: null,
-      wasCalled: false,
-      windowStart: txRequest.params[7]
-    });
-  }
-
   private handleRequest(request: ITxRequestRaw): void {
     if (!this.isValid(request.address)) {
       throw new Error(`[${request.address}] NOT VALID`);
@@ -187,6 +122,19 @@ export default class Scanner implements IScanner {
     );
   }
 
+  private isValid(requestAddress: string): boolean {
+    if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
+      this.config.logger.debug('Warning.. Transaction Request with NULL_ADDRESS found.');
+      return false;
+    } else if (!this.config.eac.Util.checkValidAddress(requestAddress)) {
+      // This should, conceivably, never happen unless there is a bug in eac.js-lib.
+      throw new Error(
+        `[${requestAddress}] Received invalid response from Request Tracker - CRITICAL BUG`
+      );
+    }
+    return true;
+  }
+
   private async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
     const wrapped = async () => {
       try {
@@ -198,6 +146,23 @@ export default class Scanner implements IScanner {
 
     await wrapped();
     return setInterval(wrapped, interval);
+  }
+
+  private async scanCache(): Promise<CacheStates> {
+    if (this.config.cache.isEmpty()) {
+      return CacheStates.EMPTY; // 1 = cache is empty
+    }
+
+    this.config.cache
+      .stored()
+      .filter((address: string) => this.config.cache.get(address))
+      .map((address: string) => this.config.eac.transactionRequest(address))
+      .forEach(async (txRequest: ITxRequest) => {
+        await txRequest.refreshData();
+        this.router.route(txRequest);
+      });
+
+    return CacheStates.REFRESHED; //0 = cache loaded successfully
   }
 
   private async stopWatcher(bucket: Bucket) {
@@ -213,6 +178,41 @@ export default class Scanner implements IScanner {
     } catch (err) {
       this.config.logger.error(`Buckets: Stopping bucket=${bucket} watching failed!`);
     }
+  }
+
+  private store(txRequest: ITxRequestRaw) {
+    this.config.cache.set(txRequest.address, {
+      claimedBy: null,
+      wasCalled: false,
+      windowStart: txRequest.params[7]
+    });
+  }
+
+  private async watchBlockchain(): Promise<void> {
+    const buckets = await this.bucketCalc.getBuckets();
+
+    this.config.logger.debug(`Buckets: before current buckets=${JSON.stringify(this.buckets)}`);
+
+    // Start watching the current buckets right away.
+    this.buckets.currentBuckets.blockBucket = await this.watchRequestsByBucket(
+      buckets.currentBuckets.blockBucket,
+      this.buckets.currentBuckets.blockBucket
+    );
+    this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
+      buckets.nextBuckets.blockBucket,
+      this.buckets.nextBuckets.blockBucket
+    );
+
+    this.buckets.currentBuckets.timestampBucket = await this.watchRequestsByBucket(
+      buckets.currentBuckets.timestampBucket,
+      this.buckets.currentBuckets.timestampBucket
+    );
+    this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
+      buckets.nextBuckets.timestampBucket,
+      this.buckets.nextBuckets.timestampBucket
+    );
+
+    this.config.logger.debug(`Buckets: after current buckets=${JSON.stringify(this.buckets)}`);
   }
 
   private async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<number> {
