@@ -1,4 +1,4 @@
-import { expect, assert } from 'chai';
+import { assert } from 'chai';
 import BigNumber from 'bignumber.js';
 import { Pool } from '../../src/TxPool/Pool';
 import TxPool from '../../src/TxPool';
@@ -45,10 +45,8 @@ describe('TxPool unit tests', () => {
   describe('constructor()', () => {
     it('Instantiates new pool', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
-      expect(txPool.pool).to.exist;
-      expect(txPool.cache).to.exist;
-      expect(txPool.logger).to.exist;
-      expect(txPool.util).to.exist;
+      assert.exists(txPool.pool);
+      assert.exists(txPool.config);
     });
   })
 
@@ -57,9 +55,9 @@ describe('TxPool unit tests', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
       await txPool.start();
       
-      expect(txPool.subs.pending).to.exist;
-      expect(txPool.subs.latest).to.exist;
-      expect(txPool.subs.mined).to.exist;
+      assert.exists(txPool.subs.pending);
+      assert.exists(txPool.subs.latest);
+      assert.exists(txPool.subs.mined);
     });
   })
 
@@ -68,15 +66,15 @@ describe('TxPool unit tests', () => {
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
       await txPool.start();
       
-      expect(txPool.subs.pending).to.exist;
-      expect(txPool.subs.latest).to.exist;
-      expect(txPool.subs.mined).to.exist;
+      assert.exists(txPool.subs.pending);
+      assert.exists(txPool.subs.latest);
+      assert.exists(txPool.subs.mined);
 
       await txPool.stop();
       
-      expect(txPool.subs.pending).to.not.exist;
-      expect(txPool.subs.latest).to.not.exist;
-      expect(txPool.subs.mined).to.not.exist;
+      assert.notExists(txPool.subs.pending);
+      assert.notExists(txPool.subs.latest);
+      assert.notExists(txPool.subs.mined);
     });
   })
 
@@ -111,7 +109,7 @@ describe('TxPool unit tests', () => {
       const count = Math.floor( Math.random() * TRANSACTIONS.length );
 
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
-      for( var i = 0; i < count; i++) {
+      for( let i = 0; i < count; i++) {
         txPool.pool.set(TRANSACTIONS[i], mockTxDetails({
           transactionHash : TRANSACTIONS[i],
           from: ADDRESSES[i],
