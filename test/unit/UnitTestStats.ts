@@ -9,6 +9,7 @@ describe('Stats Unit Tests', () => {
 
   const tx1: string = '0xaa55bf414ecef0285dcece4ddf78a0ee8beb6707';
   const tx2: string = '0x9b7b4a8fdafda1b688c22fcb6f4bc97ed29ff676';
+  const tx3: string = '0x57f1b33b8b44689982ce7b3f560577e89375b2da';
   let stats: StatsDB;
 
   const reset = async () => {
@@ -203,6 +204,49 @@ describe('Stats Unit Tests', () => {
 
       assert.lengthOf(failedClaimsAccount1, 0);
       assert.lengthOf(failedClaimsAccount2, 0);
+    });
+  });
+
+  describe('totalBounties()', () => {
+    it('should sum up all bounties for the account', async () => {
+      const cost = new BigNumber(10);
+      const bounty = new BigNumber(15);
+
+      stats.executed(account1, tx1, cost, bounty, true);
+      stats.executed(account1, tx3, cost, bounty, true);
+      stats.executed(account2, tx2, cost, bounty, true);
+
+      const expectedAccount1Bounty = bounty.mul(2);
+      const expectedAccount2Bounty = bounty;
+
+      const totalBountiesAccount1 = stats.totalBounty(account1);
+      const totalBountiesAccount2 = stats.totalBounty(account2);
+
+      assert.isTrue(totalBountiesAccount1.equals(expectedAccount1Bounty));
+      assert.isTrue(totalBountiesAccount2.equals(expectedAccount2Bounty));
+    });
+  });
+
+  describe('totalCosts()', () => {
+    it('should sum up all costs for the account', async () => {
+      const cost = new BigNumber(10);
+      const bounty = new BigNumber(15);
+
+      stats.executed(account1, tx1, cost, bounty, false);
+      stats.executed(account1, tx3, cost, bounty, false);
+      stats.executed(account2, tx2, cost, bounty, false);
+
+      stats.claimed(account1, tx1, cost, true);
+      stats.claimed(account1, tx2, cost, false);
+
+      const expectedAccount1Cost = cost.mul(4); //2 executions 2claims
+      const expectedAccount2Cost = cost;
+
+      const totalCostAccount1 = stats.totalCost(account1);
+      const totalCostAccount2 = stats.totalCost(account2);
+
+      assert.isTrue(totalCostAccount1.equals(expectedAccount1Cost));
+      assert.isTrue(totalCostAccount2.equals(expectedAccount2Cost));
     });
   });
 });

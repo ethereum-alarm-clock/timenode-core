@@ -80,23 +80,23 @@ export class StatsDB {
   }
 
   public getFailedExecutions(from: string): IStatsEntry[] {
-    return this.select(from, StatsEntryAction.Execute, StatsEntryResult.NOK);
+    return this.select(from, StatsEntryAction.Execute, StatsEntryResult.NOK).data();
   }
 
   public getSuccessfulExecutions(from: string): IStatsEntry[] {
-    return this.select(from, StatsEntryAction.Execute, StatsEntryResult.OK);
+    return this.select(from, StatsEntryAction.Execute, StatsEntryResult.OK).data();
   }
 
   public getFailedClaims(from: string): IStatsEntry[] {
-    return this.select(from, StatsEntryAction.Claim, StatsEntryResult.NOK);
+    return this.select(from, StatsEntryAction.Claim, StatsEntryResult.NOK).data();
   }
 
   public getSuccessfulClaims(from: string): IStatsEntry[] {
-    return this.select(from, StatsEntryAction.Claim, StatsEntryResult.OK);
+    return this.select(from, StatsEntryAction.Claim, StatsEntryResult.OK).data();
   }
 
   public getDiscovered(from: string): IStatsEntry[] {
-    return this.select(from, StatsEntryAction.Discover, StatsEntryResult.OK);
+    return this.select(from, StatsEntryAction.Discover, StatsEntryResult.OK).data();
   }
 
   public clear(from: string) {
@@ -110,12 +110,29 @@ export class StatsDB {
     this.collection.clear();
   }
 
+  public totalCost(from: string) {
+    return this.collection
+      .chain()
+      .where((item: IStatsEntry) => item.from === from && item.cost.gt(0))
+      .mapReduce(
+        (item: IStatsEntry) => item.cost,
+        (costs: BigNumber[]) => costs.reduce((sum, cost) => sum.add(cost))
+      );
+  }
+
+  public totalBounty(from: string): BigNumber {
+    return this.select(from, StatsEntryAction.Execute, StatsEntryResult.OK).mapReduce(
+      (item: IStatsEntry) => item.bounty,
+      (bounties: BigNumber[]) => bounties.reduce((sum, bounty) => sum.add(bounty))
+    );
+  }
+
   private get collection() {
     return this.db.getCollection(this.COLLECTION_NAME);
   }
 
-  private select(from: string, action: StatsEntryAction, result: StatsEntryResult): IStatsEntry[] {
-    return this.collection.find({ from, action, result });
+  private select(from: string, action: StatsEntryAction, result: StatsEntryResult): any {
+    return this.collection.chain().find({ from, action, result });
   }
 
   private exists(from: string, txAddress: string, action: StatsEntryAction): boolean {
