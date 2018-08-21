@@ -15,15 +15,15 @@ export default class TxPool {
       this.pool = new Pool();
     }
 
-    public get cache (): Cache<ICachedTxDetails> {
+    private get cache (): Cache<ICachedTxDetails> {
         return this.config.cache;
     }
 
-    public get logger (): any {
+    private get logger (): any {
         return this.config.logger;
     }
 
-    public get util (): W3Util {
+    private get util (): W3Util {
         return this.config.util;
     }
 
