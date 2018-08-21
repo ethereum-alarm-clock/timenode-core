@@ -20,13 +20,6 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
   public scanning: boolean = false;
   public txPool: TxPool;
 
-  /**
-   * Creates a new Scanner instance. The scanner serves as the top level
-   * entry point for the EAC-JS TimeNode. You still need to call the
-   * `start()` function before the TimeNode becomes active.
-   * @param {number} ms Milliseconds of the scan interval.
-   * @param {Config} config The TimeNode Config object.
-   */
   constructor(config: Config, router: IRouter) {
     super(config, router);
     this.txPool = config.txPool;

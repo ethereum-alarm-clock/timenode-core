@@ -23,7 +23,7 @@ export default class ChainScanner extends CacheScanner {
 
   constructor(config: Config, router: IRouter) {
     super(config, router);
-    this.requestFactory = config.eac.requestAddress();
+    this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config, this.requestFactory);
   }
 
