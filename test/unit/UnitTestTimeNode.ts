@@ -92,7 +92,12 @@ describe('TimeNode Unit Tests', () => {
     it('returns failed claims when they are present', () => {
       const failedClaimAddress = '0xe87529a6123a74320e13a6dabf3606630683c029';
 
-      config.statsDb.addFailedClaim(config.wallet.getAddresses()[0], failedClaimAddress);
+      config.statsDb.claimed(
+        config.wallet.getAddresses()[0],
+        failedClaimAddress,
+        new BigNumber(0),
+        false
+      );
 
       const txs = timenode.getUnsucessfullyClaimedTransactions()[myAccount];
       assert.equal(txs.length, 1);
