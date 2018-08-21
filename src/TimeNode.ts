@@ -17,8 +17,6 @@ export default class TimeNode {
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
 
-    this.config.statsDb.initialize(this.config.wallet.getAddresses());
-
     this.startupMessage();
   }
 
@@ -90,8 +88,10 @@ export default class TimeNode {
     const unsuccessfulClaims: {} = {};
 
     for (const account of accounts) {
-      const stats = this.config.statsDb.getStats().find((stat: any) => stat.account === account);
-      unsuccessfulClaims[account] = stats.failedClaims || [];
+      const failedClaims = this.config.statsDb
+        .getFailedClaims(account)
+        .map(entry => entry.txAddress);
+      unsuccessfulClaims[account] = failedClaims;
     }
 
     return unsuccessfulClaims;

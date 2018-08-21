@@ -4,8 +4,8 @@ import Config from '../Config';
 declare const clearInterval: any;
 declare const setInterval: any;
 
-import { IBlock, IntervalId, ITxRequest, Address } from '../Types';
-import { Bucket, IBucketPair, IBuckets, BucketCalc, BucketSize, IBucketCalc } from '../Buckets';
+import { IntervalId, ITxRequest, Address } from '../Types';
+import { Bucket, IBuckets, BucketCalc, IBucketCalc } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
 import { ITxRequestRaw } from '../Types/ITxRequest';
@@ -131,8 +131,8 @@ export default class {
     if (!this.config.cache.has(request.address)) {
       this.store(request);
 
-      this.config.wallet.getAddresses().forEach((address: Address) => {
-        this.config.statsDb.incrementDiscovered(address);
+      this.config.wallet.getAddresses().forEach((from: Address) => {
+        this.config.statsDb.discovered(from, request.address);
       });
     }
   }
