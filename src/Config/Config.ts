@@ -5,6 +5,7 @@ import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
+import TxPool from '../TxPool';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import { getWeb3FromProviderUrl } from './helpers';
@@ -31,6 +32,7 @@ export default class Config implements IConfigParams {
   public providerUrl: string;
   public scanSpread: any;
   public statsDb: StatsDB;
+  public txPool: TxPool;
   public util: W3Util;
   public wallet: Wallet;
   public web3: any;
@@ -57,6 +59,7 @@ export default class Config implements IConfigParams {
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
+    this.txPool = new TxPool(this);
 
     if (!params.disableDetection) {
       this.getConnectedClient();

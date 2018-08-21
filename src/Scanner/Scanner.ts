@@ -9,6 +9,7 @@ import { Bucket, IBucketPair, IBuckets, BucketCalc, BucketSize, IBucketCalc } fr
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
 import { ITxRequestRaw } from '../Types/ITxRequest';
+import TxPool from '../TxPool';
 import IRouter from '../Router';
 
 export default class {
@@ -17,6 +18,7 @@ export default class {
   public scanning: boolean;
   public router: IRouter;
   public requestFactory: Promise<any>;
+  public txPool: TxPool;
 
   // Child Scanners, tracked by the ID of their interval
   public cacheScanner: IntervalId;
@@ -48,6 +50,7 @@ export default class {
     this.util = config.util;
     this.scanning = false;
     this.router = router;
+    this.txPool = config.txPool;
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config, this.requestFactory);
   }
@@ -73,7 +76,7 @@ export default class {
     if (!(await this.util.isWatchingEnabled())) {
       throw new Error('We are currently supporting nodes with filtering capabilities');
     }
-
+    await this.txPool.start();
     this.chainScanner = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
     this.cacheScanner = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
 
@@ -88,6 +91,9 @@ export default class {
       // Clear scanning intervals.
       clearInterval(this.cacheScanner);
       clearInterval(this.chainScanner);
+
+      this.txPool.stop();
+
 
       // Mark that we've stopped.
       this.config.logger.info('Scanner STOPPED');
