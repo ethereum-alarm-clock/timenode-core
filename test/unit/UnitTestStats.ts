@@ -16,7 +16,7 @@ describe('Stats Unit Tests', () => {
     myAccount = config.wallet.getAddresses()[0];
 
     config.statsDb.initialize([myAccount]);
-    myStats = config.statsDb.getStats().find((stat: any) => stat.account === myAccount);
+    myStats = config.statsDb.getStats(myAccount);
 
     claimCost = new BigNumber(config.web3.toWei(0.1, 'ether'));
     bounty = claimCost;
@@ -110,6 +110,25 @@ describe('Stats Unit Tests', () => {
     it('returns all stats', async () => {
       const stats = config.statsDb.getStats();
       assert.equal(stats.length, 1);
+    });
+  });
+
+  describe('clearStats()', () => {
+    it('empties the data array in the stats', async () => {
+      assert.equal(config.statsDb.getStats().length, 1);
+
+      config.statsDb.clearStats();
+      assert.equal(config.statsDb.getStats().length, 0);
+    });
+  });
+
+  describe('resetStats()', () => {
+    it('reinitializes the stats', async () => {
+      config.statsDb.updateExecuted(myAccount, bounty, executionCost);
+      assert.equal(config.statsDb.getStats(myAccount).executed, 1);
+
+      config.statsDb.resetStats([myAccount]);
+      assert.equal(config.statsDb.getStats(myAccount).executed, 0);
     });
   });
 });
