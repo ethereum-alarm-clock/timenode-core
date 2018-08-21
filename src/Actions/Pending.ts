@@ -26,7 +26,6 @@ const hasPendingParity = (
   txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
-  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise(async (resolve, reject) => {
@@ -87,7 +86,6 @@ const hasPendingGeth = (
   txRequest: ITxRequestPending,
   opts: PendingOpts
 ): Promise<boolean> => {
-  opts.checkGasPrice = opts.checkGasPrice === undefined ? true : opts.checkGasPrice;
   const provider = conf.web3.currentProvider;
 
   return new Promise((resolve, reject) => {
