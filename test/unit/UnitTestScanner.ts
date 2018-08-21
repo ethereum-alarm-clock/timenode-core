@@ -131,54 +131,6 @@ describe('Scanner Unit Tests', () => {
     });
   });
 
-  describe('getCurrentBuckets()', () => {
-    it('returns the current buckets', async () => {
-      const block = {
-        number: (await txBlock.now()).toNumber(),
-        timestamp: (await txTimestamp.now()).toNumber()
-      };
-
-      const { blockBucket, timestampBucket } = await scanner.getCurrentBuckets(block);
-
-      assert.equal(blockBucket, -1 * (block.number - (block.number % BucketSize.block)));
-      assert.equal(timestampBucket, block.timestamp - (block.timestamp % BucketSize.timestamp));
-    });
-  });
-
-  describe('getNextBuckets()', async () => {
-    it('returns next buckets', async () => {
-      const block = {
-        number: (await txBlock.now()).toNumber(),
-        timestamp: (await txTimestamp.now()).toNumber()
-      };
-
-      const { blockBucket, timestampBucket } = await scanner.getNextBuckets(block);
-
-      const expectedBlockInterval = block.number + BucketSize.block;
-      const expectedTimestampInterval = block.timestamp + BucketSize.timestamp;
-
-      assert.equal(
-        blockBucket,
-        -1 * (expectedBlockInterval - (expectedBlockInterval % BucketSize.block))
-      );
-      assert.equal(
-        timestampBucket,
-        expectedTimestampInterval - (expectedTimestampInterval % BucketSize.timestamp)
-      );
-    });
-  });
-
-  describe('getBuckets()', () => {
-    it('returns current and next buckets', async () => {
-      const { currentBuckets, nextBuckets } = await scanner.getBuckets();
-
-      expect(currentBuckets).to.haveOwnProperty('blockBucket');
-      expect(currentBuckets).to.haveOwnProperty('timestampBucket');
-      expect(nextBuckets).to.haveOwnProperty('blockBucket');
-      expect(nextBuckets).to.haveOwnProperty('timestampBucket');
-    });
-  });
-
   describe('handleRequest()', () => {
     it('stores request into cache if discovered', () => {
       const params = [].fill(new BigNumber(10), 0, 12);
