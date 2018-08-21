@@ -4,7 +4,7 @@
   "description": "Contains key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && cp package.json built/",
+    "build": "tsc",
     "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
@@ -13,7 +13,7 @@
     "lint": "tslint --project .",
     "lint-fix": "tslint --fix --project .",
     "precommit": "lint-staged",
-    "postinstall": "npm run build",
+    "prepack": "npm run build",
     "test": "npm run test:e2e && npm run test:unit",
     "test:e2e": "mocha --timeout 50000 -r ts-node/register test/e2e/*.ts --exit",
     "test:unit": "mocha --timeout 50000 -r ts-node/register test/unit/*.ts --exit",
