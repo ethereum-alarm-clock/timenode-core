@@ -11,12 +11,79 @@ describe('Stats Unit Tests', () => {
   const tx2: string = '0x9b7b4a8fdafda1b688c22fcb6f4bc97ed29ff676';
   const tx3: string = '0x57f1b33b8b44689982ce7b3f560577e89375b2da';
   let stats: StatsDB;
+  let cost: BigNumber;
+  let bounty: BigNumber;
 
   const reset = async () => {
     stats = new StatsDB(new loki('stats.db'));
+    cost = new BigNumber(10);
+    bounty = new BigNumber(15);
   };
 
   beforeEach(reset);
+
+  describe('getFailedExecutions()', () => {
+    it('returns an empty array if none', () => {
+      assert.isEmpty(stats.getFailedExecutions(account1));
+    });
+
+    it('returns 1 after failing execution', () => {
+      assert.isEmpty(stats.getFailedExecutions(account1));
+
+      bounty = new BigNumber(0);
+      stats.executed(account1, tx2, cost, bounty, false);
+
+      assert.equal(stats.getFailedExecutions(account1).length, 1);
+    });
+  });
+
+  describe('getSuccessfulExecutions()', () => {
+    it('returns an empty array if none', () => {
+      assert.isEmpty(stats.getSuccessfulExecutions(account1));
+    });
+
+    it('returns 1 after executed', () => {
+      assert.isEmpty(stats.getSuccessfulExecutions(account1));
+      stats.executed(account1, tx1, cost, bounty, true);
+      assert.equal(stats.getSuccessfulExecutions(account1).length, 1);
+    });
+  });
+
+  describe('getFailedClaims()', () => {
+    it('returns an empty array if none', () => {
+      assert.isEmpty(stats.getFailedClaims(account1));
+    });
+
+    it('returns 1 after failing claim', () => {
+      assert.isEmpty(stats.getFailedClaims(account1));
+      stats.claimed(account1, tx2, cost, false);
+      assert.equal(stats.getFailedClaims(account1).length, 1);
+    });
+  });
+
+  describe('getSuccessfulClaims()', () => {
+    it('returns an empty array if none', () => {
+      assert.isEmpty(stats.getSuccessfulClaims(account1));
+    });
+
+    it('returns 1 after claimed', () => {
+      assert.isEmpty(stats.getSuccessfulClaims(account1));
+      stats.claimed(account1, tx1, cost, true);
+      assert.equal(stats.getSuccessfulClaims(account1).length, 1);
+    });
+  });
+
+  describe('getDiscovered()', () => {
+    it('returns an empty array if none', () => {
+      assert.isEmpty(stats.getDiscovered(account1));
+    });
+
+    it('returns 1 after discovered', () => {
+      assert.isEmpty(stats.getDiscovered(account1));
+      stats.discovered(account1, tx1);
+      assert.equal(stats.getDiscovered(account1).length, 1);
+    });
+  });
 
   describe('discovered()', () => {
     it('inserts discovered', async () => {
@@ -46,7 +113,6 @@ describe('Stats Unit Tests', () => {
 
   describe('claimed()', () => {
     it('inserts and selects successful claims', async () => {
-      const cost = new BigNumber(10);
       const expectedBounty = new BigNumber(0);
 
       stats.claimed(account1, tx1, cost, true);
@@ -73,8 +139,6 @@ describe('Stats Unit Tests', () => {
     });
 
     it('inserts and selects failed claims', async () => {
-      const cost = new BigNumber(10);
-
       stats.claimed(account1, tx1, cost, true);
       stats.claimed(account2, tx2, cost, false);
 
@@ -88,9 +152,6 @@ describe('Stats Unit Tests', () => {
 
   describe('executed()', () => {
     it('inserts and selects successful executions', async () => {
-      const cost = new BigNumber(10);
-      const bounty = new BigNumber(15);
-
       stats.executed(account1, tx1, cost, bounty, true);
 
       stats.executed(account2, tx2, cost, bounty, false);
@@ -115,8 +176,7 @@ describe('Stats Unit Tests', () => {
     });
 
     it('inserts and selects failed executions', async () => {
-      const cost = new BigNumber(10);
-      const bounty = new BigNumber(0);
+      bounty = new BigNumber(0);
 
       stats.executed(account1, tx1, cost, bounty, true);
       stats.executed(account2, tx2, cost, bounty, false);
@@ -131,9 +191,6 @@ describe('Stats Unit Tests', () => {
 
   describe('clear()', () => {
     it('remove entries for given address', async () => {
-      const cost = new BigNumber(10);
-      const bounty = new BigNumber(15);
-
       stats.executed(account1, tx1, cost, bounty, true);
       stats.executed(account2, tx2, cost, bounty, true);
 
@@ -170,9 +227,6 @@ describe('Stats Unit Tests', () => {
 
   describe('clearAll()', () => {
     it('removes all entries', async () => {
-      const cost = new BigNumber(10);
-      const bounty = new BigNumber(15);
-
       stats.executed(account1, tx1, cost, bounty, true);
       stats.executed(account2, tx2, cost, bounty, true);
 
@@ -209,9 +263,6 @@ describe('Stats Unit Tests', () => {
 
   describe('totalBounties()', () => {
     it('should sum up all bounties for the account', async () => {
-      const cost = new BigNumber(10);
-      const bounty = new BigNumber(15);
-
       stats.executed(account1, tx1, cost, bounty, true);
       stats.executed(account1, tx3, cost, bounty, true);
       stats.executed(account2, tx2, cost, bounty, true);
@@ -229,9 +280,6 @@ describe('Stats Unit Tests', () => {
 
   describe('totalCosts()', () => {
     it('should sum up all costs for the account', async () => {
-      const cost = new BigNumber(10);
-      const bounty = new BigNumber(15);
-
       stats.executed(account1, tx1, cost, bounty, false);
       stats.executed(account1, tx3, cost, bounty, false);
       stats.executed(account2, tx2, cost, bounty, false);

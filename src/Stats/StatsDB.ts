@@ -33,6 +33,10 @@ export class StatsDB {
     }
   }
 
+  private get collection() {
+    return this.db.getCollection(this.COLLECTION_NAME);
+  }
+
   public discovered(from: string, txAddress: string) {
     if (this.exists(from, txAddress, StatsEntryAction.Discover)) {
       return;
@@ -125,10 +129,6 @@ export class StatsDB {
       (item: IStatsEntry) => item.bounty,
       (bounties: BigNumber[]) => bounties.reduce((sum, bounty) => sum.add(bounty))
     );
-  }
-
-  private get collection() {
-    return this.db.getCollection(this.COLLECTION_NAME);
   }
 
   private select(from: string, action: StatsEntryAction, result: StatsEntryResult): any {
