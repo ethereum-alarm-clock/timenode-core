@@ -23,8 +23,10 @@ describe('Stats Unit Tests', () => {
       stats.discovered(account2, tx1);
 
       const discoveredAccount1 = stats.getDiscovered(account1);
+      const discoveredAccount2 = stats.getDiscovered(account2);
 
       assert.lengthOf(discoveredAccount1, 1);
+      assert.lengthOf(discoveredAccount2, 1);
     });
 
     it('selects unique discovered', async () => {
@@ -34,8 +36,10 @@ describe('Stats Unit Tests', () => {
       stats.discovered(account2, tx1);
 
       const discoveredAccount1 = stats.getDiscovered(account1);
+      const discoveredAccount2 = stats.getDiscovered(account2);
 
       assert.lengthOf(discoveredAccount1, 1);
+      assert.lengthOf(discoveredAccount2, 1);
     });
   });
 
@@ -45,9 +49,12 @@ describe('Stats Unit Tests', () => {
       const expectedBounty = new BigNumber(0);
 
       stats.claimed(account1, tx1, cost, true);
+
+      stats.claimed(account2, tx2, cost, false);
       stats.claimed(account2, tx2, cost, true);
 
       const successfulClaimsAccount1 = stats.getSuccessfulClaims(account1);
+      const successfulClaimsAccount2 = stats.getSuccessfulClaims(account2);
 
       assert.lengthOf(successfulClaimsAccount1, 1);
       assert.equal(successfulClaimsAccount1[0].from, account1);
@@ -55,6 +62,13 @@ describe('Stats Unit Tests', () => {
 
       assert.isTrue(successfulClaimsAccount1[0].cost.equals(cost));
       assert.isTrue(successfulClaimsAccount1[0].bounty.equals(expectedBounty));
+
+      assert.lengthOf(successfulClaimsAccount2, 1);
+      assert.equal(successfulClaimsAccount2[0].from, account2);
+      assert.equal(successfulClaimsAccount2[0].txAddress, tx2);
+
+      assert.isTrue(successfulClaimsAccount2[0].cost.equals(cost));
+      assert.isTrue(successfulClaimsAccount2[0].bounty.equals(expectedBounty));
     });
 
     it('inserts and selects failed claims', async () => {
@@ -77,9 +91,12 @@ describe('Stats Unit Tests', () => {
       const bounty = new BigNumber(15);
 
       stats.executed(account1, tx1, cost, bounty, true);
+
+      stats.executed(account2, tx2, cost, bounty, false);
       stats.executed(account2, tx2, cost, bounty, true);
 
       const successfulExecutionsAccount1 = stats.getSuccessfulExecutions(account1);
+      const successfulExecutionsAccount2 = stats.getSuccessfulExecutions(account2);
 
       assert.lengthOf(successfulExecutionsAccount1, 1);
       assert.equal(successfulExecutionsAccount1[0].from, account1);
@@ -87,6 +104,13 @@ describe('Stats Unit Tests', () => {
 
       assert.isTrue(successfulExecutionsAccount1[0].cost.equals(cost));
       assert.isTrue(successfulExecutionsAccount1[0].bounty.equals(bounty));
+
+      assert.lengthOf(successfulExecutionsAccount2, 1);
+      assert.equal(successfulExecutionsAccount2[0].from, account2);
+      assert.equal(successfulExecutionsAccount2[0].txAddress, tx2);
+
+      assert.isTrue(successfulExecutionsAccount2[0].cost.equals(cost));
+      assert.isTrue(successfulExecutionsAccount2[0].bounty.equals(bounty));
     });
 
     it('inserts and selects failed executions', async () => {
@@ -101,6 +125,84 @@ describe('Stats Unit Tests', () => {
 
       assert.lengthOf(failedExecutionsAccount1, 0);
       assert.lengthOf(failedExecutionsAccount2, 1);
+    });
+  });
+
+  describe('clear()', () => {
+    it('remove entries for given address', async () => {
+      const cost = new BigNumber(10);
+      const bounty = new BigNumber(15);
+
+      stats.executed(account1, tx1, cost, bounty, true);
+      stats.executed(account2, tx2, cost, bounty, true);
+
+      stats.claimed(account1, tx1, cost, false);
+      stats.claimed(account2, tx2, cost, false);
+
+      let successfulExecutionsAccount1 = stats.getSuccessfulExecutions(account1);
+      let successfulExecutionsAccount2 = stats.getSuccessfulExecutions(account2);
+
+      assert.lengthOf(successfulExecutionsAccount1, 1);
+      assert.lengthOf(successfulExecutionsAccount2, 1);
+
+      let failedClaimsAccount1 = stats.getFailedClaims(account1);
+      let failedClaimsAccount2 = stats.getFailedClaims(account2);
+
+      assert.lengthOf(failedClaimsAccount1, 1);
+      assert.lengthOf(failedClaimsAccount2, 1);
+
+      stats.clear(account1);
+
+      successfulExecutionsAccount1 = stats.getSuccessfulExecutions(account1);
+      successfulExecutionsAccount2 = stats.getSuccessfulExecutions(account2);
+
+      assert.lengthOf(successfulExecutionsAccount1, 0);
+      assert.lengthOf(successfulExecutionsAccount2, 1);
+
+      failedClaimsAccount1 = stats.getFailedClaims(account1);
+      failedClaimsAccount2 = stats.getFailedClaims(account2);
+
+      assert.lengthOf(failedClaimsAccount1, 0);
+      assert.lengthOf(failedClaimsAccount2, 1);
+    });
+  });
+
+  describe('clearAll()', () => {
+    it('removes all entries', async () => {
+      const cost = new BigNumber(10);
+      const bounty = new BigNumber(15);
+
+      stats.executed(account1, tx1, cost, bounty, true);
+      stats.executed(account2, tx2, cost, bounty, true);
+
+      stats.claimed(account1, tx1, cost, false);
+      stats.claimed(account2, tx2, cost, false);
+
+      let successfulExecutionsAccount1 = stats.getSuccessfulExecutions(account1);
+      let successfulExecutionsAccount2 = stats.getSuccessfulExecutions(account2);
+
+      assert.lengthOf(successfulExecutionsAccount1, 1);
+      assert.lengthOf(successfulExecutionsAccount2, 1);
+
+      let failedClaimsAccount1 = stats.getFailedClaims(account1);
+      let failedClaimsAccount2 = stats.getFailedClaims(account2);
+
+      assert.lengthOf(failedClaimsAccount1, 1);
+      assert.lengthOf(failedClaimsAccount2, 1);
+
+      stats.clearAll();
+
+      successfulExecutionsAccount1 = stats.getSuccessfulExecutions(account1);
+      successfulExecutionsAccount2 = stats.getSuccessfulExecutions(account2);
+
+      assert.lengthOf(successfulExecutionsAccount1, 0);
+      assert.lengthOf(successfulExecutionsAccount2, 0);
+
+      failedClaimsAccount1 = stats.getFailedClaims(account1);
+      failedClaimsAccount2 = stats.getFailedClaims(account2);
+
+      assert.lengthOf(failedClaimsAccount1, 0);
+      assert.lengthOf(failedClaimsAccount2, 0);
     });
   });
 });

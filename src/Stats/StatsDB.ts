@@ -99,6 +99,17 @@ export class StatsDB {
     return this.select(from, StatsEntryAction.Discover, StatsEntryResult.OK);
   }
 
+  public clear(from: string) {
+    this.collection
+      .chain()
+      .find({ from })
+      .remove();
+  }
+
+  public clearAll() {
+    this.collection.clear();
+  }
+
   private get collection() {
     return this.db.getCollection(this.COLLECTION_NAME);
   }
