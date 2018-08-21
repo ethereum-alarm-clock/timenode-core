@@ -4,8 +4,8 @@ import Config from '../Config';
 declare const clearInterval: any;
 declare const setInterval: any;
 
-import { IBlock, IntervalId, ITxRequest, Address } from '../Types';
-import { Bucket, IBucketPair, IBuckets, BucketCalc, BucketSize, IBucketCalc } from '../Buckets';
+import { IntervalId, ITxRequest, Address } from '../Types';
+import { Bucket, IBucketPair, IBuckets, BucketCalc, IBucketCalc } from '../Buckets';
 import W3Util from '../Util';
 import { CacheStates } from '../Enum';
 import { ITxRequestRaw } from '../Types/ITxRequest';
@@ -62,11 +62,11 @@ export default class Scanner implements IScanner {
       await this.config.awaitClientSet();
     }
     if (!(await this.util.isWatchingEnabled())) {
-      throw new Error('We are currently supporting nodes with filtering capabilities');
+      throw new Error('TimeNode is only supported using WebSockets. Use a wss:// provider!');
     }
 
-    this.chainScanner = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
     this.cacheScanner = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
+    this.chainScanner = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
 
     // Mark that we've started.
     this.config.logger.info('Scanner STARTED');
@@ -85,6 +85,11 @@ export default class Scanner implements IScanner {
       this.scanning = false;
     }
 
+    Object.keys(this.buckets).forEach((key: string) => {
+      this.stopWatcher(this.buckets[key].blockBucket);
+      this.stopWatcher(this.buckets[key].timestampBucket);
+    });
+
     return this.scanning;
   }
 
@@ -101,25 +106,6 @@ export default class Scanner implements IScanner {
         this.config.statsDb.incrementDiscovered(address);
       });
     }
-  }
-
-  /**
-   * Performs four checks:
-   *  - The TxRequest is before claim window.
-   *  - The TxRequest is in claim window.
-   *  - The TxRequest is in freeze period.
-   *  - The TxRequest is in execution window.
-   * These are the four conditions in which the TxRequest is upcoming,
-   * and should be stored in a TimeNodes cache.
-   * @param txRequest Transaction Request Object
-   */
-  private async isUpcoming(txRequest: ITxRequest): Promise<boolean> {
-    return (
-      (await txRequest.beforeClaimWindow()) ||
-      (await txRequest.inClaimWindow()) ||
-      (await txRequest.inFreezePeriod()) ||
-      (await txRequest.inExecutionWindow())
-    );
   }
 
   private isValid(requestAddress: string): boolean {
