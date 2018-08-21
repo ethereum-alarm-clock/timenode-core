@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import { isExecuted } from './Helpers';
+import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
@@ -55,8 +55,6 @@ export default class Actions implements IActions {
         case TxSendErrors.IN_PROGRESS:
           return ClaimStatus.IN_PROGRESS;
       }
-
-      this.config.statsDb.addFailedClaim(from, txRequest.address);
     } catch (err) {
       this.config.logger.error(err);
     }
@@ -96,7 +94,7 @@ export default class Actions implements IActions {
 
       switch (status) {
         case TxSendErrors.OK:
-          await this.handleSuccessfulExecution(txRequest, receipt, opts, from);
+          await this.accountExecution(txRequest, receipt, opts, from);
           return ExecuteStatus.SUCCESS;
         case TxSendErrors.WALLET_BUSY:
           return ExecuteStatus.WALLET_BUSY;
@@ -114,7 +112,7 @@ export default class Actions implements IActions {
     throw Error('Not implemented according to latest EAC changes.');
   }
 
-  private async handleSuccessfulExecution(
+  private async accountExecution(
     txRequest: ITxRequest,
     receipt: any,
     opts: any,
@@ -122,8 +120,9 @@ export default class Actions implements IActions {
   ): Promise<void> {
     let bounty = new BigNumber(0);
     let cost = new BigNumber(0);
+    const success = isExecuted(receipt);
 
-    if (isExecuted(receipt)) {
+    if (success) {
       await txRequest.refreshData();
 
       const data = receipt.logs[0].data;
@@ -138,7 +137,7 @@ export default class Actions implements IActions {
       cost = gasUsed.mul(gasPrice);
     }
 
-    this.config.statsDb.updateExecuted(from, bounty, cost);
+    this.config.statsDb.executed(from, txRequest.address, cost, bounty, success);
   }
 
   private async hasPendingExecuteTransaction(txRequest: ITxRequest): Promise<boolean> {
@@ -177,8 +176,9 @@ export default class Actions implements IActions {
       const gasUsed = new BigNumber(receipt.gasUsed);
       const gasPrice = new BigNumber(opts.gasPrice);
       const cost = gasUsed.mul(gasPrice);
+      const success = isTransactionStatusSuccessful(receipt.status);
 
-      this.config.statsDb.updateClaimed(from, cost);
+      this.config.statsDb.claimed(from, txRequest.address, cost, success);
     }
   }
 }

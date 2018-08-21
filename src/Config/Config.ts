@@ -90,7 +90,7 @@ export default class Config implements IConfigParams {
       this.wallet = null;
     }
 
-    this.statsDb = params.statsDb ? new StatsDB(this.web3, params.statsDb) : null;
+    this.statsDb = params.statsDb ? new StatsDB(params.statsDb) : null;
 
     this.util = new W3Util(this.web3);
   }
