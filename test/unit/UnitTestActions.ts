@@ -19,6 +19,7 @@ describe('shortenAddress()', () => {
 describe('Actions Unit Tests', async () => {
   it('sets claimingFailed to true when claim transaction reverts', async () => {
     const config = mockConfig();
+    const myAccount = config.wallet.getAddresses()[0];
     const timenode = new TimeNode(config);
 
     config.wallet.sendRawTransaction = async () => {
@@ -39,14 +40,14 @@ describe('Actions Unit Tests', async () => {
 
     const tx = await MockTxRequest(config.web3);
 
-    assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
-    assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 0);
+    assert.equal(timenode.getClaimedNotExecutedTransactions()[myAccount].length, 0);
+    assert.equal(timenode.getUnsucessfullyClaimedTransactions()[myAccount].length, 0);
 
     const nextAccount = config.wallet.nextAccount.getAddressString();
     const claimingResult = await actions.claim(tx, nextAccount);
 
-    assert.equal(timenode.getClaimedNotExecutedTransactions().length, 0);
-    assert.equal(timenode.getUnsucessfullyClaimedTransactions().length, 1);
+    assert.equal(timenode.getClaimedNotExecutedTransactions()[myAccount].length, 0);
+    assert.equal(timenode.getUnsucessfullyClaimedTransactions()[myAccount].length, 1);
 
     assert.equal(claimingResult, ClaimStatus.FAILED);
   });
