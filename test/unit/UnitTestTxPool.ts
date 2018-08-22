@@ -141,10 +141,7 @@ describe('TxPool unit tests', () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*10)];
       const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
 
-      txPool.pool.pool[tx] = mockTxDetails({
-        transactionHash : tx
-      })
-
+      assert.isTrue(txPool.pool.preSet(tx));
       assert.isTrue(txPool.pool.has(tx, 'transactionHash'));
       txPool.pool.del(tx);
       assert.isFalse(txPool.pool.has(tx, 'transactionHash'));
