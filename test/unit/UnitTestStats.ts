@@ -310,4 +310,11 @@ describe('Stats Unit Tests', () => {
       assert.isTrue(totalCostAccount2.equals(expectedAccount2Cost));
     });
   });
+
+  describe('init()', () => {
+    it('allows to init multiple times', async () => {
+      const loaded = await stats.init();
+      assert.isTrue(loaded);
+    });
+  });
 });

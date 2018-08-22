@@ -37,8 +37,15 @@ export class StatsDB {
           reject(err);
         }
 
-        if (!this.db.getCollection(this.COLLECTION_NAME)) {
+        const collection = this.db.getCollection(this.COLLECTION_NAME);
+
+        if (!collection) {
           this.db.addCollection(this.COLLECTION_NAME);
+        } else {
+          collection.data.forEach(stat => {
+            stat.bounty = new BigNumber(stat.bounty);
+            stat.cost = new BigNumber(stat.cost);
+          });
         }
 
         this.isLoaded = true;
