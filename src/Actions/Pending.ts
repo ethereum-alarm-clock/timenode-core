@@ -30,7 +30,7 @@ const hasPendingPool = async (
   try{
     const currentGasPrice: BigNumber = await conf.util.networkGasPrice();
     validPending = conf.txPool.pool.get(txRequest.address, 'to')
-    .filter( (tx: ITxPoolTxDetails) => {
+      .filter( (tx: ITxPoolTxDetails) => {
         const withValidGasPrice =
           (!opts.checkGasPrice ||
             (hasValidGasPrice(

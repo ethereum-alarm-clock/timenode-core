@@ -26,9 +26,6 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
   }
 
   public async start(): Promise<boolean> {
-    if (!this.config.clientSet()) {
-      await this.config.awaitClientSet();
-    }
     if (!(await this.util.isWatchingEnabled())) {
       throw new Error('TimeNode is only supported using WebSockets. Use a wss:// provider!');
     }
