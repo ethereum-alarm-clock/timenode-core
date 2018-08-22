@@ -82,7 +82,7 @@ describe('TxPool unit tests', () => {
 
     it('preSet()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
 
       assert.isTrue(txPool.pool.preSet(tx));
       expect(txPool.pool.get(tx, 'transactionHash')).to.deep.equal([true]);
@@ -93,7 +93,7 @@ describe('TxPool unit tests', () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
       const from = ADDRESSES[Math.floor(Math.random()*TRANSACTIONS.length)];
       const to = ADDRESSES[Math.floor(Math.random()*TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
 
       txPool.pool.set(tx, mockTxDetails({
         transactionHash : tx,
@@ -108,7 +108,7 @@ describe('TxPool unit tests', () => {
     it('length()', async () => {
       const count = Math.floor( Math.random() * TRANSACTIONS.length );
 
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
       for( let i = 0; i < count; i++) {
         txPool.pool.set(TRANSACTIONS[i], mockTxDetails({
           transactionHash : TRANSACTIONS[i],
@@ -124,7 +124,7 @@ describe('TxPool unit tests', () => {
       const count = Math.floor( Math.random() * TRANSACTIONS.length );
       const expected: any = [];
 
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
       for( let i = 0; i < count; i++) {
         txPool.pool.set(TRANSACTIONS[i], mockTxDetails({
           transactionHash : TRANSACTIONS[i],
@@ -139,12 +139,9 @@ describe('TxPool unit tests', () => {
 
     it('del()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*10)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
 
-      txPool.pool.pool[tx] = mockTxDetails({
-        transactionHash : tx
-      })
-
+      assert.isTrue(txPool.pool.preSet(tx));
       assert.isTrue(txPool.pool.has(tx, 'transactionHash'));
       txPool.pool.del(tx);
       assert.isFalse(txPool.pool.has(tx, 'transactionHash'));
@@ -152,7 +149,7 @@ describe('TxPool unit tests', () => {
 
     it('wipe()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random()*TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545', disableDetection: true }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
 
       txPool.pool.set(tx, mockTxDetails({
         transactionHash : tx

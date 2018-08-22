@@ -43,15 +43,6 @@ describe('Scanner Unit Tests', () => {
   });
 
   describe('start()', async () => {
-    it('fails to start scanner with Null client', done => {
-      config.client = undefined;
-      scanner.start();
-      setTimeout(() => {
-        expect(scanner.scanning).to.be.false;
-        done();
-      }, 5000);
-    }).timeout(6000);
-
     it('returns true for scanning and chainScanner/cacheScanner', async () => {
       await scanner.start();
       assert.isTrue(scanner.scanning);

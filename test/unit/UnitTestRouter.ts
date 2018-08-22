@@ -22,7 +22,6 @@ describe('Router Unit Tests', () => {
 
   const reset = async () => {
     config = mockConfig();
-    await config.awaitClientSet();
     txTimestamp = await MockTxRequest(config.web3);
     txBlock = await MockTxRequest(config.web3, true);
 
