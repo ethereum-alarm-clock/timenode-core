@@ -24,7 +24,6 @@ export default class Config implements IConfigParams {
   public autostart: boolean;
   public cache: Cache<ICachedTxDetails>;
   public claiming: boolean;
-  public client?: string;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
   public logger?: ILogger;
@@ -61,10 +60,6 @@ export default class Config implements IConfigParams {
     this.logger = params.logger || new DefaultLogger();
     this.txPool = new TxPool(this);
 
-    if (!params.disableDetection) {
-      this.getConnectedClient();
-    }
-
     this.cache = new Cache(this.logger);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
@@ -94,89 +89,6 @@ export default class Config implements IConfigParams {
     }
 
     this.statsDb = params.statsDb ? new StatsDB(this.web3, params.statsDb) : null;
-
     this.util = new W3Util(this.web3);
-  }
-
-  public clientSet(): boolean {
-    return typeof this.client === 'string';
-  }
-
-  public async awaitClientSet(): Promise<any> {
-    if (this.clientSet()) {
-      return true;
-    } else {
-      return new Promise(resolve => {
-        setTimeout(() => {
-          resolve(this.awaitClientSet());
-        }, 100);
-      });
-    }
-  }
-
-  public async getConnectedClient(): Promise<any> {
-    return new Promise(async (resolve, reject) => {
-      if (!this.web3) {
-        reject();
-      }
-      try {
-        const method = 'txpool_content';
-        await this.web3.currentProvider.sendAsync(
-          {
-            jsonrpc: '2.0',
-            method,
-            params: [],
-            id: 0x07a
-          },
-          async (err: Error, res: any) => {
-            if (!err && !res.error && !this.clientSet()) {
-              this.client = 'geth';
-            }
-            resolve();
-          }
-        );
-      } catch (e) {
-        this.logger.error(e.message);
-        resolve();
-      }
-    })
-      .then(async () => {
-        if (this.clientSet()) {
-          return;
-        }
-        return new Promise(async (resolve, reject) => {
-          try {
-            const method = 'parity_pendingTransactions';
-            await this.web3.currentProvider.sendAsync(
-              {
-                jsonrpc: '2.0',
-                method,
-                params: [],
-                id: 0x0a7
-              },
-              async (err: Error, res: any) => {
-                if (!err && !res.error && !this.clientSet()) {
-                  this.client = 'parity';
-                }
-                resolve();
-              }
-            );
-          } catch (e) {
-            this.logger.error(e.message);
-            resolve();
-          }
-        });
-      })
-      .then(() => {
-        if (!this.clientSet()) {
-          this.client = 'unknown';
-        }
-        this.logger.debug(`Client: ${this.client.toUpperCase()}`);
-        return;
-      })
-      .catch(() => {
-        this.client = 'none';
-        this.logger.error(`Client: ${this.client.toUpperCase()}`);
-      });
   }
 }
