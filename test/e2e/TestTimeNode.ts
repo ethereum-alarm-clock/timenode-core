@@ -1,24 +1,28 @@
 import { assert, expect } from 'chai';
-import { TimeNode } from '../../src/index';
+import { TimeNode, Config } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { scheduleTestTx, getHelperMethods } from './TestScheduleTx';
 
 const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
 
 describe('TimeNode', () => {
-  const config = mockConfig();
-
-  const myAccount = config.wallet.getAddresses()[0];
-
-  const { eac, web3 } = config;
-
-  const { waitUntilBlock } = getHelperMethods(web3);
-
+  let config: Config;
+  let myAccount: string;
+  let eac: any;
+  let web3: any;
+  let waitUntilBlock: any;
   let timenode: TimeNode;
 
-  it('starts a basic timenode', () => {
+  before(async () => {
+    config = await mockConfig();
+    myAccount = config.wallet.getAddresses()[0];
+    eac = config.eac;
+    web3 = config.web3;
+    waitUntilBlock = getHelperMethods(web3).waitUntilBlock;
     timenode = new TimeNode(config);
+  });
 
+  it('starts a basic timenode', () => {
     expect(timenode.scanner.scanning).to.equal(false);
   }).timeout(200000);
 

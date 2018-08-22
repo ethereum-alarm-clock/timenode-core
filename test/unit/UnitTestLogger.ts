@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { Config } from '../../src/index';
 import { mockConfig } from '../helpers';
 
-describe('Logger Unit Tests', () => {
-  const config: Config = mockConfig();
+describe('Logger Unit Tests', async () => {
+  const config: Config = await mockConfig();
 
   // There's really no way to test these reliably
   describe('debug()', () => {

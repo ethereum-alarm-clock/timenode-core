@@ -4,12 +4,17 @@ import { mockConfig } from '../helpers';
 import { BigNumber } from 'bignumber.js';
 
 describe('TimeNode Unit Tests', () => {
-  const config: Config = mockConfig();
-  const myAccount = config.wallet.getAddresses()[0];
+  let config: Config;
+  let myAccount: string;
   let timenode: TimeNode;
 
-  it('initializes a basic timenode', () => {
+  before(async () => {
+    config = await mockConfig();
+    myAccount = config.wallet.getAddresses()[0];
     timenode = new TimeNode(config);
+  });
+
+  it('initializes a basic timenode', () => {
     expect(timenode).to.exist; // tslint:disable-line no-unused-expression
   });
 

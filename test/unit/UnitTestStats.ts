@@ -16,6 +16,7 @@ describe('Stats Unit Tests', () => {
 
   const reset = async () => {
     stats = new StatsDB(new loki('stats.db'));
+    await stats.init();
     cost = new BigNumber(10);
     bounty = new BigNumber(15);
   };

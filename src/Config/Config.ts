@@ -31,6 +31,7 @@ export default class Config implements IConfigParams {
   public providerUrl: string;
   public scanSpread: any;
   public statsDb: StatsDB;
+  public statsDbLoaded: Promise<boolean>;
   public txPool: TxPool;
   public util: W3Util;
   public wallet: Wallet;
@@ -89,6 +90,10 @@ export default class Config implements IConfigParams {
     }
 
     this.statsDb = params.statsDb ? new StatsDB(params.statsDb) : null;
+    if (this.statsDb) {
+      this.statsDbLoaded = this.statsDb.init();
+    }
+
     this.util = new W3Util(this.web3);
   }
 }
