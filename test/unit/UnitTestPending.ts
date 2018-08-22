@@ -28,7 +28,7 @@ const PENDINGS = [
   }
 ];
 
-class pendingTxPool {
+class PendingTxPool {
   public result: any;
 
   constructor(opts?: any) {
@@ -111,7 +111,7 @@ describe('Pending Unit Tests', () => {
     );
     await Promise.all(
       testConfigs.map(async conf => {
-          conf.txPool.pool.pool = new pendingTxPool(options).getPool(PENDINGS);
+          conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
           const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
           checkGasPrice: true,
           type: 'claim'
@@ -135,7 +135,7 @@ describe('Pending Unit Tests', () => {
     );
     await Promise.all(
       testConfigs.map(async conf => {
-          conf.txPool.pool.pool = new pendingTxPool(options).getPool(PENDINGS);
+          conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
           const pending = await hasPending(conf, mockTx({ address: startAddr+'001', gasPrice }), {
           checkGasPrice: true,
           type: 'claim'
@@ -160,7 +160,7 @@ describe('Pending Unit Tests', () => {
     );
     await Promise.all(
       testConfigs.map(async conf => {
-          conf.txPool.pool.pool = new pendingTxPool(options).getPool(PENDINGS);
+          conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
           const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
           checkGasPrice: true,
           type: 'claim'
@@ -184,7 +184,7 @@ describe('Pending Unit Tests', () => {
     );
     await Promise.all(
       testConfigs.map(async conf => {
-          conf.txPool.pool.pool = new pendingTxPool(options).getPool(PENDINGS);
+          conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
           const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
           checkGasPrice: true,
           type: 'execute'
@@ -208,7 +208,7 @@ describe('Pending Unit Tests', () => {
     );
     await Promise.all(
       testConfigs.map(async conf => {
-          conf.txPool.pool.pool = new pendingTxPool(options).getPool(PENDINGS);
+          conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
           const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
           checkGasPrice: true,
           type: 'execute'
@@ -233,7 +233,7 @@ describe('Pending Unit Tests', () => {
     );
     await Promise.all(
       testConfigs.map(async conf => {
-          conf.txPool.pool.pool = new pendingTxPool(options).getPool(PENDINGS);
+          conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
           const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice: minPrice }), {
           checkGasPrice: true,
           type: 'execute',
