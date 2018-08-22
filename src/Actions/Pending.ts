@@ -3,7 +3,6 @@ import Config from '../Config';
 import BigNumber from 'bignumber.js';
 import { FnSignatures } from '../Enum';
 import { ITxRequestPending } from '../Types/ITxRequest';
-import { ITxRequest } from '../Types';
 
 interface PendingOpts {
   type?: string;
@@ -30,8 +29,8 @@ const hasPendingPool = async (
 
   try{
     const currentGasPrice: BigNumber = await conf.util.networkGasPrice();
-    validPending = await conf.txPool.pool.get(txRequest.address, 'to')
-      .filter( async(tx: ITxPoolTxDetails) => {
+    validPending = conf.txPool.pool.get(txRequest.address, 'to')
+    .filter( (tx: ITxPoolTxDetails) => {
         const withValidGasPrice =
           (!opts.checkGasPrice ||
             (hasValidGasPrice(
@@ -41,11 +40,10 @@ const hasPendingPool = async (
               )));
         return isOfType(tx, opts.type) && withValidGasPrice
       })
+    return validPending.length > 0;  
   } catch (e) {
     conf.logger.info(e);
   }
-  return validPending.length > 0;
-
 };
 
 /**
@@ -56,11 +54,9 @@ const hasPendingPool = async (
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
 const hasValidGasPrice = (networkPrice: BigNumber, transaction: ITxPoolTxDetails, minPrice?: BigNumber) => {
-  if (minPrice) {
-    return minPrice.valueOf() === transaction.gasPrice.valueOf();
-  }
   const spread = 0.3;
-  return networkPrice && networkPrice.times(spread).valueOf() <= transaction.gasPrice.valueOf();
+  const hasMinPrice: boolean = !minPrice || minPrice.lte(transaction.gasPrice);
+  return hasMinPrice && networkPrice && networkPrice.times(spread).lte(transaction.gasPrice.valueOf());
 };
 
 /**
@@ -78,7 +74,7 @@ const isOfType = (transaction: ITxPoolTxDetails, type?: string) => {
 };
 
 /**
- * Depening on the client, routes the correct RPC request to return whether
+ * Uses a locally maintained TxPool to return whether
  * a TransactionRequest has a pending transaction in the transaction pool.
  * @param {Config} conf Config object.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
@@ -96,7 +92,6 @@ const hasPending = async (
   if (conf.txPool && conf.txPool.running()) {
     result = await hasPendingPool(conf, txRequest, opts)
   }
-
   return result;
 };
 
