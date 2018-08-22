@@ -57,9 +57,12 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
       this.scanning = false;
     }
 
-    Object.keys(this.buckets).forEach((key: string) => {
-      this.stopWatcher(this.buckets[key].blockBucket);
-      this.stopWatcher(this.buckets[key].timestampBucket);
+    Object.keys(this.buckets).forEach((bucketType: string) => {
+      Object.keys(this.buckets[bucketType]).forEach((key: string) => {
+        this.stopWatcher(this.buckets[bucketType][key]);
+        // Reset to default value when stopping TimeNode.
+        this.buckets[bucketType][key] = -1;
+      });
     });
 
     return this.scanning;
