@@ -1,6 +1,6 @@
 {
   "name": "@ethereum-alarm-clock/timenode-core",
-  "version": "4.3.1",
+  "version": "5.0.1",
   "description": "Contains key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "tslint --fix --force",
+      "tslint --fix",
       "prettier --write --config ./.prettierrc --config-precedence file-override",
       "git add"
     ]

@@ -46,8 +46,8 @@ describe('Scanner Unit Tests', () => {
     it('returns true for scanning and chainScanner/cacheScanner', async () => {
       await scanner.start();
       assert.isTrue(scanner.scanning);
-      expect(scanner.cacheScanner).to.exist;
-      expect(scanner.chainScanner).to.exist;
+      expect(scanner.cacheInterval).to.exist;
+      expect(scanner.chainInterval).to.exist;
     }).timeout(5000);
 
     it('returns true when watching disabled', async () => {
@@ -61,100 +61,36 @@ describe('Scanner Unit Tests', () => {
       await scanner.start();
       await scanner.stop();
       assert.isNotTrue(scanner.scanning);
-      assert.equal(scanner.cacheScanner[0], null);
-      assert.equal(scanner.chainScanner[0], null);
+      assert.equal(scanner.cacheInterval[0], null);
+      assert.equal(scanner.chainInterval[0], null);
     }).timeout(5000);
   });
 
-  describe('isUpcoming()', () => {
-    describe(TIMESTAMP_TX, () => {
-      it('returns true when tx is before claim window', async () => {
-        const tx = await mockTxStatus(txTimestamp, TxStatus.BeforeClaimWindow);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
+  // describe('handleRequest()', () => {
+  //   it('stores request into cache if discovered', () => {
+  //     const params = [].fill(new BigNumber(10), 0, 12);
+  //     const address = txTimestamp.address;
 
-      it('returns true when tx is in claim window', async () => {
-        const tx = await mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
+  //     scanner.handleRequest({ address, params });
+  //     expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
+  //     assert.equal(scanner.config.cache.get(txTimestamp.address).windowStart, params[7]);
+  //   });
 
-      it('returns true when tx is in freeze period', async () => {
-        const tx = await mockTxStatus(txTimestamp, TxStatus.FreezePeriod);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
+  //   it('rejects request if invalid address', () => {
+  //     const address = txTimestamp.address.substring(0, 3);
+  //     const params = [].fill(new BigNumber(10), 0, 12);
 
-      it('returns true when tx is in execution window', async () => {
-        const tx = await mockTxStatus(txTimestamp, TxStatus.ExecutionWindow);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
+  //     expect(() => scanner.handleRequest({ address, params })).to.throw();
+  //   });
+  // });
 
-      it('returns false when tx is past execution window', async () => {
-        const tx = await mockTxStatus(txTimestamp, TxStatus.Executed);
-        assert.isFalse(await scanner.isUpcoming(tx));
-      });
-    });
-
-    describe(BLOCK_TX, () => {
-      it('returns true when tx is before claim window', async () => {
-        const tx = await mockTxStatus(txBlock, TxStatus.BeforeClaimWindow);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
-
-      it('returns true when tx is in claim window', async () => {
-        const tx = await mockTxStatus(txBlock, TxStatus.ClaimWindow);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
-
-      it('returns true when tx is in freeze period', async () => {
-        const tx = await mockTxStatus(txBlock, TxStatus.FreezePeriod);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
-
-      it('returns true when tx is in execution window', async () => {
-        const tx = await mockTxStatus(txBlock, TxStatus.ExecutionWindow);
-        assert.isTrue(await scanner.isUpcoming(tx));
-      });
-
-      it('returns false when tx is past execution window', async () => {
-        const tx = await mockTxStatus(txBlock, TxStatus.Executed);
-        assert.isFalse(await scanner.isUpcoming(tx));
-      });
-    });
-  });
-
-  describe('handleRequest()', () => {
-    it('stores request into cache if discovered', () => {
-      const params = [].fill(new BigNumber(10), 0, 12);
-      const address = txTimestamp.address;
-
-      scanner.handleRequest({ address, params });
-      expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
-      assert.equal(scanner.config.cache.get(txTimestamp.address).windowStart, params[7]);
-    });
-
-    it('rejects request if invalid address', () => {
-      const address = txTimestamp.address.substring(0, 3);
-      const params = [].fill(new BigNumber(10), 0, 12);
-
-      expect(() => scanner.handleRequest({ address, params })).to.throw();
-    });
-  });
-
-  describe('stopWatcher()', () => {
-    it('clears the watcher', async () => {
-      const block = (await txBlock.now()).toNumber();
-      await scanner.stopWatcher(block);
-      expect(scanner.eventWatchers[block]).to.not.exist;
-    });
-  });
-
-  describe('stopWatcher()', () => {
-    it('clears the watcher', async () => {
-      const bucket = (await txBlock.now()).toNumber();
-      await scanner.stopWatcher(bucket);
-      expect(scanner.eventWatchers[bucket]).to.not.exist;
-    });
-  });
+  // describe('stopWatcher()', () => {
+  //   it('clears the watcher', async () => {
+  //     const block = (await txBlock.now()).toNumber();
+  //     await scanner.stopWatcher(block);
+  //     expect(scanner.eventWatchers[block]).to.not.exist;
+  //   });
+  // });
 
   describe('watchRequestsByBucket()', () => {
     it('starts watchers for a new bucket', async () => {
@@ -176,41 +112,27 @@ describe('Scanner Unit Tests', () => {
     });
   });
 
-  describe('isValid()', () => {
-    it('returns true when correct address format', () => {
-      assert.isTrue(scanner.isValid(txBlock.address));
-    });
+  // describe('isValid()', () => {
+  //   it('returns true when correct address format', () => {
+  //     assert.isTrue(scanner.isValid(txBlock.address));
+  //   });
 
-    it('errors when an invalid address', () => {
-      expect(() => scanner.isValid(txBlock.address.substring(0, 5))).to.throw();
-    });
+  //   it('errors when an invalid address', () => {
+  //     expect(() => scanner.isValid(txBlock.address.substring(0, 5))).to.throw();
+  //   });
 
-    it('returns false when null address', () => {
-      assert.isFalse(scanner.isValid(scanner.config.eac.Constants.NULL_ADDRESS));
-    });
-  });
+  //   it('returns false when null address', () => {
+  //     assert.isFalse(scanner.isValid(scanner.config.eac.Constants.NULL_ADDRESS));
+  //   });
+  // });
 
-  describe('isValid()', () => {
-    it('returns true when correct address format', () => {
-      assert.isTrue(scanner.isValid(txBlock.address));
-    });
-
-    it('errors when an invalid address', () => {
-      expect(() => scanner.isValid(txBlock.address.substring(0, 5))).to.throw();
-    });
-
-    it('returns false when null address', () => {
-      assert.isFalse(scanner.isValid(scanner.config.eac.Constants.NULL_ADDRESS));
-    });
-  });
-
-  describe('store()', () => {
-    it('returns true when correct address format', () => {
-      const params = [].fill(new BigNumber(10), 0, 12);
-      scanner.store({ address: txTimestamp.address, params });
-      expect(config.cache.get(txTimestamp.address)).to.exist;
-    });
-  });
+  // describe('store()', () => {
+  //   it('returns true when correct address format', () => {
+  //     const params = [].fill(new BigNumber(10), 0, 12);
+  //     scanner.store({ address: txTimestamp.address, params });
+  //     expect(config.cache.get(txTimestamp.address)).to.exist;
+  //   });
+  // });
 
   describe('scanCache()', () => {
     it('returns EMPTY when cache empty', async () => {
