@@ -3,18 +3,17 @@ import Config from '../Config';
 import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
-import { ExecuteStatus, ClaimStatus } from '../Enum';
 import { getExecutionGasPrice } from '../EconomicStrategy';
-import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ITxRequest, Address } from '../Types';
+import { Status } from '../Enum';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
 }
 
 export default interface IActions {
-  claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus>;
-  execute(txRequest: ITxRequest): Promise<ExecuteStatus>;
+  claim(txRequest: ITxRequest, nextAccount: Address): Promise<Status>;
+  execute(txRequest: ITxRequest): Promise<Status>;
 }
 
 export default class Actions implements IActions {
@@ -24,19 +23,19 @@ export default class Actions implements IActions {
     this.config = config;
   }
 
-  public async claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus> {
+  public async claim(txRequest: ITxRequest, nextAccount: Address): Promise<Status> {
     if (!this.config.claiming) {
-      return ClaimStatus.NOT_ENABLED;
+      return Status.NOT_ENABLED;
     }
     //TODO: merge wallet ifs into 1 getWalletStatus or something
     if (this.config.wallet.hasPendingTransaction(txRequest.address)) {
-      return ClaimStatus.IN_PROGRESS;
+      return Status.IN_PROGRESS;
     }
     if (!this.config.wallet.isAccountAbleToSendTx(nextAccount)) {
-      return ClaimStatus.ACCOUNT_BUSY;
+      return Status.ACCOUNT_BUSY;
     }
     if (await hasPending(this.config, txRequest, { type: 'claim', checkGasPrice: true })) {
-      return ClaimStatus.PENDING;
+      return Status.PENDING;
     }
 
     try {
@@ -47,27 +46,27 @@ export default class Actions implements IActions {
       await this.accountClaimingCost(receipt, txRequest, opts, from);
 
       switch (status) {
-        case TxSendErrors.OK:
+        case Status.OK:
           this.config.cache.get(txRequest.address).claimedBy = from;
-          return ClaimStatus.SUCCESS;
-        case TxSendErrors.WALLET_BUSY:
-          return ClaimStatus.ACCOUNT_BUSY;
-        case TxSendErrors.IN_PROGRESS:
-          return ClaimStatus.IN_PROGRESS;
+          return Status.SUCCESS;
+        case Status.WALLET_BUSY:
+          return Status.ACCOUNT_BUSY;
+        case Status.IN_PROGRESS:
+          return Status.IN_PROGRESS;
       }
     } catch (err) {
       this.config.logger.error(err);
     }
 
-    return ClaimStatus.FAILED;
+    return Status.FAILED;
   }
 
-  public async execute(txRequest: ITxRequest): Promise<ExecuteStatus> {
+  public async execute(txRequest: ITxRequest): Promise<Status> {
     if (this.config.wallet.hasPendingTransaction(txRequest.address)) {
-      return ExecuteStatus.IN_PROGRESS;
+      return Status.IN_PROGRESS;
     }
     if (!(await this.config.wallet.isNextAccountFree())) {
-      return ExecuteStatus.WALLET_BUSY;
+      return Status.WALLET_BUSY;
     }
 
     try {
@@ -87,24 +86,24 @@ export default class Actions implements IActions {
         this.config.logger.info(`Executing...`, txRequest.address);
         executionResult = await this.config.wallet.sendFromNext(opts);
       } else {
-        return ExecuteStatus.PENDING;
+        return Status.PENDING;
       }
 
       const { receipt, from, status } = executionResult;
 
       switch (status) {
-        case TxSendErrors.OK:
+        case Status.OK:
           return await this.accountExecution(txRequest, receipt, opts, from);
-        case TxSendErrors.WALLET_BUSY:
-          return ExecuteStatus.WALLET_BUSY;
-        case TxSendErrors.IN_PROGRESS:
-          return ExecuteStatus.IN_PROGRESS;
+        case Status.WALLET_BUSY:
+          return Status.WALLET_BUSY;
+        case Status.IN_PROGRESS:
+          return Status.IN_PROGRESS;
       }
     } catch (err) {
       this.config.logger.error(err, txRequest.address);
     }
 
-    return ExecuteStatus.FAILED;
+    return Status.FAILED;
   }
 
   public async cleanup(): Promise<boolean> {
@@ -116,7 +115,7 @@ export default class Actions implements IActions {
     receipt: any,
     opts: any,
     from: string
-  ): Promise<ExecuteStatus> {
+  ): Promise<Status> {
     let bounty = new BigNumber(0);
     let cost = new BigNumber(0);
     let status;
@@ -129,12 +128,12 @@ export default class Actions implements IActions {
       bounty = this.config.web3.toDecimal(data.slice(0, 66));
 
       this.config.cache.get(txRequest.address).wasCalled = true;
-      status = ExecuteStatus.SUCCESS;
+      status = Status.SUCCESS;
     } else {
       const gasUsed = new BigNumber(receipt.gasUsed);
       const gasPrice = new BigNumber(opts.gasPrice);
       cost = gasUsed.mul(gasPrice);
-      status = ExecuteStatus.FAILED;
+      status = Status.FAILED;
     }
 
     this.config.statsDb.executed(from, txRequest.address, cost, bounty, success);

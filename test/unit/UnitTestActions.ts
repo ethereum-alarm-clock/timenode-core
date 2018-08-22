@@ -8,7 +8,7 @@ import {
   EXECUTED_EVENT,
   isTransactionStatusSuccessful
 } from '../../src/Actions/Helpers';
-import { ClaimStatus } from '../../src/Enum';
+import { Status } from '../../src/Enum';
 
 describe('shortenAddress()', () => {
   const address = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
@@ -49,7 +49,7 @@ describe('Actions Unit Tests', async () => {
     assert.equal(timenode.getClaimedNotExecutedTransactions()[myAccount].length, 0);
     assert.equal(timenode.getUnsucessfullyClaimedTransactions()[myAccount].length, 1);
 
-    assert.equal(claimingResult, ClaimStatus.FAILED);
+    assert.equal(claimingResult, Status.FAILED);
   });
 });
 
