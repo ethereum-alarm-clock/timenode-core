@@ -16,6 +16,7 @@ describe('Stats Unit Tests', () => {
 
   const reset = async () => {
     stats = new StatsDB(new loki('stats.db'));
+    await stats.init();
     cost = new BigNumber(10);
     bounty = new BigNumber(15);
   };
@@ -307,6 +308,13 @@ describe('Stats Unit Tests', () => {
 
       assert.isTrue(totalCostAccount1.equals(expectedAccount1Cost));
       assert.isTrue(totalCostAccount2.equals(expectedAccount2Cost));
+    });
+  });
+
+  describe('init()', () => {
+    it('allows to init multiple times', async () => {
+      const loaded = await stats.init();
+      assert.isTrue(loaded);
     });
   });
 });

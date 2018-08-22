@@ -19,7 +19,7 @@ describe('ButcketCalc', () => {
   let scanner: Scanner;
 
   const reset = async () => {
-    config = mockConfig();
+    config = await mockConfig();
     txTimestamp = await MockTxRequest(config.web3);
     txBlock = await MockTxRequest(config.web3, true);
 
@@ -32,7 +32,7 @@ describe('ButcketCalc', () => {
   describe('getBuckets()', () => {
     it('returns current and next buckets', async () => {
       const { currentBuckets, nextBuckets } = await scanner.bucketCalc.getBuckets();
-  
+
       expect(currentBuckets).to.haveOwnProperty('blockBucket');
       expect(currentBuckets).to.haveOwnProperty('timestampBucket');
       expect(nextBuckets).to.haveOwnProperty('blockBucket');
@@ -42,9 +42,15 @@ describe('ButcketCalc', () => {
         number: (await txBlock.now()).toNumber(),
         timestamp: (await txTimestamp.now()).toNumber()
       };
-  
-      assert.equal(currentBuckets.blockBucket, -1 * (block.number - (block.number % BucketSize.block)));
-      assert.equal(currentBuckets.timestampBucket, block.timestamp - (block.timestamp % BucketSize.timestamp));
+
+      assert.equal(
+        currentBuckets.blockBucket,
+        -1 * (block.number - (block.number % BucketSize.block))
+      );
+      assert.equal(
+        currentBuckets.timestampBucket,
+        block.timestamp - (block.timestamp % BucketSize.timestamp)
+      );
 
       const expectedBlockInterval = block.number + BucketSize.block;
       const expectedTimestampInterval = block.timestamp + BucketSize.timestamp;
@@ -58,4 +64,4 @@ describe('ButcketCalc', () => {
       );
     });
   });
-})
+});

@@ -24,7 +24,7 @@ describe('Scanner Unit Tests', () => {
   let scanner: Scanner;
 
   const reset = async () => {
-    config = mockConfig();
+    config = await mockConfig();
     txTimestamp = await MockTxRequest(config.web3);
     txBlock = await MockTxRequest(config.web3, true);
 

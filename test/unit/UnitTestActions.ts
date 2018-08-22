@@ -18,7 +18,7 @@ describe('shortenAddress()', () => {
 
 describe('Actions Unit Tests', async () => {
   it('sets claimingFailed to true when claim transaction reverts', async () => {
-    const config = mockConfig();
+    const config = await mockConfig();
     const myAccount = config.wallet.getAddresses()[0];
     const timenode = new TimeNode(config);
 

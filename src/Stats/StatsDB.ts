@@ -23,18 +23,35 @@ export interface IStatsEntry {
 
 export class StatsDB {
   private COLLECTION_NAME: string = 'timenode-stats';
-  private db: any;
+  private db: Loki;
+  private isLoaded: boolean;
 
-  constructor(db: any) {
+  constructor(db: Loki) {
     this.db = db;
-
-    if (!this.collection) {
-      this.db.addCollection(this.COLLECTION_NAME);
-    }
   }
 
-  private get collection() {
-    return this.db.getCollection(this.COLLECTION_NAME);
+  public init(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.db.loadDatabase({}, err => {
+        if (err) {
+          reject(err);
+        }
+
+        const collection = this.db.getCollection(this.COLLECTION_NAME);
+
+        if (!collection) {
+          this.db.addCollection(this.COLLECTION_NAME);
+        } else {
+          collection.data.forEach(stat => {
+            stat.bounty = new BigNumber(stat.bounty);
+            stat.cost = new BigNumber(stat.cost);
+          });
+        }
+
+        this.isLoaded = true;
+        resolve(true);
+      });
+    });
   }
 
   public discovered(from: string, txAddress: string) {
@@ -114,7 +131,7 @@ export class StatsDB {
     this.collection.clear();
   }
 
-  public totalCost(from: string) {
+  public totalCost(from: string): BigNumber {
     return this.collection
       .chain()
       .where((item: IStatsEntry) => item.from === from && item.cost.gt(0))
@@ -141,5 +158,17 @@ export class StatsDB {
 
   private insert(entry: IStatsEntry) {
     this.collection.insert(entry);
+  }
+
+  private get collection(): Collection<any> {
+    this.ensureLoaded();
+
+    return this.db.getCollection(this.COLLECTION_NAME);
+  }
+
+  private ensureLoaded() {
+    if (!this.isLoaded) {
+      throw new Error('DB not loaded, use init() before');
+    }
   }
 }

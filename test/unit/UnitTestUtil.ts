@@ -3,8 +3,8 @@ import { Config } from '../../src/index';
 import { mockConfig } from '../helpers';
 import W3Util from '../../src/Util';
 
-describe('Util Unit Tests', () => {
-  const config: Config = mockConfig();
+describe('Util Unit Tests', async () => {
+  const config: Config = await mockConfig();
   const util: W3Util = new W3Util(config.web3);
 
   describe('estimateGas()', () => {
