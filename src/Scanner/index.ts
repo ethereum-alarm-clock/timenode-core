@@ -1,1 +1,1 @@
-export { default } from './Scanner';
+export { default } from './TimeNodeScanner';
