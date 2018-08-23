@@ -1,4 +1,3 @@
-import { ILogger } from '../Logger';
 import BigNumber from 'bignumber.js';
 
 export interface IPool {
@@ -6,12 +5,12 @@ export interface IPool {
 }
 
 export interface ITxPoolTxDetails {
-    to: string;
-    from: string;
-    input: string;
-    gasPrice: BigNumber;
-    timestamp: number;
-    transactionHash: string;
+  to: string;
+  from: string;
+  input: string;
+  gasPrice: BigNumber;
+  timestamp: number;
+  transactionHash: string;
 }
 
 export class Pool {
@@ -21,7 +20,7 @@ export class Pool {
     if (this.pool[key]) {
       return false;
     }
-    return this.pool[key] = true;
+    return (this.pool[key] = true);
   }
 
   public set(key: string, value: ITxPoolTxDetails) {
@@ -29,9 +28,11 @@ export class Pool {
   }
 
   public get(key: string, field: string): (boolean | ITxPoolTxDetails)[] {
-    return this.stored().filter((p: string) =>
-      (field === 'transactionHash' && p === key) || this.pool[p][field] === key)
-      .map((found: string) => this.pool[found])
+    return this.stored()
+      .filter(
+        (p: string) => (field === 'transactionHash' && p === key) || this.pool[p][field] === key
+      )
+      .map((found: string) => this.pool[found]);
   }
 
   public has(key: string, field: string): boolean {

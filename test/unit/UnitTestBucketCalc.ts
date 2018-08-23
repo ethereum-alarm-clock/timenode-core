@@ -1,14 +1,13 @@
-import { expect, assert } from 'chai';
-import BigNumber from 'bignumber.js';
+import { assert, expect } from 'chai';
 
-import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest, mockTxStatus } from '../helpers';
+import { Config } from '../../src';
 import Actions from '../../src/Actions';
+import { BucketSize } from '../../src/Buckets';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
-import { TxStatus, CacheStates } from '../../src/Enum';
-import { BucketSize } from '../../src/Buckets';
 import { ITxRequest } from '../../src/Types';
+import { mockConfig, MockTxRequest } from '../helpers';
+
 describe('ButcketCalc', () => {
   let txBlock: ITxRequest;
   let config: Config;

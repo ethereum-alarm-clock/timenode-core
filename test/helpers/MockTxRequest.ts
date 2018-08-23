@@ -5,10 +5,8 @@ import { TxStatus, FnSignatures } from '../../src/Enum';
 import { ITxRequest } from '../../src/Types';
 
 const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> => {
-  const from = '0x74f8e3501b00bd219e864650f5625cd4f9272a75';
   const claimedBy = '0x0000000000000000000000000000000000000000';
   const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
-  const nonce = 156510;
 
   const hoursLater = (num: number) =>
     moment()

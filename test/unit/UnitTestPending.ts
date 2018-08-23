@@ -1,11 +1,11 @@
-import { expect, assert } from 'chai';
-
-import Config from '../../src/Config';
-import { mockConfig, MockTxRequest } from '../helpers';
-import { FnSignatures } from '../../src/Enum';
-import hasPending from '../../src/Actions/Pending';
 import BigNumber from 'bignumber.js';
-import TxPool, { ITxPoolTxDetails, IPool } from '../../src/TxPool';
+import { assert, expect } from 'chai';
+
+import hasPending from '../../src/Actions/Pending';
+import Config from '../../src/Config';
+import { FnSignatures } from '../../src/Enum';
+import { IPool } from '../../src/TxPool';
+import { mockConfig } from '../helpers';
 
 const CLIENTS = ['geth', 'parity'];
 const startAddr = '0x2ffd48cc061331d071a1a8178cfc2a3863d56d4e';
