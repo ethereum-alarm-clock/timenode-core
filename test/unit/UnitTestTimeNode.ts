@@ -55,7 +55,7 @@ describe('TimeNode Unit Tests', () => {
     it('logs the network id', () => {
       let networkLogged = false;
 
-      timenode.config.logger.info = (msg: string) => {
+      timenode.config.logger.info = () => {
         networkLogged = true;
       };
 

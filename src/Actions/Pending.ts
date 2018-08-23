@@ -1,4 +1,4 @@
-import TxPool, { ITxPoolTxDetails } from '../TxPool';
+import { ITxPoolTxDetails } from '../TxPool';
 import Config from '../Config';
 import BigNumber from 'bignumber.js';
 import { FnSignatures } from '../Enum';
@@ -27,23 +27,19 @@ const hasPendingPool = async (
 ): Promise<boolean> => {
   let validPending: (boolean | ITxPoolTxDetails)[] = [];
 
-  try{
+  try {
     const currentGasPrice: BigNumber = await conf.util.networkGasPrice();
-    validPending = conf.txPool.pool.get(txRequest.address, 'to')
-      .filter( (tx: ITxPoolTxDetails) => {
-        const withValidGasPrice =
-          (!opts.checkGasPrice ||
-            (hasValidGasPrice(
-              currentGasPrice,
-              tx,
-              opts.minPrice
-              )));
-        return isOfType(tx, opts.type) && withValidGasPrice
-      })
-    return validPending.length > 0;  
+    validPending = conf.txPool.pool.get(txRequest.address, 'to').filter((tx: ITxPoolTxDetails) => {
+      const withValidGasPrice =
+        !opts.checkGasPrice || hasValidGasPrice(currentGasPrice, tx, opts.minPrice);
+      return isOfType(tx, opts.type) && withValidGasPrice;
+    });
+    return validPending.length > 0;
   } catch (e) {
     conf.logger.info(e);
   }
+
+  return true; //if there is an error, assume tq exists so we don't loose
 };
 
 /**
@@ -53,10 +49,16 @@ const hasPendingPool = async (
  * @param {number} minPrice (optional) Expected gasPrice.
  * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
  */
-const hasValidGasPrice = (networkPrice: BigNumber, transaction: ITxPoolTxDetails, minPrice?: BigNumber) => {
+const hasValidGasPrice = (
+  networkPrice: BigNumber,
+  transaction: ITxPoolTxDetails,
+  minPrice?: BigNumber
+) => {
   const spread = 0.3;
   const hasMinPrice: boolean = !minPrice || minPrice.lte(transaction.gasPrice);
-  return hasMinPrice && networkPrice && networkPrice.times(spread).lte(transaction.gasPrice.valueOf());
+  return (
+    hasMinPrice && networkPrice && networkPrice.times(spread).lte(transaction.gasPrice.valueOf())
+  );
 };
 
 /**
@@ -90,7 +92,7 @@ const hasPending = async (
 ): Promise<boolean> => {
   let result: boolean = false;
   if (conf.txPool && conf.txPool.running()) {
-    result = await hasPendingPool(conf, txRequest, opts)
+    result = await hasPendingPool(conf, txRequest, opts);
   }
   return result;
 };

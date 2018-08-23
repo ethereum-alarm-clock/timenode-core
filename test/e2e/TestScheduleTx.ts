@@ -9,7 +9,7 @@ const CLAIM_WINDOW_SIZE = 255;
 
 export const getHelperMethods = (web3: any) => {
   function sendRpc(method: any, params?: any) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       web3.currentProvider.sendAsync(
         {
           jsonrpc: '2.0',
@@ -18,6 +18,9 @@ export const getHelperMethods = (web3: any) => {
           id: new Date().getTime()
         },
         (err: any, res: any) => {
+          if (err) {
+            reject(err);
+          }
           resolve(res);
         }
       );
@@ -25,9 +28,13 @@ export const getHelperMethods = (web3: any) => {
   }
 
   function waitUntilBlock(seconds: any, targetBlock: any) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const asyncIterator = function _asyncIterator() {
-        return web3.eth.getBlock('latest', (e: any, ref: any) => {
+        return web3.eth.getBlock('latest', (err: any, ref: any) => {
+          if (err) {
+            reject(err);
+          }
+
           const num = ref.number;
 
           if (num >= targetBlock - 1) {

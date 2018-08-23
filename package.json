@@ -43,7 +43,6 @@
   },
   "homepage": "https://github.com/ethereum-alarm-clock/timenode-core#readme",
   "dependencies": {
-    "babel-polyfill": "6.26.0",
     "bignumber.js": "5.0.0",
     "eac.js-lib": "2.3.7",
     "ethereumjs-tx": "1.3.7",

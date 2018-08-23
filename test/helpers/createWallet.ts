@@ -1,6 +1,6 @@
 import { Wallet } from '../../src/index';
 
-export function createWalletKeystore(web3: any, num: number, filename: any, password: string) {
+export function createWalletKeystore(web3: any, num: number, password: string) {
   const wallet = new Wallet(web3);
   wallet.create(num);
 
@@ -8,7 +8,7 @@ export function createWalletKeystore(web3: any, num: number, filename: any, pass
   return encryptedKeystore;
 }
 
-export function createWallet(web3: any, num: number, filename: any, password: string) {
+export function createWallet(web3: any, num: number) {
   const wallet = new Wallet(web3);
   wallet.create(num);
   return wallet;

@@ -11,8 +11,6 @@ import { ICachedTxDetails } from '../Cache/Cache';
 import { getWeb3FromProviderUrl } from './helpers';
 import BigNumber from 'bignumber.js';
 
-declare const setTimeout: any;
-
 export default class Config implements IConfigParams {
   public static readonly DEFAULT_ECONOMIC_STRATEGY: IEconomicStrategy = {
     maxDeposit: new BigNumber(1000000000000000000),
