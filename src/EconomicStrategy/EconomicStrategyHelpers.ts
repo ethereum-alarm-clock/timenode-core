@@ -75,16 +75,14 @@ const isAboveMinBalanceLimit = async (config: Config, nextAccount: Address): Pro
  * Compares the profitability user settings and checks if the TimeNode
  * should claim a transaction.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
- * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
+ * @param {Config} config TimeNode configuration object.
  */
-const isProfitable = async (
-  txRequest: ITxRequest,
-  economicStrategy: IEconomicStrategy
-): Promise<boolean> => {
+const isProfitable = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
   const paymentModifier = await txRequest.claimPaymentModifier();
-  const reward = txRequest.bounty.times(paymentModifier);
+  const claimingGasCost = await config.util.estimateGas({});
+  const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
 
-  const minProfitability = economicStrategy.minProfitability;
+  const minProfitability = config.economicStrategy.minProfitability;
 
   if (minProfitability && minProfitability.gt(0)) {
     return reward.gt(minProfitability);
@@ -107,7 +105,7 @@ const shouldClaimTx = async (
     return EconomicStrategyStatus.CLAIM;
   }
 
-  const profitable = await isProfitable(txRequest, config.economicStrategy);
+  const profitable = await isProfitable(txRequest, config);
   if (!profitable) {
     return EconomicStrategyStatus.NOT_PROFITABLE;
   }
