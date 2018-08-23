@@ -6,17 +6,12 @@ import { DefaultLogger } from '../../src/Logger';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
-const mockConfig = (preConfig?: any) => {
-  const client = preConfig && preConfig.client ? preConfig.client : 'unknown';
-
-  const filename = 'wallet.txt';
+const mockConfig = async () => {
   const password = 'password123';
   const wallet = [PRIVATE_KEY]; //createWalletKeystore(web3, 1, filename, password);
-
   const config = new Config({
     autostart: true,
     claiming: true,
-    disableDetection: true,
     logger: new DefaultLogger(),
     ms: 4000,
     password,
@@ -26,7 +21,7 @@ const mockConfig = (preConfig?: any) => {
     walletStores: wallet,
     walletStoresAsPrivateKeys: true
   });
-  config.client = client;
+  await config.statsDbLoaded;
   return config;
 };
 

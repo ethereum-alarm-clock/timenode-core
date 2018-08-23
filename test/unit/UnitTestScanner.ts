@@ -1,22 +1,17 @@
 /* tslint:disable:no-unused-expression */
-import { expect, assert } from 'chai';
 import BigNumber from 'bignumber.js';
-
-import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest, mockTxStatus } from '../helpers';
+import { assert, expect } from 'chai';
 import Actions from '../../src/Actions';
+import { BucketSize } from '../../src/Buckets';
+import { CacheStates } from '../../src/Enum';
+import { Config } from '../../src/index';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
-import { TxStatus, CacheStates } from '../../src/Enum';
-import { BucketSize } from '../../src/Buckets';
 import { ITxRequest } from '../../src/Types';
-
-const TIMESTAMP_TX = 'timestamp Tx';
-const BLOCK_TX = 'block Tx';
+import { mockConfig, MockTxRequest } from '../helpers';
 
 describe('Scanner Unit Tests', () => {
   let config: Config;
-  let txTimestamp: ITxRequest;
   let txBlock: ITxRequest;
 
   let router: Router;
@@ -24,8 +19,7 @@ describe('Scanner Unit Tests', () => {
   let scanner: Scanner;
 
   const reset = async () => {
-    config = mockConfig();
-    txTimestamp = await MockTxRequest(config.web3);
+    config = await mockConfig();
     txBlock = await MockTxRequest(config.web3, true);
 
     actions = new Actions(config);
@@ -43,15 +37,6 @@ describe('Scanner Unit Tests', () => {
   });
 
   describe('start()', async () => {
-    it('fails to start scanner with Null client', done => {
-      config.client = undefined;
-      scanner.start();
-      setTimeout(() => {
-        expect(scanner.scanning).to.be.false;
-        done();
-      }, 5000);
-    }).timeout(6000);
-
     it('returns true for scanning and chainScanner/cacheScanner', async () => {
       await scanner.start();
       assert.isTrue(scanner.scanning);

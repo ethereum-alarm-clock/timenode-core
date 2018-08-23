@@ -1,14 +1,13 @@
-import { expect, assert } from 'chai';
-import BigNumber from 'bignumber.js';
+import { assert, expect } from 'chai';
 
-import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest, mockTxStatus } from '../helpers';
+import { Config } from '../../src';
 import Actions from '../../src/Actions';
+import { BucketSize } from '../../src/Buckets';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
-import { TxStatus, CacheStates } from '../../src/Enum';
-import { BucketSize } from '../../src/Buckets';
 import { ITxRequest } from '../../src/Types';
+import { mockConfig, MockTxRequest } from '../helpers';
+
 describe('ButcketCalc', () => {
   let txBlock: ITxRequest;
   let config: Config;
@@ -19,7 +18,7 @@ describe('ButcketCalc', () => {
   let scanner: Scanner;
 
   const reset = async () => {
-    config = mockConfig();
+    config = await mockConfig();
     txTimestamp = await MockTxRequest(config.web3);
     txBlock = await MockTxRequest(config.web3, true);
 
@@ -32,7 +31,7 @@ describe('ButcketCalc', () => {
   describe('getBuckets()', () => {
     it('returns current and next buckets', async () => {
       const { currentBuckets, nextBuckets } = await scanner.bucketCalc.getBuckets();
-  
+
       expect(currentBuckets).to.haveOwnProperty('blockBucket');
       expect(currentBuckets).to.haveOwnProperty('timestampBucket');
       expect(nextBuckets).to.haveOwnProperty('blockBucket');
@@ -42,9 +41,15 @@ describe('ButcketCalc', () => {
         number: (await txBlock.now()).toNumber(),
         timestamp: (await txTimestamp.now()).toNumber()
       };
-  
-      assert.equal(currentBuckets.blockBucket, -1 * (block.number - (block.number % BucketSize.block)));
-      assert.equal(currentBuckets.timestampBucket, block.timestamp - (block.timestamp % BucketSize.timestamp));
+
+      assert.equal(
+        currentBuckets.blockBucket,
+        -1 * (block.number - (block.number % BucketSize.block))
+      );
+      assert.equal(
+        currentBuckets.timestampBucket,
+        block.timestamp - (block.timestamp % BucketSize.timestamp)
+      );
 
       const expectedBlockInterval = block.number + BucketSize.block;
       const expectedTimestampInterval = block.timestamp + BucketSize.timestamp;
@@ -58,4 +63,4 @@ describe('ButcketCalc', () => {
       );
     });
   });
-})
+});

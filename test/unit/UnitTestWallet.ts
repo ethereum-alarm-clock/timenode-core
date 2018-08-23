@@ -18,7 +18,7 @@ describe('Wallet Unit Tests', () => {
   let opts: object;
 
   const reset = async () => {
-    config = mockConfig();
+    config = await mockConfig();
     wallet = new Wallet(config.web3);
     wallet.logger = new DefaultLogger();
 

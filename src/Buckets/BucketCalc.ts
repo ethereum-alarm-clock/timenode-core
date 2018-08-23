@@ -1,15 +1,15 @@
-import { IBlock, IntervalId, ITxRequest } from '../Types';
-import { Bucket, IBucketPair, IBuckets, BucketSize } from '.';
+import { IBlock } from '../Types';
+import { IBucketPair, IBuckets, BucketSize } from '.';
 import { Config } from '..';
 
 export interface IBucketCalc {
-  getBuckets(): Promise<IBuckets>
+  getBuckets(): Promise<IBuckets>;
 }
 
 export class BucketCalc {
-  private requestFactory: any
-  private config: Config
-  constructor(config: Config, requestFactory: any){
+  private requestFactory: any;
+  private config: Config;
+  constructor(config: Config, requestFactory: any) {
     this.config = config;
     this.requestFactory = requestFactory;
   }
@@ -41,6 +41,4 @@ export class BucketCalc {
       timestampBucket: reqFactory.calcBucket(nextTsInterval, 2)
     };
   }
-
-
 }

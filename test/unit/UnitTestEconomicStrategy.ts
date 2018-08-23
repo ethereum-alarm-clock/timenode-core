@@ -10,7 +10,7 @@ describe('Economic Strategy Tests', () => {
   let txTimestamp: any;
 
   const reset = async () => {
-    config = mockConfig();
+    config = await mockConfig();
     txTimestamp = await MockTxRequest(config.web3);
   };
 

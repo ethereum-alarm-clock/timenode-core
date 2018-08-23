@@ -22,7 +22,6 @@ describe('Config unit tests', () => {
       assert.equal(config.ms, 4000);
       assert.equal(config.scanSpread, 50);
       assert.isFalse(config.walletStoresAsPrivateKeys);
-      assert.isUndefined(config.client);
       expect(config.logger).to.exist; // tslint:disable-line no-unused-expression
       assert.isNull(config.wallet);
       assert.equal(config.economicStrategy.maxDeposit, Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit);
@@ -35,56 +34,6 @@ describe('Config unit tests', () => {
         config.economicStrategy.maxGasSubsidy,
         Config.DEFAULT_ECONOMIC_STRATEGY.maxGasSubsidy
       );
-    });
-
-    it('Detect if config client is set', () => {
-      const config = new Config({ providerUrl });
-      expect(config.clientSet()).to.be.false; // tslint:disable-line no-unused-expression
-    });
-
-    it('Detect when config client is set', async () => {
-      const config = new Config({ providerUrl });
-      expect(config.clientSet()).to.be.false; // tslint:disable-line no-unused-expression
-      await config.awaitClientSet();
-      expect(config.clientSet()).to.be.true; // tslint:disable-line no-unused-expression
-    });
-
-    it('Detects correct config client is set', async () => {
-      const clients = ['geth', 'parity', 'unknown'];
-      const found: any = [];
-      const methods = {
-        geth: 'txpool_content',
-        parity: 'parity_pendingTransactions',
-        unknown: ''
-      };
-
-      const Web3 = (client: string) => {
-        return {
-          currentProvider: {
-            sendAsync: (payload: any, callback: (err: any, res: any) => void) => {
-              console.log('inAsync', methods[client]);
-              if (payload.method === methods[client]) {
-                callback(null, {});
-              } else {
-                const err = new Error('Method does not exist');
-                callback(err, { error: err });
-              }
-            }
-          }
-        };
-      };
-
-      await Promise.all(
-        clients.map(async (client: string) => {
-          const config = new Config({ providerUrl, disableDetection: true });
-          config.web3 = Web3(client);
-          config.getConnectedClient();
-          await config.awaitClientSet();
-          found.push(config.client);
-        })
-      );
-
-      expect(found).to.deep.equal(clients);
     });
 
     it('check all values are set when added to config object', () => {
@@ -104,7 +53,6 @@ describe('Config unit tests', () => {
         ms: 10000,
         scanSpread: 100,
         walletStoresAsPrivateKeys: true,
-        client: 'parity',
         logger: new DefaultLogger(),
         walletStores: [PRIVATE_KEY]
       });
@@ -114,7 +62,6 @@ describe('Config unit tests', () => {
       assert.equal(config.ms, 10000);
       assert.equal(config.scanSpread, 100);
       assert.isTrue(config.walletStoresAsPrivateKeys);
-      assert.isNotNull(config.client);
       expect(config.logger).to.exist; // tslint:disable-line no-unused-expression
       assert.equal(config.wallet.getAccounts().length, 1);
       assert.equal(config.economicStrategy, economicStrategy);

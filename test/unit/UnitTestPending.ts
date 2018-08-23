@@ -1,94 +1,12 @@
-import { expect, assert } from 'chai';
-
-import Config from '../../src/Config';
-import { mockConfig, MockTxRequest } from '../helpers';
-import { FnSignatures } from '../../src/Enum';
-import hasPending from '../../src/Actions/Pending';
 import BigNumber from 'bignumber.js';
+import { assert } from 'chai';
 
-class Provider {
-  public result: any;
+import hasPending from '../../src/Actions/Pending';
+import Config from '../../src/Config';
+import { FnSignatures } from '../../src/Enum';
+import { IPool } from '../../src/TxPool';
+import { mockConfig } from '../helpers';
 
-  constructor(opts?: any) {
-    const found: any = {};
-    opts && opts.gas ? (found.gas = opts.gas) : undefined; // tslint:disable-line no-unused-expression
-    opts && opts.input ? (found.input = opts.input) : undefined; // tslint:disable-line no-unused-expression
-    opts && opts.value ? (found.value = opts.value) : undefined; // tslint:disable-line no-unused-expression
-    opts && opts.gasPrice ? (found.gasPrice = opts.gasPrice) : undefined; // tslint:disable-line no-unused-expression
-
-    this.result = {
-      result: PENDINGS.map(pending => Object.assign({}, pending, found))
-    };
-  }
-  public send = (request?: any, callback?: any) => {
-    return new Promise((resolve: any) => {
-      if (request.method === 'parity_pendingTransactions') {
-        resolve(callback(null, pendingTx(Object.assign({}, this.result, { client: 'parity' }))));
-      } else if (request.method === 'txpool_content') {
-        resolve(callback(null, pendingTx(Object.assign({}, this.result, { client: 'geth' }))));
-      }
-    });
-  };
-  public sendAsync = async (request: any, callback: any) => {
-    return await this.send(request, callback);
-  };
-}
-
-const pendingTx = (opts?: any) => {
-  let result: any = [];
-  const pending: any = [];
-  const defaultPending = {
-    gas: 21000,
-    gasPrice: 10 * 1e12,
-    input: '0x',
-    value: 0
-  };
-  if (opts.client === 'parity' && opts.result) {
-    result = opts.result.map((res: any) => Object.assign({}, defaultPending, res));
-  }
-  if (opts.client === 'geth' && opts.result) {
-    opts.result.map((res: any) => {
-      if (!pending[res.from]) {
-        pending[res.from] = [];
-      }
-      pending[res.from].push(Object.assign({}, defaultPending, res));
-    });
-    result = { pending };
-  }
-  return { result, client: opts.client };
-};
-
-const preConfig = (config: Config, opt?: any) => {
-  opt.noPool = opt.noPool === false ? opt.noPool : true;
-  if (opt.noPool) {
-    config.txPool.stop();
-  }
-  config.web3 = {
-    currentProvider: opt.provider ? opt.provider : new Provider(opt),
-    eth: {
-      getGasPrice: async (callback?: any) => {
-        const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
-        if (callback) {
-          callback(null, new BigNumber(gasPrice));
-        }
-        return gasPrice;
-      }
-    }
-  };
-  config.util.web3 = config.web3;
-  config.client = opt.client;
-
-  return config;
-};
-
-const mockTx = (opts: any) => {
-  return {
-    address: opts.address,
-    gasPrice: opts.gasPrice
-  };
-};
-
-const CLIENTS = ['geth', 'parity'];
 const startAddr = '0x2ffd48cc061331d071a1a8178cfc2a3863d56d4e';
 const PENDINGS = [
   {
@@ -109,172 +27,192 @@ const PENDINGS = [
   }
 ];
 
-describe('hasPendingParity()', () => {
-  it('Detects valid Pending requests (parity)', async () => {
-    const gasPrice = 1 * 1e12;
-    const config = preConfig(mockConfig(), { client: 'parity', noPool: true, gasPrice });
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), { checkGasPrice: true });
-    assert(pending);
-  });
-});
+class PendingTxPool {
+  public result: any;
 
-describe('hasPendingGeth()', () => {
-  it('Detects valid Pending requests (geth)', async () => {
-    const gasPrice = 1 * 1e12;
-    const config = preConfig(mockConfig(), { client: 'geth', noPool: true, gasPrice });
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), { checkGasPrice: true });
-    assert(pending);
-  });
-});
+  constructor(opts?: any) {
+    this.result = Object.assign(
+      {
+        to: '0x0',
+        from: '0x0',
+        input: '0x0',
+        transactionHashtimestamp: new Date().getTime(),
+        gasPrice: 0x0
+      },
+      opts
+    );
+  }
+
+  public getPool = (list: any): IPool => {
+    const pool: any = [];
+    list.forEach(
+      (item: any): any => {
+        const transactionHash =
+          item.transactionHash || '0x0' + new Date().getTime() * Math.random();
+        pool[transactionHash] = Object.assign({}, this.result, item);
+        pool[transactionHash].gasPrice = new BigNumber(pool[transactionHash].gasPrice);
+      }
+    );
+    return pool;
+  };
+}
+
+const preConfig = (config: Config, opt?: any) => {
+  opt.noPool = opt.noPool === false ? opt.noPool : true;
+  if (opt.noPool) {
+    config.txPool.stop();
+  }
+  config.web3 = {
+    eth: {
+      getGasPrice: async (callback?: any) => {
+        const gasPrice = opt.netGasPrice ? opt.netGasPrice : opt.gasPrice;
+        if (callback) {
+          callback(null, new BigNumber(gasPrice));
+        }
+        return gasPrice;
+      }
+    }
+  };
+  config.util.web3 = config.web3;
+  return config;
+};
+
+const mockTx = (opts: any) => {
+  return {
+    address: opts.address,
+    gasPrice: opts.gasPrice
+  };
+};
 
 describe('hasPending()', () => {
-  it('Unknown clients defaults to false', async () => {
+  it('Pending defaults to false', async () => {
     const gasPrice = 1 * 1e12;
-    const config = preConfig(mockConfig(), { client: '', noPool: true, gasPrice });
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), { checkGasPrice: true });
+    const options = { gasPrice };
+    const config = preConfig(await mockConfig(), options);
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true
+    });
+    assert.isFalse(pending);
+  });
+
+  it('Pending pool defaults to false', async () => {
+    const gasPrice = 1 * 1e12;
+    const config = preConfig(await mockConfig(), { noPool: true, gasPrice });
+    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true
+    });
+
     assert.isFalse(pending);
   });
 });
 
 describe('Pending Unit Tests', () => {
   it('Detects valid Pending claim requests', async () => {
-    const expected = [true, true];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(mockConfig(), {
-        client,
-        gasPrice,
-        provider: new Provider({ input: FnSignatures.claim })
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'claim'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const options = { gasPrice, input: FnSignatures.claim };
+
+    const config = await mockConfig();
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'claim'
+    });
+
+    assert.isTrue(pending);
   });
 
   it('Detects absence of valid Pending claim request', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(mockConfig(), {
-        client,
-        gasPrice,
-        provider: new Provider({ input: FnSignatures.execute })
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'claim'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const options = { gasPrice, input: FnSignatures.execute };
+
+    const config = await mockConfig();
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr + '001', gasPrice }), {
+      checkGasPrice: true,
+      type: 'claim'
+    });
+
+    assert.isFalse(pending);
   });
 
   it('Ignore Pending claim request with low gasprice', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(mockConfig(), {
-        client,
-        gasPrice,
-        netGasPrice: 15 * 1e13,
-        provider: new Provider({ input: FnSignatures.claim })
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'claim'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const options = { gasPrice, input: FnSignatures.claim };
+
+    const config = await mockConfig();
+    const testConfig: Config = preConfig(config, {
+      gasPrice,
+      noPool: false,
+      netGasPrice: (gasPrice / 0.2999999).toFixed()
+    });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'claim'
+    });
+
+    assert.isFalse(pending);
   });
 
   it('Detects valid Pending execute request', async () => {
-    const expected = [true, true];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(mockConfig(), {
-        client,
-        gasPrice,
-        provider: new Provider({ input: FnSignatures.execute })
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'execute'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const options = { gasPrice, input: FnSignatures.execute };
+    const config = await mockConfig();
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'execute'
+    });
+
+    assert.isTrue(pending);
   });
 
   it('Detects  absence of valid Pending execute request', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(mockConfig(), {
-        client,
-        gasPrice,
-        provider: new Provider({ input: FnSignatures.claim })
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'execute'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const options = { gasPrice, input: FnSignatures.claim };
+    const config = await mockConfig();
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'execute'
+    });
+
+    assert.isFalse(pending);
   });
 
   it('Detects Invalid Pending execute request', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
     const minPrice = new BigNumber(0.9 * 1e12);
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(mockConfig(), {
-        client,
-        gasPrice,
-        provider: new Provider({ input: FnSignatures.execute })
-      })
+    const options = { gasPrice: minPrice.times(0.9), input: FnSignatures.claim };
+    const config = await mockConfig();
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(
+      testConfig,
+      mockTx({ address: startAddr, gasPrice: minPrice }),
+      {
+        checkGasPrice: true,
+        type: 'execute',
+        minPrice
+      }
     );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice: minPrice }), {
-          checkGasPrice: true,
-          type: 'execute',
-          minPrice
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+
+    assert.isFalse(pending);
   });
 });

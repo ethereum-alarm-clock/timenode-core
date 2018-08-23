@@ -2,6 +2,9 @@
     "compilerOptions": {
         "suppressImplicitAnyIndexErrors": true,
         "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "noImplicitReturns": true,
+        "noUnusedParameters": true,
         "outDir": "./built",
         "allowJs": true,
         "lib": [
