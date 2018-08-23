@@ -2,7 +2,7 @@
 import { expect, assert } from 'chai';
 
 import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest, mockTxStatus } from '../helpers';
+import { mockConfig, mockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus } from '../../src/Enum';
@@ -22,13 +22,9 @@ describe('Router Unit Tests', () => {
 
   const reset = async () => {
     config = await mockConfig();
-    config.util.estimateGas = async (opts: any) => {
-      console.log(opts);
-      return 21000;
-    };
 
-    txTimestamp = await MockTxRequest(config.web3);
-    txBlock = await MockTxRequest(config.web3, true);
+    txTimestamp = await mockTxRequest(config.web3);
+    txBlock = await mockTxRequest(config.web3, true);
 
     actions = new Actions(config);
     router = new Router(config, actions);

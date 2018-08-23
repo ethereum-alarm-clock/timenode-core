@@ -4,7 +4,7 @@ import * as Bb from 'bluebird';
 import { TxStatus, FnSignatures } from '../../src/Enum';
 import { ITxRequest } from '../../src/Types';
 
-const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> => {
+const mockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> => {
   const claimedBy = '0x0000000000000000000000000000000000000000';
   const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
 
@@ -152,4 +152,4 @@ const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxReques
   return tx;
 };
 
-export { MockTxRequest, mockTxStatus };
+export { mockTxRequest, mockTxStatus };
