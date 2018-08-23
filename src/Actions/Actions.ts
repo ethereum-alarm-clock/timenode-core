@@ -35,7 +35,7 @@ export default class Actions implements IActions {
       return Status.ACCOUNT_BUSY;
     }
     if (await hasPending(this.config, txRequest, { type: 'claim', checkGasPrice: true })) {
-      return Status.PENDING;
+      return Status.CLAIM_PENDING;
     }
 
     try {
@@ -58,7 +58,7 @@ export default class Actions implements IActions {
       this.config.logger.error(err);
     }
 
-    return Status.FAILED;
+    return Status.CLAIM_FAILED;
   }
 
   public async execute(txRequest: ITxRequest): Promise<Status> {
@@ -86,7 +86,7 @@ export default class Actions implements IActions {
         this.config.logger.info(`Executing...`, txRequest.address);
         executionResult = await this.config.wallet.sendFromNext(opts);
       } else {
-        return Status.PENDING;
+        return Status.EXECUTE_PENDING;
       }
 
       const { receipt, from, status } = executionResult;
@@ -103,7 +103,7 @@ export default class Actions implements IActions {
       this.config.logger.error(err, txRequest.address);
     }
 
-    return Status.FAILED;
+    return Status.EXECUTE_FAILED;
   }
 
   public async cleanup(): Promise<boolean> {
@@ -133,7 +133,7 @@ export default class Actions implements IActions {
       const gasUsed = new BigNumber(receipt.gasUsed);
       const gasPrice = new BigNumber(opts.gasPrice);
       cost = gasUsed.mul(gasPrice);
-      status = Status.FAILED;
+      status = Status.EXECUTE_FAILED;
     }
 
     this.config.statsDb.executed(from, txRequest.address, cost, bounty, success);

@@ -5,7 +5,7 @@ import { mockConfig } from '../helpers';
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
-import { TxSendErrors } from '../../src/Enum/TxSendErrors';
+import { Status } from '../../src/Enum';
 import { DefaultLogger } from '../../src/Logger';
 import { isTransactionStatusSuccessful } from '../../src/Actions/Helpers';
 
@@ -182,7 +182,7 @@ describe('Wallet Unit Tests', () => {
       wallet.create(1);
 
       const { status } = await wallet.sendFromIndex(0, opts);
-      assert.equal(status, TxSendErrors.NOT_ENOUGH_FUNDS);
+      assert.equal(status, Status.NOT_ENOUGH_FUNDS);
     });
 
     it('returns error when not enough balance on account and doesnt log', async () => {
@@ -190,7 +190,7 @@ describe('Wallet Unit Tests', () => {
       wallet.logger = null;
 
       const receipt = await wallet.sendFromIndex(0, opts);
-      assert.equal(receipt.status, TxSendErrors.NOT_ENOUGH_FUNDS);
+      assert.equal(receipt.status, Status.NOT_ENOUGH_FUNDS);
     });
 
     it('returns error when sending a Tx is in progress', async () => {
@@ -215,7 +215,7 @@ describe('Wallet Unit Tests', () => {
       });
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      assert.equal(receipt.status, TxSendErrors.WALLET_BUSY);
+      assert.equal(receipt.status, Status.WALLET_BUSY);
     });
 
     it('allows to send another transaction when previous one reverted', async () => {
@@ -241,7 +241,7 @@ describe('Wallet Unit Tests', () => {
           data: '0x1234'
         })
       );
-      assert.equal(receipt.status, TxSendErrors.UNKNOWN_ERROR);
+      assert.equal(receipt.status, Status.UNKNOWN_ERROR);
       assert.isNotOk(wallet.walletStates.get(address).sendingTxInProgress);
 
       receipt = await wallet.sendFromIndex(idx, opts);

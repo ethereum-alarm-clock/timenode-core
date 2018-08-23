@@ -4,9 +4,12 @@ export enum Status {
   IN_PROGRESS = 'Transaction in progress',
   UNKNOWN_ERROR = 'An error happened',
   OK = 'OK',
-  FAILED = 'Failed',
-  PENDING = 'Pending',
-  NOT_ENABLED = 'Claiming disabled',
-  ACCOUNT_BUSY = 'Account is busy',
+  CLAIM_FAILED = 'Claiming: Transaction already claimed',
+  EXECUTE_FAILED = 'Execution: Unable to send the execute action',
+  TX_FAILED = 'FAILED',
+  CLAIM_PENDING = 'Claiming: Skipped - Other claiming found',
+  EXECUTE_PENDING = 'Execution: Skipped - Other execution found',
+  NOT_ENABLED = 'Claiming: Skipped - Claiming disabled',
+  ACCOUNT_BUSY = 'Claiming: Skipped - Account is busy',
   SUCCESS = 'Success'
 }

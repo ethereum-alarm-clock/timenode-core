@@ -70,7 +70,7 @@ export default class Router implements IRouter {
 
           this.handleWalletTransactionResult(claimingStatus, txRequest);
 
-          if (claimingStatus === Status.SUCCESS || claimingStatus === Status.FAILED) {
+          if (claimingStatus === Status.SUCCESS || claimingStatus === Status.CLAIM_FAILED) {
             return TxStatus.FreezePeriod;
           }
         } catch (err) {
@@ -205,13 +205,13 @@ export default class Router implements IRouter {
         break;
       case Status.ACCOUNT_BUSY:
       case Status.NOT_ENABLED:
-      case Status.PENDING:
+      case Status.CLAIM_PENDING:
       case Status.WALLET_BUSY:
-      case Status.PENDING:
+      case Status.EXECUTE_PENDING:
         this.config.logger.info(status, txRequest.address);
         break;
-      case Status.FAILED:
-      case Status.FAILED:
+      case Status.CLAIM_FAILED:
+      case Status.EXECUTE_FAILED:
         this.config.logger.error(status, txRequest.address);
         break;
       case Status.IN_PROGRESS:

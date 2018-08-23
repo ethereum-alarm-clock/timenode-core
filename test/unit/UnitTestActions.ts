@@ -49,7 +49,7 @@ describe('Actions Unit Tests', async () => {
     assert.equal(timenode.getClaimedNotExecutedTransactions()[myAccount].length, 0);
     assert.equal(timenode.getUnsucessfullyClaimedTransactions()[myAccount].length, 1);
 
-    assert.equal(claimingResult, Status.FAILED);
+    assert.equal(claimingResult, Status.CLAIM_FAILED);
   });
 });
 
