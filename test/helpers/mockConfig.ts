@@ -4,6 +4,7 @@ import { Config } from '../../src/index';
 import { providerUrl } from './network';
 import { DefaultLogger } from '../../src/Logger';
 import { mockTxRequest } from './MockTxRequest';
+import W3Util from '../../src/Util';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
@@ -23,14 +24,14 @@ const mockConfig = async () => {
     walletStoresAsPrivateKeys: true
   });
 
-  const oldEstimateGas = config.util.estimateGas;
+  const w3util = new W3Util(config.web3);
 
   config.util.estimateGas = async (opts: any) => {
     const mockTx = await mockTxRequest(config.web3);
     if (opts.to === mockTx.address) {
       return 21000;
     }
-    return await oldEstimateGas(opts);
+    return await w3util.estimateGas(opts);
   };
 
   await config.statsDbLoaded;
