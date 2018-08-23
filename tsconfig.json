@@ -3,6 +3,7 @@
         "suppressImplicitAnyIndexErrors": true,
         "noImplicitAny": true,
         "noUnusedLocals": true,
+        "noImplicitReturns": true,
         "outDir": "./built",
         "allowJs": true,
         "lib": [

@@ -38,6 +38,8 @@ const hasPendingPool = async (
   } catch (e) {
     conf.logger.info(e);
   }
+
+  return true; //if there is an error, assume tq exists so we don't loose
 };
 
 /**
