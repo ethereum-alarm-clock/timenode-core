@@ -30,7 +30,6 @@ const mockConfig = async () => {
     if (opts.to === mockTx.address) {
       return 21000;
     }
-    console.log(opts);
     return await oldEstimateGas(opts);
   };
 
