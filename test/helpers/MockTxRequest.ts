@@ -31,7 +31,6 @@ const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
     callGas: new BigNumber(Math.pow(10, 6)),
     gasPrice: new BigNumber(web3.toWei(21, 'gwei')),
     claimedBy,
-    claimData: FnSignatures.claim,
     isClaimed: false,
     requiredDeposit,
     temporalUnit: isBlock ? 1 : 2,
@@ -41,6 +40,9 @@ const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
     freezePeriod: oneHourWindowSize, // ~1h
     reservedWindowSize: oneHourWindowSize,
     wasCalled: false,
+    get claimData() {
+      return FnSignatures.claim;
+    },
     get claimWindowEnd() {
       return this.windowStart.minus(this.freezePeriod);
     },

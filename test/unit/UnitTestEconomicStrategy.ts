@@ -12,6 +12,10 @@ describe('Economic Strategy Tests', () => {
   const reset = async () => {
     config = await mockConfig();
     txTimestamp = await MockTxRequest(config.web3);
+    config.util.estimateGas = async (opts: any) => {
+      console.log(opts);
+      return 21000;
+    };
   };
 
   beforeEach(reset);

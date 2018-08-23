@@ -22,6 +22,11 @@ describe('Router Unit Tests', () => {
 
   const reset = async () => {
     config = await mockConfig();
+    config.util.estimateGas = async (opts: any) => {
+      console.log(opts);
+      return 21000;
+    };
+
     txTimestamp = await MockTxRequest(config.web3);
     txBlock = await MockTxRequest(config.web3, true);
 

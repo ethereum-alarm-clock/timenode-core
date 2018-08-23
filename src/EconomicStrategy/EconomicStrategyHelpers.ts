@@ -85,6 +85,7 @@ const isProfitable = async (txRequest: ITxRequest, config: Config): Promise<bool
   });
   const claimingGasPrice = await config.util.networkGasPrice();
   const claimingGasCost = claimingGasPrice.times(claimingGas);
+
   const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
 
   const minProfitability = config.economicStrategy.minProfitability;
