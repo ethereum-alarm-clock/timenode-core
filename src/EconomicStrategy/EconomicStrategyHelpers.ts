@@ -4,6 +4,8 @@ import { BigNumber } from 'bignumber.js';
 import { ITxRequest, Address } from '../Types';
 import { EconomicStrategyStatus } from '../Enum';
 
+const CLAIMING_GAS_ESTIMATION = 100000; // Claiming gas is around 75k, we add a small surplus
+
 /**
  * Checks whether a transaction requires a deposit that's higher than a
  * user-set maximum deposit limit.
@@ -79,10 +81,7 @@ const isAboveMinBalanceLimit = async (config: Config, nextAccount: Address): Pro
  */
 const isProfitable = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
   const paymentModifier = await txRequest.claimPaymentModifier();
-  const claimingGas = await config.util.estimateGas({
-    to: txRequest.address,
-    data: txRequest.claimData
-  });
+  const claimingGas = new BigNumber(CLAIMING_GAS_ESTIMATION);
   const claimingGasPrice = await config.util.networkGasPrice();
   const claimingGasCost = claimingGasPrice.times(claimingGas);
 
