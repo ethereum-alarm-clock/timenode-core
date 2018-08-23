@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { assert, expect } from 'chai';
+import { assert } from 'chai';
 
 import hasPending from '../../src/Actions/Pending';
 import Config from '../../src/Config';
@@ -7,7 +7,6 @@ import { FnSignatures } from '../../src/Enum';
 import { IPool } from '../../src/TxPool';
 import { mockConfig } from '../helpers';
 
-const CLIENTS = ['geth', 'parity'];
 const startAddr = '0x2ffd48cc061331d071a1a8178cfc2a3863d56d4e';
 const PENDINGS = [
   {
@@ -109,155 +108,111 @@ describe('hasPending()', () => {
 
 describe('Pending Unit Tests', () => {
   it('Detects valid Pending claim requests', async () => {
-    const expected = [true, true];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
     const options = { gasPrice, input: FnSignatures.claim };
+
     const config = await mockConfig();
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(config, {
-        gasPrice,
-        noPool: false
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'claim'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'claim'
+    });
+
+    assert.isTrue(pending);
   });
 
   it('Detects absence of valid Pending claim request', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
     const options = { gasPrice, input: FnSignatures.execute };
+
     const config = await mockConfig();
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(config, {
-        gasPrice,
-        noPool: false
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
-        const pending = await hasPending(conf, mockTx({ address: startAddr + '001', gasPrice }), {
-          checkGasPrice: true,
-          type: 'claim'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr + '001', gasPrice }), {
+      checkGasPrice: true,
+      type: 'claim'
+    });
+
+    assert.isFalse(pending);
   });
 
   it('Ignore Pending claim request with low gasprice', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
     const options = { gasPrice, input: FnSignatures.claim };
+
     const config = await mockConfig();
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(config, {
-        gasPrice,
-        noPool: false,
-        netGasPrice: (gasPrice / 0.2999999).toFixed()
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'claim'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const testConfig: Config = preConfig(config, {
+      gasPrice,
+      noPool: false,
+      netGasPrice: (gasPrice / 0.2999999).toFixed()
+    });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'claim'
+    });
+
+    assert.isFalse(pending);
   });
 
   it('Detects valid Pending execute request', async () => {
-    const expected = [true, true];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
     const options = { gasPrice, input: FnSignatures.execute };
     const config = await mockConfig();
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(config, {
-        gasPrice,
-        noPool: false
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'execute'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'execute'
+    });
+
+    assert.isTrue(pending);
   });
 
   it('Detects  absence of valid Pending execute request', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
     const options = { gasPrice, input: FnSignatures.claim };
     const config = await mockConfig();
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(config, {
-        gasPrice,
-        noPool: false
-      })
-    );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice }), {
-          checkGasPrice: true,
-          type: 'execute'
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+      checkGasPrice: true,
+      type: 'execute'
+    });
+
+    assert.isFalse(pending);
   });
 
   it('Detects Invalid Pending execute request', async () => {
-    const expected = [false, false];
-    const results: any = [];
     const gasPrice = 1 * 1e12;
     const minPrice = new BigNumber(0.9 * 1e12);
     const options = { gasPrice: minPrice.times(0.9), input: FnSignatures.claim };
     const config = await mockConfig();
-    const testConfigs: Config[] = CLIENTS.map(client =>
-      preConfig(config, {
-        gasPrice,
-        noPool: false
-      })
+    const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
+
+    testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
+
+    const pending = await hasPending(
+      testConfig,
+      mockTx({ address: startAddr, gasPrice: minPrice }),
+      {
+        checkGasPrice: true,
+        type: 'execute',
+        minPrice
+      }
     );
-    await Promise.all(
-      testConfigs.map(async conf => {
-        conf.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
-        const pending = await hasPending(conf, mockTx({ address: startAddr, gasPrice: minPrice }), {
-          checkGasPrice: true,
-          type: 'execute',
-          minPrice
-        });
-        results.push(pending);
-      })
-    );
-    expect(results).to.deep.equal(expected);
+
+    assert.isFalse(pending);
   });
 });
