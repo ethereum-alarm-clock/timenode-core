@@ -79,7 +79,9 @@ const isAboveMinBalanceLimit = async (config: Config, nextAccount: Address): Pro
  */
 const isProfitable = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
   const paymentModifier = await txRequest.claimPaymentModifier();
-  const claimingGasCost = await config.util.estimateGas({});
+  const claimingGasCost = await config.util.estimateGas({
+    to: txRequest.address
+  });
   const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
 
   const minProfitability = config.economicStrategy.minProfitability;
