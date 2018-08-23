@@ -23,13 +23,15 @@ const mockConfig = async () => {
     walletStoresAsPrivateKeys: true
   });
 
+  const oldEstimateGas = config.util.estimateGas;
+
   config.util.estimateGas = async (opts: any) => {
     const mockTx = await mockTxRequest(config.web3);
     if (opts.to === mockTx.address) {
       return 21000;
     }
     console.log(opts);
-    return await config.util.estimateGas(opts);
+    return await oldEstimateGas(opts);
   };
 
   await config.statsDbLoaded;
