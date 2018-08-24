@@ -4,7 +4,7 @@ import * as Bb from 'bluebird';
 import { TxStatus, FnSignatures } from '../../src/Enum';
 import { ITxRequest } from '../../src/Types';
 
-const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> => {
+const mockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> => {
   const claimedBy = '0x0000000000000000000000000000000000000000';
   const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
 
@@ -31,7 +31,6 @@ const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
     callGas: new BigNumber(Math.pow(10, 6)),
     gasPrice: new BigNumber(web3.toWei(21, 'gwei')),
     claimedBy,
-    claimData: FnSignatures.claim,
     isClaimed: false,
     requiredDeposit,
     temporalUnit: isBlock ? 1 : 2,
@@ -41,6 +40,9 @@ const MockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
     freezePeriod: oneHourWindowSize, // ~1h
     reservedWindowSize: oneHourWindowSize,
     wasCalled: false,
+    get claimData() {
+      return FnSignatures.claim;
+    },
     get claimWindowEnd() {
       return this.windowStart.minus(this.freezePeriod);
     },
@@ -150,4 +152,4 @@ const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxReques
   return tx;
 };
 
-export { MockTxRequest, mockTxStatus };
+export { mockTxRequest, mockTxStatus };
