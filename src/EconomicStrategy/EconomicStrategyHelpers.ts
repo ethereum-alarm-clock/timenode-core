@@ -4,6 +4,8 @@ import { BigNumber } from 'bignumber.js';
 import { ITxRequest, Address } from '../Types';
 import { EconomicStrategyStatus } from '../Enum';
 
+const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
+
 /**
  * Checks whether a transaction requires a deposit that's higher than a
  * user-set maximum deposit limit.
@@ -75,16 +77,17 @@ const isAboveMinBalanceLimit = async (config: Config, nextAccount: Address): Pro
  * Compares the profitability user settings and checks if the TimeNode
  * should claim a transaction.
  * @param {TransactionRequest} txRequest Transaction Request object to check.
- * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
+ * @param {Config} config TimeNode configuration object.
  */
-const isProfitable = async (
-  txRequest: ITxRequest,
-  economicStrategy: IEconomicStrategy
-): Promise<boolean> => {
+const isProfitable = async (txRequest: ITxRequest, config: Config): Promise<boolean> => {
   const paymentModifier = await txRequest.claimPaymentModifier();
-  const reward = txRequest.bounty.times(paymentModifier);
+  const claimingGas = new BigNumber(CLAIMING_GAS_ESTIMATE);
+  const claimingGasPrice = await config.util.networkGasPrice();
+  const claimingGasCost = claimingGasPrice.times(claimingGas);
 
-  const minProfitability = economicStrategy.minProfitability;
+  const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
+
+  const minProfitability = config.economicStrategy.minProfitability;
 
   if (minProfitability && minProfitability.gt(0)) {
     return reward.gt(minProfitability);
@@ -107,7 +110,7 @@ const shouldClaimTx = async (
     return EconomicStrategyStatus.CLAIM;
   }
 
-  const profitable = await isProfitable(txRequest, config.economicStrategy);
+  const profitable = await isProfitable(txRequest, config);
   if (!profitable) {
     return EconomicStrategyStatus.NOT_PROFITABLE;
   }
