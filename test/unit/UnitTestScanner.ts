@@ -8,7 +8,7 @@ import { Config } from '../../src/index';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { ITxRequest } from '../../src/Types';
-import { mockConfig, MockTxRequest } from '../helpers';
+import { mockConfig, mockTxRequest } from '../helpers';
 
 describe('Scanner Unit Tests', () => {
   let config: Config;
@@ -20,7 +20,7 @@ describe('Scanner Unit Tests', () => {
 
   const reset = async () => {
     config = await mockConfig();
-    txBlock = await MockTxRequest(config.web3, true);
+    txBlock = await mockTxRequest(config.web3, true);
 
     actions = new Actions(config);
     router = new Router(config, actions);
