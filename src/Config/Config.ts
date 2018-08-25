@@ -40,6 +40,7 @@ export default class Config implements IConfigParams {
     if (params.providerUrl) {
       this.web3 = getWeb3FromProviderUrl(params.providerUrl);
       this.eac = EAC(this.web3);
+      this.providerUrl = params.providerUrl;
     } else {
       throw new Error('Please set the providerUrl in the config object.');
     }
