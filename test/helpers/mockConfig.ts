@@ -21,6 +21,7 @@ const mockConfig = async () => {
     walletStores: wallet,
     walletStoresAsPrivateKeys: true
   });
+
   await config.statsDbLoaded;
   return config;
 };
