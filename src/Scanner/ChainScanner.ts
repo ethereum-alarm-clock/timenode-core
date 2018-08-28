@@ -25,6 +25,8 @@ export default class ChainScanner extends CacheScanner {
     super(config, router);
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config, this.requestFactory);
+
+    this.handleRequest = this.handleRequest.bind(this);
   }
 
   public async watchBlockchain(): Promise<void> {
@@ -32,48 +34,70 @@ export default class ChainScanner extends CacheScanner {
 
     this.config.logger.debug(`Buckets: before current buckets=${JSON.stringify(this.buckets)}`);
 
-    // Start watching the current buckets right away.
-    this.buckets.currentBuckets.blockBucket = await this.watchRequestsByBucket(
-      buckets.currentBuckets.blockBucket,
-      this.buckets.currentBuckets.blockBucket
-    );
-    this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
-      buckets.nextBuckets.blockBucket,
-      this.buckets.nextBuckets.blockBucket
-    );
+    if (this.buckets.nextBuckets.blockBucket === buckets.currentBuckets.blockBucket) {
+      this.stopWatcher(this.buckets.currentBuckets.blockBucket);
 
-    this.buckets.currentBuckets.timestampBucket = await this.watchRequestsByBucket(
-      buckets.currentBuckets.timestampBucket,
-      this.buckets.currentBuckets.timestampBucket
-    );
-    this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
-      buckets.nextBuckets.timestampBucket,
-      this.buckets.nextBuckets.timestampBucket
-    );
+      // If we are only doing one bucket step up we only need to start one watcher.
+      this.buckets.currentBuckets.blockBucket = buckets.currentBuckets.blockBucket;
+      this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
+        buckets.nextBuckets.blockBucket,
+        this.buckets.nextBuckets.blockBucket
+      );
+    } else {
+      // Start watching the current buckets right away.
+      this.buckets.currentBuckets.blockBucket = await this.watchRequestsByBucket(
+        buckets.currentBuckets.blockBucket,
+        this.buckets.currentBuckets.blockBucket
+      );
+      this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
+        buckets.nextBuckets.blockBucket,
+        this.buckets.nextBuckets.blockBucket
+      );
+    }
+
+    if (this.buckets.nextBuckets.timestampBucket === buckets.currentBuckets.timestampBucket) {
+      this.stopWatcher(this.buckets.currentBuckets.timestampBucket);
+
+      this.buckets.currentBuckets.timestampBucket = buckets.currentBuckets.timestampBucket;
+      this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
+        buckets.nextBuckets.timestampBucket,
+        this.buckets.nextBuckets.timestampBucket
+      );
+    } else {
+      this.buckets.currentBuckets.timestampBucket = await this.watchRequestsByBucket(
+        buckets.currentBuckets.timestampBucket,
+        this.buckets.currentBuckets.timestampBucket
+      );
+      this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
+        buckets.nextBuckets.timestampBucket,
+        this.buckets.nextBuckets.timestampBucket
+      );
+    }
 
     this.config.logger.debug(`Buckets: after current buckets=${JSON.stringify(this.buckets)}`);
   }
 
-  public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<number> {
-    const reqFactory = await this.requestFactory;
-    const handleRequest = this.handleRequest.bind(this);
-    let currentBucket = previousBucket;
-
+  public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<Bucket> {
     if (bucket !== previousBucket) {
       await this.stopWatcher(previousBucket);
-
-      try {
-        const watcher = await reqFactory.watchRequestsByBucket(bucket, handleRequest);
-        this.eventWatchers[bucket] = watcher;
-        currentBucket = bucket;
-
-        this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
-      } catch (err) {
-        this.config.logger.error(`Buckets: Starting bucket=${bucket} watching failed!`);
-      }
+      return this.startWatcher(bucket);
     }
 
-    return currentBucket;
+    return previousBucket;
+  }
+
+  protected async startWatcher(bucket: Bucket): Promise<Bucket> {
+    const reqFactory = await this.requestFactory;
+    try {
+      const watcher = await reqFactory.watchRequestsByBucket(bucket, this.handleRequest);
+      this.eventWatchers[bucket] = watcher;
+
+      this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
+    } catch (err) {
+      this.config.logger.error(`Buckets: Starting bucket=${bucket} watching failed!`);
+    }
+
+    return bucket;
   }
 
   protected async stopWatcher(bucket: Bucket) {
