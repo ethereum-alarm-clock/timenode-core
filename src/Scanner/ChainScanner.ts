@@ -25,8 +25,6 @@ export default class ChainScanner extends CacheScanner {
     super(config, router);
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config, this.requestFactory);
-
-    this.handleRequest.bind(this);
   }
 
   public async watchBlockchain(): Promise<void> {
@@ -89,7 +87,7 @@ export default class ChainScanner extends CacheScanner {
   protected async startWatcher(bucket: Bucket): Promise<Bucket> {
     const reqFactory = await this.requestFactory;
     try {
-      const watcher = await reqFactory.watchRequestsByBucket(bucket, this.handleRequest);
+      const watcher = await reqFactory.watchRequestsByBucket(bucket, this.handleRequest.bind(this));
       this.eventWatchers[bucket] = watcher;
 
       this.config.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
