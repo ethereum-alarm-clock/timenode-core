@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'chai';
 import { Config } from '../../src/index';
-import { mockConfig, MockTxRequest } from '../helpers';
+import { mockConfig, mockTxRequest } from '../helpers';
 import { shouldClaimTx, getExecutionGasPrice, shouldExecuteTx } from '../../src/EconomicStrategy';
 import { EconomicStrategyStatus } from '../../src/Enum';
 
@@ -11,7 +11,7 @@ describe('Economic Strategy Tests', () => {
 
   const reset = async () => {
     config = await mockConfig();
-    txTimestamp = await MockTxRequest(config.web3);
+    txTimestamp = await mockTxRequest(config.web3);
   };
 
   beforeEach(reset);

@@ -1,6 +1,6 @@
 import { expect, assert } from 'chai';
 import { TimeNode } from '../../src/index';
-import { mockConfig, MockTxRequest } from '../helpers';
+import { mockConfig, mockTxRequest } from '../helpers';
 import Actions from '../../src/Actions';
 import { shortenAddress } from '../../src/Actions/Actions';
 import {
@@ -38,7 +38,7 @@ describe('Actions Unit Tests', async () => {
 
     const actions = new Actions(config);
 
-    const tx = await MockTxRequest(config.web3);
+    const tx = await mockTxRequest(config.web3);
 
     assert.equal(timenode.getClaimedNotExecutedTransactions()[myAccount].length, 0);
     assert.equal(timenode.getUnsucessfullyClaimedTransactions()[myAccount].length, 0);

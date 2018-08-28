@@ -6,7 +6,7 @@ import { BucketSize } from '../../src/Buckets';
 import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { ITxRequest } from '../../src/Types';
-import { mockConfig, MockTxRequest } from '../helpers';
+import { mockConfig, mockTxRequest } from '../helpers';
 
 describe('ButcketCalc', () => {
   let txBlock: ITxRequest;
@@ -19,8 +19,8 @@ describe('ButcketCalc', () => {
 
   const reset = async () => {
     config = await mockConfig();
-    txTimestamp = await MockTxRequest(config.web3);
-    txBlock = await MockTxRequest(config.web3, true);
+    txTimestamp = await mockTxRequest(config.web3);
+    txBlock = await mockTxRequest(config.web3, true);
 
     actions = new Actions(config);
     router = new Router(config, actions);
