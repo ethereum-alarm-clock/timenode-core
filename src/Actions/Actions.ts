@@ -94,10 +94,6 @@ export default class Actions implements IActions {
       switch (status) {
         case Status.OK:
           return await this.accountExecution(txRequest, receipt, opts, from);
-        case Status.WALLET_BUSY:
-          return Status.WALLET_BUSY;
-        case Status.IN_PROGRESS:
-          return Status.IN_PROGRESS;
       }
     } catch (err) {
       this.config.logger.error(err, txRequest.address);
