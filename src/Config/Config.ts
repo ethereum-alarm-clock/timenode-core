@@ -8,7 +8,6 @@ import { StatsDB } from '../Stats';
 import TxPool from '../TxPool';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
-import { getWeb3FromProviderUrl } from './helpers';
 import BigNumber from 'bignumber.js';
 
 export default class Config implements IConfigParams {
@@ -38,7 +37,12 @@ export default class Config implements IConfigParams {
 
   constructor(params: IConfigParams) {
     if (params.providerUrl) {
-      this.web3 = getWeb3FromProviderUrl(params.providerUrl);
+      this.util = new W3Util();
+
+      this.web3 = this.util.getWeb3FromProviderUrl(params.providerUrl);
+
+      this.util.web3 = this.web3;
+
       this.eac = EAC(this.web3);
       this.providerUrl = params.providerUrl;
     } else {
@@ -92,7 +96,5 @@ export default class Config implements IConfigParams {
     if (this.statsDb) {
       this.statsDbLoaded = this.statsDb.init();
     }
-
-    this.util = new W3Util(this.web3);
   }
 }
