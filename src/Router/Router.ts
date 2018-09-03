@@ -34,9 +34,9 @@ export default class Router implements IRouter {
     };
   }
 
-  public get util (): W3Util {
+  public get util(): W3Util {
     return this.config.util;
-  } 
+  }
 
   public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
     if (txRequest.isCancelled) {
@@ -215,6 +215,13 @@ export default class Router implements IRouter {
         break;
       case ClaimStatus.FAILED:
       case ExecuteStatus.FAILED:
+      case ExecuteStatus.ABORTED_AFTER_CALL_WINDOW:
+      case ExecuteStatus.ABORTED_BEFORE_CALL_WINDOW:
+      case ExecuteStatus.ABORTED_ALREADY_CALLED:
+      case ExecuteStatus.ABORTED_INSUFFICIENT_GAS:
+      case ExecuteStatus.ABORTED_RESERVED_FOR_CLAIMER:
+      case ExecuteStatus.ABORTED_TOO_LOW_GAS_PRICE:
+      case ExecuteStatus.ABORTED_WAS_CANCELLED:
         this.config.logger.error(status, txRequest.address);
         break;
       case ClaimStatus.IN_PROGRESS:

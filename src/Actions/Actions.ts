@@ -1,6 +1,11 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import { isExecuted, isTransactionStatusSuccessful } from './Helpers';
+import {
+  isExecuted,
+  isTransactionStatusSuccessful,
+  isAborted,
+  getAbortedExecuteStatus
+} from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
@@ -134,7 +139,9 @@ export default class Actions implements IActions {
       const gasUsed = new BigNumber(receipt.gasUsed);
       const gasPrice = new BigNumber(opts.gasPrice);
       cost = gasUsed.mul(gasPrice);
-      status = ExecuteStatus.FAILED;
+
+      const aborted = isAborted(receipt);
+      status = aborted ? getAbortedExecuteStatus(receipt) : ExecuteStatus.FAILED;
     }
 
     this.config.statsDb.executed(from, txRequest.address, cost, bounty, success);
