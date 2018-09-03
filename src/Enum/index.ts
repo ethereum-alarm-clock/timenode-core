@@ -5,3 +5,4 @@ export { CacheStates } from './CacheStates';
 export { ExecuteStatus } from './ExecuteStatus';
 export { ClaimStatus } from './ClaimStatus';
 export { EconomicStrategyStatus } from './EconomicStrategyStatus';
+export { AbortReason } from './AbortReason';
