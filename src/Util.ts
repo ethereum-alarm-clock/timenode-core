@@ -1,10 +1,12 @@
-import { IBlock, ITxRequest } from './Types';
+import * as Web3 from 'web3';
+import * as Web3WsProvider from 'web3-providers-ws';
 import BigNumber from 'bignumber.js';
+import { IBlock, ITxRequest } from './Types';
 
 export default class W3Util {
   public web3: any;
 
-  constructor(web3: any) {
+  constructor(web3?: any) {
     this.web3 = web3;
   }
 
@@ -97,26 +99,39 @@ export default class W3Util {
   }
 
   public getTransaction(txHash: string): Promise<{}> {
-    return new Promise<{}> ((resolve, reject) => {
+    return new Promise<{}>((resolve, reject) => {
       this.web3.eth.getTransaction(txHash, (err: any, tx: any) => {
         if (err) {
           reject(err);
         } else {
           resolve(tx);
         }
-      })
-    })
+      });
+    });
   }
 
-  public stopFilter (filter: any): Promise<boolean> {
-    return new Promise<boolean> ((resolve, reject) => {
+  public stopFilter(filter: any): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
       filter.stopWatching((err: any, res: any) => {
         if (err) {
           reject(err);
         } else {
           resolve(res);
         }
-      })
-    })
+      });
+    });
+  }
+
+  public getWeb3FromProviderUrl(providerUrl: string) {
+    let provider: any;
+
+    if (providerUrl.includes('http://') || providerUrl.includes('https://')) {
+      provider = new Web3.providers.HttpProvider(providerUrl);
+    } else if (providerUrl.includes('ws://') || providerUrl.includes('wss://')) {
+      provider = new Web3WsProvider(providerUrl);
+      provider.__proto__.sendAsync = provider.__proto__.sendAsync || provider.__proto__.send;
+    }
+
+    return new Web3(provider);
   }
 }

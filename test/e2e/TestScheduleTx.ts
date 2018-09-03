@@ -3,9 +3,10 @@ import * as Bb from 'bluebird';
 import BigNumber from 'bignumber.js';
 import { expect } from 'chai';
 import { calcEndowment, providerUrl } from '../helpers';
-import { getWeb3FromProviderUrl } from '../../src/Config/helpers';
+import { W3Util } from '../../src';
 
 const CLAIM_WINDOW_SIZE = 255;
+const w3Util = new W3Util();
 
 export const getHelperMethods = (web3: any) => {
   function sendRpc(method: any, params?: any) {
@@ -57,7 +58,7 @@ export const SCHEDULED_TX_PARAMS = {
 };
 
 export const scheduleTestTx = async () => {
-  const web3 = getWeb3FromProviderUrl(providerUrl);
+  const web3 = w3Util.getWeb3FromProviderUrl(providerUrl);
   const eac = EAC(web3);
 
   const { waitUntilBlock } = getHelperMethods(web3);
