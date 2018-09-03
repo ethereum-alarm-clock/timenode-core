@@ -2,7 +2,7 @@ import * as ethWallet from 'ethereumjs-wallet';
 import { fromCallback } from 'bluebird';
 import { BigNumber } from 'bignumber.js';
 import { ILogger, DefaultLogger } from '../Logger';
-import { TxSendErrors } from '../Enum/TxSendErrors';
+import { Status } from '../Enum';
 const ethTx = require('ethereumjs-tx');
 
 import { IWalletReceipt } from './IWalletReceipt';
@@ -163,7 +163,7 @@ export class Wallet {
     if (this.hasPendingTransaction(opts.to)) {
       return {
         from,
-        status: TxSendErrors.IN_PROGRESS
+        status: Status.IN_PROGRESS
       };
     }
 
@@ -171,11 +171,11 @@ export class Wallet {
 
     if (balance.eq(0)) {
       if (this.logger) {
-        this.logger.info(`${TxSendErrors.NOT_ENOUGH_FUNDS} ${from}`);
+        this.logger.info(`${Status.NOT_ENOUGH_FUNDS} ${from}`);
       }
       return {
         from,
-        status: TxSendErrors.NOT_ENOUGH_FUNDS
+        status: Status.NOT_ENOUGH_FUNDS
       };
     }
 
@@ -188,7 +188,7 @@ export class Wallet {
     if (!this.isAccountAbleToSendTx(from)) {
       return {
         from,
-        status: TxSendErrors.WALLET_BUSY
+        status: Status.WALLET_BUSY
       };
     }
 
@@ -210,15 +210,15 @@ export class Wallet {
       }
       return {
         from,
-        status: TxSendErrors.UNKNOWN_ERROR
+        status: Status.UNKNOWN_ERROR
       };
     } finally {
       this.walletStates.set(from, {} as AccountState);
     }
 
     const status = this.isTransactionStatusSuccessful(receipt.receipt.status)
-      ? TxSendErrors.OK
-      : TxSendErrors.FAILED;
+      ? Status.OK
+      : Status.TX_FAILED;
 
     return { receipt: receipt.receipt, from: receipt.from, status };
   }

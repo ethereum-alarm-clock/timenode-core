@@ -1,5 +1,5 @@
 import Config from '../Config';
-import { TxStatus, ClaimStatus, ExecuteStatus, EconomicStrategyStatus } from '../Enum';
+import { TxStatus, EconomicStrategyStatus, Status } from '../Enum';
 import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 
 import W3Util from '../Util';
@@ -34,9 +34,9 @@ export default class Router implements IRouter {
     };
   }
 
-  public get util (): W3Util {
+  public get util(): W3Util {
     return this.config.util;
-  } 
+  }
 
   public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
     if (txRequest.isCancelled) {
@@ -66,11 +66,11 @@ export default class Router implements IRouter {
 
       if (shouldClaimStatus === EconomicStrategyStatus.CLAIM) {
         try {
-          const claimingStatus: ClaimStatus = await this.actions.claim(txRequest, nextAccount);
+          const claimingStatus: Status = await this.actions.claim(txRequest, nextAccount);
 
           this.handleWalletTransactionResult(claimingStatus, txRequest);
 
-          if (claimingStatus === ClaimStatus.SUCCESS || claimingStatus === ClaimStatus.FAILED) {
+          if (claimingStatus === Status.SUCCESS || claimingStatus === Status.CLAIM_FAILED) {
             return TxStatus.FreezePeriod;
           }
         } catch (err) {
@@ -121,11 +121,11 @@ export default class Router implements IRouter {
 
     if (shouldExecute) {
       try {
-        const executionStatus: ExecuteStatus = await this.actions.execute(txRequest);
+        const executionStatus: Status = await this.actions.execute(txRequest);
 
         this.handleWalletTransactionResult(executionStatus, txRequest);
 
-        if (executionStatus === ExecuteStatus.SUCCESS) {
+        if (executionStatus === Status.SUCCESS) {
           return TxStatus.Executed;
         }
       } catch (err) {
@@ -195,30 +195,27 @@ export default class Router implements IRouter {
     return nextStatus;
   }
 
-  private handleWalletTransactionResult(
-    status: ClaimStatus | ExecuteStatus,
-    txRequest: ITxRequest
-  ): void {
+  private handleWalletTransactionResult(status: Status | Status, txRequest: ITxRequest): void {
     switch (status) {
-      case ClaimStatus.SUCCESS:
+      case Status.SUCCESS:
         this.config.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case ExecuteStatus.SUCCESS:
+      case Status.SUCCESS:
         this.config.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case ClaimStatus.ACCOUNT_BUSY:
-      case ClaimStatus.NOT_ENABLED:
-      case ClaimStatus.PENDING:
-      case ExecuteStatus.WALLET_BUSY:
-      case ExecuteStatus.PENDING:
+      case Status.ACCOUNT_BUSY:
+      case Status.NOT_ENABLED:
+      case Status.CLAIM_PENDING:
+      case Status.WALLET_BUSY:
+      case Status.EXECUTE_PENDING:
         this.config.logger.info(status, txRequest.address);
         break;
-      case ClaimStatus.FAILED:
-      case ExecuteStatus.FAILED:
+      case Status.CLAIM_FAILED:
+      case Status.EXECUTE_FAILED:
         this.config.logger.error(status, txRequest.address);
         break;
-      case ClaimStatus.IN_PROGRESS:
-      case ExecuteStatus.IN_PROGRESS:
+      case Status.IN_PROGRESS:
+      case Status.IN_PROGRESS:
         // skip logging this status
         break;
     }
