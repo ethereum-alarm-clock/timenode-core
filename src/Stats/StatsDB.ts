@@ -21,7 +21,29 @@ export interface IStatsEntry {
   result: StatsEntryResult;
 }
 
-export class StatsDB {
+export interface IStatsDB {
+  init(): Promise<boolean>;
+  discovered(from: string, txAddress: string): void;
+  claimed(from: string, txAddress: string, cost: BigNumber, success: boolean): void;
+  executed(
+    from: string,
+    txAddress: string,
+    cost: BigNumber,
+    bounty: BigNumber,
+    success: boolean
+  ): void;
+  getFailedExecutions(from: string): IStatsEntry[];
+  getSuccessfulExecutions(from: string): IStatsEntry[];
+  getFailedClaims(from: string): IStatsEntry[];
+  getSuccessfulClaims(from: string): IStatsEntry[];
+  getDiscovered(from: string): IStatsEntry[];
+  clear(from: string): void;
+  clearAll(): void;
+  totalCost(from: string): BigNumber;
+  totalBounty(from: string): BigNumber;
+}
+
+export class StatsDB implements IStatsDB {
   private COLLECTION_NAME: string = 'timenode-stats';
   private db: Loki;
   private isLoaded: boolean;
