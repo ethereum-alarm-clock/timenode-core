@@ -1,17 +1,14 @@
 import BigNumber from 'bignumber.js';
 import Config from '../Config';
-import {
-  isExecuted,
-  isTransactionStatusSuccessful,
-  isAborted,
-  getAbortedExecuteStatus
-} from './Helpers';
+import { isExecuted, isAborted, getAbortedExecuteStatus } from './Helpers';
 import hasPending from './Pending';
 import { IWalletReceipt } from '../Wallet';
 import { ExecuteStatus, ClaimStatus } from '../Enum';
 import { getExecutionGasPrice } from '../EconomicStrategy';
 import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ITxRequest, Address } from '../Types';
+import { Ledger, ILedger } from './Ledger';
+import ITransactionOptions from '../Types/ITransactionOptions';
 
 export function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(address.length - 5, address.length)}`;
@@ -24,9 +21,11 @@ export default interface IActions {
 
 export default class Actions implements IActions {
   public config: Config;
+  private ledger: ILedger;
 
   constructor(config: Config) {
     this.config = config;
+    this.ledger = new Ledger(config.statsDb);
   }
 
   public async claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus> {
@@ -49,7 +48,7 @@ export default class Actions implements IActions {
       this.config.logger.info(`Claiming...`, txRequest.address);
 
       const { receipt, from, status } = await this.config.wallet.sendFromAccount(nextAccount, opts);
-      await this.accountClaimingCost(receipt, txRequest, opts, from);
+      await this.ledger.accountClaiming(receipt, txRequest, opts, from);
 
       switch (status) {
         case TxSendErrors.OK:
@@ -99,7 +98,22 @@ export default class Actions implements IActions {
 
       switch (status) {
         case TxSendErrors.OK:
-          return await this.accountExecution(txRequest, receipt, opts, from);
+          await txRequest.refreshData();
+
+          let executionStatus = ExecuteStatus.SUCCESS;
+          const success = isExecuted(receipt);
+
+          if (success) {
+            this.config.cache.get(txRequest.address).wasCalled = true;
+          } else if (isAborted(receipt)) {
+            executionStatus = getAbortedExecuteStatus(receipt);
+          } else {
+            executionStatus = ExecuteStatus.FAILED;
+          }
+
+          this.ledger.accountExecution(txRequest, receipt, opts, from, success);
+
+          return executionStatus;
         case TxSendErrors.WALLET_BUSY:
           return ExecuteStatus.WALLET_BUSY;
         case TxSendErrors.IN_PROGRESS:
@@ -116,38 +130,6 @@ export default class Actions implements IActions {
     throw Error('Not implemented according to latest EAC changes.');
   }
 
-  private async accountExecution(
-    txRequest: ITxRequest,
-    receipt: any,
-    opts: any,
-    from: string
-  ): Promise<ExecuteStatus> {
-    let bounty = new BigNumber(0);
-    let cost = new BigNumber(0);
-    let status;
-    const success = isExecuted(receipt);
-
-    if (success) {
-      await txRequest.refreshData();
-
-      const data = receipt.logs[0].data;
-      bounty = this.config.web3.toDecimal(data.slice(0, 66));
-
-      this.config.cache.get(txRequest.address).wasCalled = true;
-      status = ExecuteStatus.SUCCESS;
-    } else {
-      const gasUsed = new BigNumber(receipt.gasUsed);
-      const gasPrice = new BigNumber(opts.gasPrice);
-      cost = gasUsed.mul(gasPrice);
-
-      const aborted = isAborted(receipt);
-      status = aborted ? getAbortedExecuteStatus(receipt) : ExecuteStatus.FAILED;
-    }
-
-    this.config.statsDb.executed(from, txRequest.address, cost, bounty, success);
-    return status;
-  }
-
   private async hasPendingExecuteTransaction(txRequest: ITxRequest): Promise<boolean> {
     return hasPending(this.config, txRequest, {
       type: 'execute',
@@ -156,7 +138,7 @@ export default class Actions implements IActions {
     });
   }
 
-  private async getClaimingOpts(txRequest: ITxRequest): Promise<any> {
+  private async getClaimingOpts(txRequest: ITxRequest): Promise<ITransactionOptions> {
     return {
       to: txRequest.address,
       value: txRequest.requiredDeposit,
@@ -166,28 +148,16 @@ export default class Actions implements IActions {
     };
   }
 
-  private async getExecutionOpts(txRequest: ITxRequest): Promise<any> {
+  private async getExecutionOpts(txRequest: ITxRequest): Promise<ITransactionOptions> {
     const gas = this.config.util.calculateGasAmount(txRequest);
     const gasPrice = await getExecutionGasPrice(txRequest, this.config);
 
     return {
       to: txRequest.address,
-      value: 0,
-      gas,
+      value: new BigNumber(0),
+      gas: gas.toNumber(),
       gasPrice,
       data: txRequest.executeData
     };
-  }
-
-  private async accountClaimingCost(receipt: any, txRequest: ITxRequest, opts: any, from: string) {
-    if (receipt) {
-      await txRequest.refreshData();
-      const gasUsed = new BigNumber(receipt.gasUsed);
-      const gasPrice = new BigNumber(opts.gasPrice);
-      const cost = gasUsed.mul(gasPrice);
-      const success = isTransactionStatusSuccessful(receipt.status);
-
-      this.config.statsDb.claimed(from, txRequest.address, cost, success);
-    }
   }
 }

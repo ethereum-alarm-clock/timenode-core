@@ -72,6 +72,7 @@
     "tslint": "5.10.0",
     "tslint-config-prettier": "1.15.0",
     "tslint-microsoft-contrib": "5.2.1",
+    "typemoq": "2.1.0",
     "web3": "0.20.6",
     "websocket": "1.0.26"
   },
