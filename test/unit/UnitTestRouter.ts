@@ -28,7 +28,7 @@ describe('Router Unit Tests', () => {
 
     actions = new Actions(config);
     router = new Router(config, actions);
-    myAccount = router.config.wallet.getAddresses()[0];
+    myAccount = config.wallet.getAddresses()[0];
   };
 
   beforeEach(reset);

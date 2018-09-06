@@ -1,21 +1,18 @@
-import Config from '../Config';
-import { TxStatus, ClaimStatus, ExecuteStatus, EconomicStrategyStatus } from '../Enum';
-import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
-
-import W3Util from '../Util';
-import { Address, ITxRequest } from '../Types';
 import IActions from '../Actions';
+import Config from '../Config';
+import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
+import { ClaimStatus, EconomicStrategyStatus, ExecuteStatus, TxStatus } from '../Enum';
+import { Address, ITxRequest } from '../Types';
 
 export default interface IRouter {
   route(txRequest: ITxRequest): Promise<TxStatus>;
 }
 
 export default class Router implements IRouter {
-  public actions: IActions;
-  public config: Config;
-  public txRequestStates: object = {};
-
-  public transitions: object = {};
+  private actions: IActions;
+  private config: Config;
+  private txRequestStates: object = {};
+  private transitions: object = {};
 
   constructor(config: Config, actions: IActions) {
     this.actions = actions;
@@ -32,10 +29,6 @@ export default class Router implements IRouter {
       this.config.cache.del(txRequest.address);
       return TxStatus.Done;
     };
-  }
-
-  public get util(): W3Util {
-    return this.config.util;
   }
 
   public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
@@ -146,7 +139,6 @@ export default class Router implements IRouter {
      *
      * await this.actions.cleanup(txRequest);
      */
-    //
 
     return TxStatus.Done;
   }
