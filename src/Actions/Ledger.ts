@@ -35,10 +35,13 @@ export class Ledger implements ILedger {
 
     const gasUsed = new BigNumber(receipt.gasUsed);
     const gasPrice = new BigNumber(opts.gasPrice);
-    const cost = gasUsed.mul(gasPrice).add(txRequest.requiredDeposit);
     const success = isTransactionStatusSuccessful(receipt.status);
+    let txCost = gasUsed.mul(gasPrice);
+    if (success) {
+      txCost = txCost.add(txRequest.requiredDeposit);
+    }
 
-    this.statsDB.claimed(from, txRequest.address, cost, success);
+    this.statsDB.claimed(from, txRequest.address, txCost, success);
 
     return true;
   }
