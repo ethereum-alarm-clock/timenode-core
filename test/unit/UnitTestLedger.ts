@@ -36,7 +36,7 @@ describe('Ledger Unit Tests', async () => {
 
   beforeEach(reset);
 
-  it('should account for required deposit and tx cost when claiming', async () => {
+  it('should account for required deposit and tx cost when claiming was successful', async () => {
     const receipt = {
       status: 1,
       gasUsed: gas
@@ -48,6 +48,21 @@ describe('Ledger Unit Tests', async () => {
 
     assert.doesNotThrow(() =>
       stats.verify(x => x.claimed(account2, tx1, expectedCost, true), TypeMoq.Times.once())
+    );
+  });
+
+  it('should account for tx cost when claiming failed', async () => {
+    const receipt = {
+      status: 0,
+      gasUsed: gas
+    };
+
+    ledger.accountClaiming(receipt, txRequest.object, opts, account2);
+
+    const expectedCost = gasPrice.mul(gas);
+
+    assert.doesNotThrow(() =>
+      stats.verify(x => x.claimed(account2, tx1, expectedCost, false), TypeMoq.Times.once())
     );
   });
 
