@@ -75,7 +75,7 @@ export default class Config implements IConfigParams {
     this.logger = params.logger || new DefaultLogger();
     this.txPool = new TxPool(this);
     this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.util);
-    this.cache = new Cache(this.logger, this.eac);
+    this.cache = new Cache(this.eac, this.logger);
     this.economicStrategyManager = new EconomicStrategyManager(
       this.economicStrategy,
       this.util,
