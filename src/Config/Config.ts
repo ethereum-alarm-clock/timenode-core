@@ -74,7 +74,7 @@ export default class Config implements IConfigParams {
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
     this.txPool = new TxPool(this);
-    this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.web3);
+    this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.util);
     this.cache = new Cache(this.logger, this.eac);
     this.economicStrategyManager = new EconomicStrategyManager(
       this.economicStrategy,
@@ -86,7 +86,7 @@ export default class Config implements IConfigParams {
     this.pending = new Pending(this.util, this.txPool, this.logger);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
-      this.wallet = new Wallet(this.web3, this.logger, this.transactionReceiptAwaiter, this.util);
+      this.wallet = new Wallet(this.transactionReceiptAwaiter, this.util, this.logger);
 
       params.walletStores = params.walletStores.map((store: object | string) => {
         if (typeof store === 'object') {

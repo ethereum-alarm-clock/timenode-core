@@ -99,8 +99,8 @@ export default class W3Util {
     });
   }
 
-  public getTransaction(txHash: string): Promise<{}> {
-    return new Promise<{}>((resolve, reject) => {
+  public getTransaction(txHash: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
       this.web3.eth.getTransaction(txHash, (err: any, tx: any) => {
         if (err) {
           reject(err);
@@ -146,5 +146,33 @@ export default class W3Util {
         }
       });
     });
+  }
+
+  public getTransactionCount(account: string): Promise<number> {
+    return new Promise<number>((resolve, reject) => {
+      this.web3.eth.getTransactionCount(account, (err: any, tx: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(tx);
+        }
+      });
+    });
+  }
+
+  public sendRawTransaction(transaction: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this.web3.eth.sendRawTransaction(transaction, (err: any, tx: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(tx);
+        }
+      });
+    });
+  }
+
+  public toHex(input: any): string {
+    return this.web3.toHex(input);
   }
 }

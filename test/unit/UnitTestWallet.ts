@@ -1,13 +1,13 @@
-/* tslint:disable:no-unused-expression */
-import { expect, assert } from 'chai';
+import * as TypeMoq from 'typemoq';
+import { assert } from 'chai';
 import { Config, Wallet } from '../../src/index';
 import { mockConfig } from '../helpers';
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
 import { TxSendErrors } from '../../src/Enum/TxSendErrors';
-import { DefaultLogger } from '../../src/Logger';
 import { isTransactionStatusSuccessful } from '../../src/Actions/Helpers';
+import { ITransactionReceiptAwaiter } from '../../src/Wallet/TransactionReceiptAwaiter';
 
 const PRIVKEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
@@ -19,8 +19,13 @@ describe('Wallet Unit Tests', () => {
 
   const reset = async () => {
     config = await mockConfig();
-    wallet = new Wallet(config.web3, config.logger, config.transactionReceiptAwaiter, config.util);
-    wallet.logger = new DefaultLogger();
+
+    const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
+    transactionReceiptAwaiter
+      .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString()))
+      .returns(async (hash: string) => config.util.getReceipt(hash));
+
+    wallet = new Wallet(transactionReceiptAwaiter.object, config.util);
 
     const accounts = await Bb.fromCallback((callback: any) =>
       config.web3.eth.getAccounts(callback)
@@ -47,12 +52,12 @@ describe('Wallet Unit Tests', () => {
   describe('add()', () => {
     it('creates a new wallet', () => {
       const newWallet = wallet.add(ethWallet.generate());
-      expect(wallet.isKnownAddress(newWallet.getAddressString())).to.be.true;
+      assert.isTrue(wallet.isKnownAddress(newWallet.getAddressString()));
     });
 
     it('returns an existing wallet if already exists', () => {
       const newWallet = wallet.add(ethWallet.generate());
-      expect(wallet.isKnownAddress(newWallet.getAddressString())).to.be.true;
+      assert.isTrue(wallet.isKnownAddress(newWallet.getAddressString()));
 
       const oldWallet = wallet.add(newWallet);
       assert.equal(oldWallet.getAddressString(), newWallet.getAddressString());
@@ -65,9 +70,7 @@ describe('Wallet Unit Tests', () => {
       const encryptedWallets = wallet.encrypt('testpasswd123', {});
 
       assert.equal(encryptedWallets.length, 1);
-      encryptedWallets.forEach(encryptedWallet =>
-        expect(encryptedWallet).to.haveOwnProperty('crypto')
-      );
+      encryptedWallets.forEach(encryptedWallet => assert.property(encryptedWallet, 'crypto'));
     });
   });
 
@@ -84,14 +87,14 @@ describe('Wallet Unit Tests', () => {
 
     it('throws an error in case invalid key', () => {
       const privKey = PRIVKEY.substring(0, PRIVKEY.length - 1);
-      expect(() => wallet.loadPrivateKeys([privKey])).to.throw();
+      assert.throw(() => wallet.loadPrivateKeys([privKey]));
     });
   });
 
   describe('getNonce()', () => {
     it('returns a nonce', async () => {
       const nonce = await wallet.getNonce(myAccount);
-      expect(nonce).to.exist;
+      assert.exists(nonce);
       assert.equal(typeof nonce, 'number');
     });
   });
@@ -106,8 +109,8 @@ describe('Wallet Unit Tests', () => {
       wallet.create(1);
 
       const account = wallet.getAccounts()[0];
-      expect(account).to.haveOwnProperty('_privKey');
-      expect(account).to.haveOwnProperty('_pubKey');
+      assert.property(account, '_privKey');
+      assert.property(account, '_pubKey');
     });
   });
 
@@ -153,7 +156,7 @@ describe('Wallet Unit Tests', () => {
 
     it('errors if wallet not within range', () => {
       wallet.create(1);
-      expect(() => wallet.isWalletAbleToSendTx(1)).to.throw();
+      assert.throw(() => wallet.isWalletAbleToSendTx(1));
     });
   });
 
@@ -168,7 +171,7 @@ describe('Wallet Unit Tests', () => {
         err = e;
       }
 
-      expect(err.message).to.equal('Index is outside range of addresses.');
+      assert.equal(err.message, 'Index is outside range of addresses.');
     });
 
     it('returns error when not enough balance on account and logs', async () => {
@@ -180,7 +183,6 @@ describe('Wallet Unit Tests', () => {
 
     it('returns error when not enough balance on account and doesnt log', async () => {
       wallet.create(1);
-      wallet.logger = null;
 
       const receipt = await wallet.sendFromIndex(0, opts);
       assert.equal(receipt.status, TxSendErrors.NOT_ENOUGH_FUNDS);
@@ -259,8 +261,8 @@ describe('Wallet Unit Tests', () => {
       assert.equal(txHash.length, 66);
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      expect(receipt).to.haveOwnProperty('from');
-      expect(receipt).to.haveOwnProperty('receipt');
+      assert.property(receipt, 'from');
+      assert.property(receipt, 'receipt');
     });
   });
 
@@ -268,7 +270,7 @@ describe('Wallet Unit Tests', () => {
     it('generates the next index and sends from it', async () => {
       wallet.create(5);
       const receipt = await wallet.sendFromNext(opts);
-      expect(receipt.status).to.exist;
+      assert.exists(receipt.status);
     });
   });
 });

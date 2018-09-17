@@ -1,19 +1,18 @@
 import * as ethWallet from 'ethereumjs-wallet';
-import { fromCallback } from 'bluebird';
-import { ILogger, DefaultLogger } from '../Logger';
-import { TxSendErrors } from '../Enum/TxSendErrors';
-const ethTx = require('ethereumjs-tx');
 
-import { IWalletReceipt } from './IWalletReceipt';
+import { TxSendErrors } from '../Enum/TxSendErrors';
+import { DefaultLogger, ILogger } from '../Logger';
 import { Address } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
 import { ITransactionReceipt } from '../Types/ITransactionReceipt';
-import { ITransactionReceiptAwaiter, TransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
 import W3Util from '../Util';
+import { IWalletReceipt } from './IWalletReceipt';
+import { ITransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
+
+const ethTx = require('ethereumjs-tx');
 
 declare const Buffer: any;
 declare const require: any;
-//declare const setTimeout: any;
 
 interface AccountState {
   sendingTxInProgress: boolean;
@@ -27,22 +26,20 @@ interface V3Wallet {
 }
 
 export class Wallet {
-  public logger: ILogger;
   public nonce: number = 0;
-  public web3: any;
   public walletStates: Map<string, AccountState> = new Map<string, AccountState>();
+
+  private logger: ILogger;
   private accounts: V3Wallet[] = [];
   private transactionReceiptAwaiter: ITransactionReceiptAwaiter;
   private util: W3Util;
 
   constructor(
-    web3: any,
-    logger: ILogger = new DefaultLogger(),
-    transactionReceiptAwaiter: ITransactionReceiptAwaiter = new TransactionReceiptAwaiter(web3),
-    util: W3Util
+    transactionReceiptAwaiter: ITransactionReceiptAwaiter,
+    util: W3Util,
+    logger: ILogger = new DefaultLogger()
   ) {
     this.logger = logger;
-    this.web3 = web3;
     this.transactionReceiptAwaiter = transactionReceiptAwaiter;
     this.util = util;
   }
@@ -109,31 +106,9 @@ export class Wallet {
     return this.sendFromIndex(next, opts);
   }
 
-  public getNonce(account: string): Promise<string> {
-    return fromCallback((callback: any) => this.web3.eth.getTransactionCount(account, callback));
+  public getNonce(account: string): Promise<number> {
+    return this.util.getTransactionCount(account);
   }
-
-  // public async getTransactionReceipt(hash: any, from: string): Promise<any> {
-  //   return new Promise((resolve, reject) => {
-  //     try {
-  //       this.web3.eth.getTransactionReceipt(hash, (err: Error, receipt: any) => {
-  //         if (err) {
-  //           return;
-  //         }
-
-  //         if (receipt === null) {
-  //           setTimeout(() => {
-  //             resolve(this.getTransactionReceipt(hash, from));
-  //           }, 500);
-  //         } else {
-  //           resolve({ receipt, from });
-  //         }
-  //       });
-  //     } catch (e) {
-  //       reject(e);
-  //     }
-  //   });
-  // }
 
   public isWalletAbleToSendTx(idx: number): boolean {
     if (this.accounts[idx] === undefined) {
@@ -184,7 +159,7 @@ export class Wallet {
       };
     }
 
-    const nonce = this.web3.toHex(await this.getNonce(from));
+    const nonce = this.util.toHex(await this.getNonce(from));
     const v3Wallet = this.accounts.find((wallet: V3Wallet) => {
       return wallet.getAddressString() === from;
     });
@@ -239,7 +214,7 @@ export class Wallet {
   public sendRawTransaction(tx: any): Promise<any> {
     const serialized = '0x'.concat(tx.serialize().toString('hex'));
 
-    return fromCallback((callback: any) => this.web3.eth.sendRawTransaction(serialized, callback));
+    return this.util.sendRawTransaction(serialized);
   }
 
   private async signTransaction(from: V3Wallet, nonce: number | string, opts: any): Promise<any> {
@@ -247,9 +222,9 @@ export class Wallet {
       nonce,
       from: from.getAddressString(),
       to: opts.to,
-      gas: this.web3.toHex(opts.gas),
-      gasPrice: this.web3.toHex(opts.gasPrice),
-      value: this.web3.toHex(opts.value),
+      gas: this.util.toHex(opts.gas),
+      gasPrice: this.util.toHex(opts.gasPrice),
+      value: this.util.toHex(opts.value),
       data: opts.data
     };
 
