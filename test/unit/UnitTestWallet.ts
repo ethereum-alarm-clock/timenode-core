@@ -19,7 +19,7 @@ describe('Wallet Unit Tests', () => {
 
   const reset = async () => {
     config = await mockConfig();
-    wallet = new Wallet(config.web3);
+    wallet = new Wallet(config.web3, config.logger, config.transactionReceiptAwaiter, config.util);
     wallet.logger = new DefaultLogger();
 
     const accounts = await Bb.fromCallback((callback: any) =>
@@ -36,13 +36,6 @@ describe('Wallet Unit Tests', () => {
   };
 
   beforeEach(reset);
-
-  describe('getBalanceOf()', () => {
-    it('returns the balance of the current account', async () => {
-      const balance = await wallet.getBalanceOf(myAccount);
-      expect(balance).to.exist;
-    });
-  });
 
   describe('create()', () => {
     it('creates a number of wallets', () => {

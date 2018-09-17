@@ -26,16 +26,29 @@ describe('Router Unit Tests', () => {
     txTimestamp = await mockTxRequest(config.web3);
     txBlock = await mockTxRequest(config.web3, true);
 
-    actions = new Actions(config);
-    router = new Router(config, actions);
+    actions = new Actions(
+      config.wallet,
+      config.ledger,
+      config.logger,
+      config.cache,
+      config.util,
+      config.pending,
+      config.economicStrategyManager
+    );
+    router = new Router(
+      config.claiming,
+      config.cache,
+      config.logger,
+      actions,
+      config.economicStrategyManager,
+      config.wallet
+    );
     myAccount = config.wallet.getAddresses()[0];
   };
 
   beforeEach(reset);
 
   it('initializes the Router', async () => {
-    actions = new Actions(config);
-    router = new Router(config, actions);
     expect(router).to.exist;
   });
 

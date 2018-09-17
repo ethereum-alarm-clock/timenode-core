@@ -1,5 +1,4 @@
 import IActions from '../Actions';
-import Config from '../Config';
 import { ClaimStatus, EconomicStrategyStatus, ExecuteStatus, TxStatus } from '../Enum';
 import { Address, ITxRequest } from '../Types';
 import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
@@ -34,6 +33,7 @@ export default class Router implements IRouter {
     this.logger = logger;
     this.wallet = wallet;
     this.economicStrategyManager = economicStrategyManager;
+    this.isClaimingEnabled = isClaimingEnabled;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);

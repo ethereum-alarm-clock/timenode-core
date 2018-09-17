@@ -1,10 +1,10 @@
-import TxPool, { ITxPoolTxDetails, IPool } from '../TxPool';
-import Config from '../Config';
 import BigNumber from 'bignumber.js';
+
 import { FnSignatures } from '../Enum';
+import { ILogger, DefaultLogger } from '../Logger';
+import TxPool, { ITxPoolTxDetails } from '../TxPool';
 import { ITxRequestPending } from '../Types/ITxRequest';
 import W3Util from '../Util';
-import { ILogger } from '../Logger';
 
 interface PendingOpts {
   type?: string;
@@ -17,7 +17,7 @@ export class Pending {
   private txPool: any;
   private logger: ILogger;
 
-  constructor(util: W3Util, txPool: TxPool, logger: ILogger) {
+  constructor(util: W3Util, txPool: TxPool, logger: ILogger = new DefaultLogger()) {
     this.util = util;
     this.txPool = txPool;
     this.logger = logger;

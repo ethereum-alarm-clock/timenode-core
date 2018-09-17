@@ -1,58 +1,45 @@
 import { assert, expect } from 'chai';
+import * as TypeMoq from 'typemoq';
 
-import { Config } from '../../src';
-import Actions from '../../src/Actions';
-import { BucketSize } from '../../src/Buckets';
-import Router from '../../src/Router';
-import Scanner from '../../src/Scanner';
-import { ITxRequest } from '../../src/Types';
-import { mockConfig, mockTxRequest } from '../helpers';
+import { Config, W3Util } from '../../src';
+import { BucketCalc, BucketSize, IBucketCalc } from '../../src/Buckets';
+import { IBlock } from '../../src/Types';
+import { mockConfig } from '../helpers';
 
 describe('ButcketCalc', () => {
-  let txBlock: ITxRequest;
   let config: Config;
-  let txTimestamp: ITxRequest;
+  let bucketCalc: IBucketCalc;
 
-  let router: Router;
-  let actions: Actions;
-  let scanner: Scanner;
+  const defaultBlock: IBlock = { number: 10000, timestamp: 10000000000 };
+  const util = TypeMoq.Mock.ofType<W3Util>();
+  util.setup(u => u.getBlock('latest')).returns(() => Promise.resolve(defaultBlock));
 
   const reset = async () => {
     config = await mockConfig();
-    txTimestamp = await mockTxRequest(config.web3);
-    txBlock = await mockTxRequest(config.web3, true);
-
-    actions = new Actions(config);
-    router = new Router(config, actions);
-    scanner = new Scanner(config, router);
+    bucketCalc = new BucketCalc(util.object, config.eac.requestFactory);
   };
 
   beforeEach(reset);
   describe('getBuckets()', () => {
     it('returns current and next buckets', async () => {
-      const { currentBuckets, nextBuckets } = await scanner.bucketCalc.getBuckets();
+      const { currentBuckets, nextBuckets } = await bucketCalc.getBuckets();
 
       expect(currentBuckets).to.haveOwnProperty('blockBucket');
       expect(currentBuckets).to.haveOwnProperty('timestampBucket');
       expect(nextBuckets).to.haveOwnProperty('blockBucket');
       expect(nextBuckets).to.haveOwnProperty('timestampBucket');
 
-      const block = {
-        number: (await txBlock.now()).toNumber(),
-        timestamp: (await txTimestamp.now()).toNumber()
-      };
-
       assert.equal(
         currentBuckets.blockBucket,
-        -1 * (block.number - (block.number % BucketSize.block))
+        -1 * (defaultBlock.number - (defaultBlock.number % BucketSize.block))
       );
       assert.equal(
         currentBuckets.timestampBucket,
-        block.timestamp - (block.timestamp % BucketSize.timestamp)
+        defaultBlock.timestamp - (defaultBlock.timestamp % BucketSize.timestamp)
       );
 
-      const expectedBlockInterval = block.number + BucketSize.block;
-      const expectedTimestampInterval = block.timestamp + BucketSize.timestamp;
+      const expectedBlockInterval = defaultBlock.number + BucketSize.block;
+      const expectedTimestampInterval = defaultBlock.timestamp + BucketSize.timestamp;
       assert.equal(
         nextBuckets.blockBucket,
         -1 * (expectedBlockInterval - (expectedBlockInterval % BucketSize.block))

@@ -1,6 +1,5 @@
 import { ILogger, DefaultLogger } from '../Logger';
 import BigNumber from 'bignumber.js';
-import { Config } from '..';
 
 export interface ICachedTxDetails {
   claimedBy: string;
@@ -13,7 +12,7 @@ export default class Cache<T> {
   public logger: any;
   private eac: any;
 
-  constructor(logger: ILogger = new DefaultLogger(), eac: any) {
+  constructor(eac: any, logger: ILogger = new DefaultLogger()) {
     this.logger = logger;
     this.eac = eac;
   }

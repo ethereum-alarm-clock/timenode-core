@@ -1,11 +1,9 @@
 /* tslint:disable:no-unused-expression */
 import BigNumber from 'bignumber.js';
 import { assert, expect } from 'chai';
-import Actions from '../../src/Actions';
 import { BucketSize } from '../../src/Buckets';
 import { CacheStates } from '../../src/Enum';
 import { Config } from '../../src/index';
-import Router from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { ITxRequest } from '../../src/Types';
 import { mockConfig, mockTxRequest } from '../helpers';
@@ -14,25 +12,19 @@ describe('Scanner Unit Tests', () => {
   let config: Config;
   let txBlock: ITxRequest;
 
-  let router: Router;
-  let actions: Actions;
   let scanner: Scanner;
 
   const reset = async () => {
     config = await mockConfig();
     txBlock = await mockTxRequest(config.web3, true);
 
-    actions = new Actions(config);
-    router = new Router(config, actions);
-    scanner = new Scanner(config, router);
+    scanner = new Scanner(config, null);
   };
 
   beforeEach(reset);
 
   it('initializes the Scanner', () => {
-    actions = new Actions(config);
-    router = new Router(config, actions);
-    scanner = new Scanner(config, router);
+    scanner = new Scanner(config, null);
     expect(scanner).to.exist;
   });
 

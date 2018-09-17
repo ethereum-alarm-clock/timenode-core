@@ -1,6 +1,5 @@
 import * as ethWallet from 'ethereumjs-wallet';
 import { fromCallback } from 'bluebird';
-import { BigNumber } from 'bignumber.js';
 import { ILogger, DefaultLogger } from '../Logger';
 import { TxSendErrors } from '../Enum/TxSendErrors';
 const ethTx = require('ethereumjs-tx');
@@ -14,7 +13,6 @@ import W3Util from '../Util';
 
 declare const Buffer: any;
 declare const require: any;
-declare const console: any;
 //declare const setTimeout: any;
 
 interface AccountState {
