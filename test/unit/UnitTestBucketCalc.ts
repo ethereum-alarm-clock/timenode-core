@@ -1,27 +1,21 @@
 import { assert, expect } from 'chai';
 import * as TypeMoq from 'typemoq';
 
-import { Config, W3Util } from '../../src';
-import { BucketCalc, BucketSize, IBucketCalc } from '../../src/Buckets';
+import { W3Util } from '../../src';
+import { BucketCalc, BucketSize } from '../../src/Buckets';
 import { IBlock } from '../../src/Types';
 import { mockConfig } from '../helpers';
 
+const defaultBlock: IBlock = { number: 10000, timestamp: 10000000000 };
+const util = TypeMoq.Mock.ofType<W3Util>();
+util.setup(u => u.getBlock('latest')).returns(() => Promise.resolve(defaultBlock));
+
 describe('ButcketCalc', () => {
-  let config: Config;
-  let bucketCalc: IBucketCalc;
-
-  const defaultBlock: IBlock = { number: 10000, timestamp: 10000000000 };
-  const util = TypeMoq.Mock.ofType<W3Util>();
-  util.setup(u => u.getBlock('latest')).returns(() => Promise.resolve(defaultBlock));
-
-  const reset = async () => {
-    config = await mockConfig();
-    bucketCalc = new BucketCalc(util.object, config.eac.requestFactory);
-  };
-
-  beforeEach(reset);
-  describe('getBuckets()', () => {
+  describe('getBuckets()', async () => {
     it('returns current and next buckets', async () => {
+      const config = await mockConfig();
+      const bucketCalc = new BucketCalc(util.object, await config.eac.requestFactory);
+
       const { currentBuckets, nextBuckets } = await bucketCalc.getBuckets();
 
       expect(currentBuckets).to.haveOwnProperty('blockBucket');

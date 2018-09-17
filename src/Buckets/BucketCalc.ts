@@ -18,28 +18,25 @@ export class BucketCalc {
   public async getBuckets(): Promise<IBuckets> {
     const latest: IBlock = await this.util.getBlock('latest');
     return {
-      currentBuckets: await this.getCurrentBuckets(latest),
-      nextBuckets: await this.getNextBuckets(latest)
+      currentBuckets: this.getCurrentBuckets(latest),
+      nextBuckets: this.getNextBuckets(latest)
     };
   }
 
-  private async getCurrentBuckets(latest: IBlock): Promise<IBucketPair> {
-    const reqFactory = await this.requestFactory;
-
+  private getCurrentBuckets(latest: IBlock): IBucketPair {
     return {
-      blockBucket: reqFactory.calcBucket(latest.number, 1),
-      timestampBucket: reqFactory.calcBucket(latest.timestamp, 2)
+      blockBucket: this.requestFactory.calcBucket(latest.number, 1),
+      timestampBucket: this.requestFactory.calcBucket(latest.timestamp, 2)
     };
   }
 
-  private async getNextBuckets(latest: IBlock): Promise<IBucketPair> {
-    const reqFactory = await this.requestFactory;
+  private getNextBuckets(latest: IBlock): IBucketPair {
     const nextBlockInterval = latest.number + BucketSize.block;
     const nextTsInterval = latest.timestamp + BucketSize.timestamp;
 
     return {
-      blockBucket: reqFactory.calcBucket(nextBlockInterval, 1),
-      timestampBucket: reqFactory.calcBucket(nextTsInterval, 2)
+      blockBucket: this.requestFactory.calcBucket(nextBlockInterval, 1),
+      timestampBucket: this.requestFactory.calcBucket(nextTsInterval, 2)
     };
   }
 }
