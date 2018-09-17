@@ -9,6 +9,10 @@ import TxPool from '../TxPool';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import BigNumber from 'bignumber.js';
+import {
+  ITransactionReceiptAwaiter,
+  TransactionReceiptAwaiter
+} from '../Wallet/TransactionReceiptAwaiter';
 
 export default class Config implements IConfigParams {
   public static readonly DEFAULT_ECONOMIC_STRATEGY: IEconomicStrategy = {
@@ -34,6 +38,8 @@ export default class Config implements IConfigParams {
   public wallet: Wallet;
   public web3: any;
   public walletStoresAsPrivateKeys: boolean;
+
+  private transactionReceiptAwaiter: ITransactionReceiptAwaiter;
 
   constructor(params: IConfigParams) {
     if (params.providerUrl) {
@@ -63,11 +69,12 @@ export default class Config implements IConfigParams {
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
     this.txPool = new TxPool(this);
+    this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.web3);
 
-    this.cache = new Cache(this.logger);
+    this.cache = new Cache(this.logger, this.eac);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
-      this.wallet = new Wallet(this.web3, this.logger);
+      this.wallet = new Wallet(this.web3, this.logger, this.transactionReceiptAwaiter, this.util);
 
       params.walletStores = params.walletStores.map((store: object | string) => {
         if (typeof store === 'object') {

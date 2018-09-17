@@ -7,11 +7,15 @@ const ethTx = require('ethereumjs-tx');
 
 import { IWalletReceipt } from './IWalletReceipt';
 import { Address } from '../Types';
+import ITransactionOptions from '../Types/ITransactionOptions';
+import { ITransactionReceipt } from '../Types/ITransactionReceipt';
+import { ITransactionReceiptAwaiter, TransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
+import W3Util from '../Util';
 
 declare const Buffer: any;
 declare const require: any;
 declare const console: any;
-declare const setTimeout: any;
+//declare const setTimeout: any;
 
 interface AccountState {
   sendingTxInProgress: boolean;
@@ -30,18 +34,23 @@ export class Wallet {
   public web3: any;
   public walletStates: Map<string, AccountState> = new Map<string, AccountState>();
   private accounts: V3Wallet[] = [];
+  private transactionReceiptAwaiter: ITransactionReceiptAwaiter;
+  private util: W3Util;
 
-  constructor(web3: any, logger: ILogger = new DefaultLogger()) {
+  constructor(
+    web3: any,
+    logger: ILogger = new DefaultLogger(),
+    transactionReceiptAwaiter: ITransactionReceiptAwaiter = new TransactionReceiptAwaiter(web3),
+    util: W3Util
+  ) {
     this.logger = logger;
     this.web3 = web3;
+    this.transactionReceiptAwaiter = transactionReceiptAwaiter;
+    this.util = util;
   }
 
   get nextAccount(): V3Wallet {
     return this.accounts[this.nonce % this.accounts.length];
-  }
-
-  public getBalanceOf(address: string): Promise<BigNumber> {
-    return fromCallback((callback: any) => this.web3.eth.getBalance(address, callback));
   }
 
   public create(numAccounts: number) {
@@ -106,27 +115,27 @@ export class Wallet {
     return fromCallback((callback: any) => this.web3.eth.getTransactionCount(account, callback));
   }
 
-  public async getTransactionReceipt(hash: any, from: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      try {
-        this.web3.eth.getTransactionReceipt(hash, (err: Error, receipt: any) => {
-          if (err) {
-            return;
-          }
+  // public async getTransactionReceipt(hash: any, from: string): Promise<any> {
+  //   return new Promise((resolve, reject) => {
+  //     try {
+  //       this.web3.eth.getTransactionReceipt(hash, (err: Error, receipt: any) => {
+  //         if (err) {
+  //           return;
+  //         }
 
-          if (receipt === null) {
-            setTimeout(() => {
-              resolve(this.getTransactionReceipt(hash, from));
-            }, 500);
-          } else {
-            resolve({ receipt, from });
-          }
-        });
-      } catch (e) {
-        reject(e);
-      }
-    });
-  }
+  //         if (receipt === null) {
+  //           setTimeout(() => {
+  //             resolve(this.getTransactionReceipt(hash, from));
+  //           }, 500);
+  //         } else {
+  //           resolve({ receipt, from });
+  //         }
+  //       });
+  //     } catch (e) {
+  //       reject(e);
+  //     }
+  //   });
+  // }
 
   public isWalletAbleToSendTx(idx: number): boolean {
     if (this.accounts[idx] === undefined) {
@@ -159,7 +168,7 @@ export class Wallet {
     return this.sendFromAccount(from, opts);
   }
 
-  public async sendFromAccount(from: Address, opts: any): Promise<IWalletReceipt> {
+  public async sendFromAccount(from: Address, opts: ITransactionOptions): Promise<IWalletReceipt> {
     if (this.hasPendingTransaction(opts.to)) {
       return {
         from,
@@ -167,12 +176,10 @@ export class Wallet {
       };
     }
 
-    const balance = await this.getBalanceOf(from);
+    const balance = await this.util.balanceOf(from);
 
     if (balance.eq(0)) {
-      if (this.logger) {
-        this.logger.info(`${TxSendErrors.NOT_ENOUGH_FUNDS} ${from}`);
-      }
+      this.logger.info(`${TxSendErrors.NOT_ENOUGH_FUNDS} ${from}`);
       return {
         from,
         status: TxSendErrors.NOT_ENOUGH_FUNDS
@@ -192,22 +199,18 @@ export class Wallet {
       };
     }
 
-    let receipt;
+    let receipt: ITransactionReceipt;
     try {
       this.walletStates.set(from, { sendingTxInProgress: true, to: opts.to });
 
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
       const hash = await this.sendRawTransaction(signedTx);
-      receipt = await this.getTransactionReceipt(hash, from);
+      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(hash);
 
       this.logger.debug(`Receipt: ${JSON.stringify(receipt)}`);
     } catch (error) {
-      if (this.logger) {
-        this.logger.debug(error);
-      } else {
-        console.log(error);
-      }
+      this.logger.error(error, opts.to);
       return {
         from,
         status: TxSendErrors.UNKNOWN_ERROR
@@ -216,11 +219,11 @@ export class Wallet {
       this.walletStates.set(from, {} as AccountState);
     }
 
-    const status = this.isTransactionStatusSuccessful(receipt.receipt.status)
+    const status = this.isTransactionStatusSuccessful(receipt)
       ? TxSendErrors.OK
       : TxSendErrors.FAILED;
 
-    return { receipt: receipt.receipt, from: receipt.from, status };
+    return { receipt, from, status };
   }
 
   public getAccounts(): V3Wallet[] {
@@ -258,9 +261,9 @@ export class Wallet {
     return tx;
   }
 
-  private isTransactionStatusSuccessful(status: string | number): boolean {
-    if (status) {
-      return [1, '0x1', '0x01'].indexOf(status) !== -1;
+  private isTransactionStatusSuccessful(receipt: ITransactionReceipt): boolean {
+    if (receipt) {
+      return [1, '0x1', '0x01'].indexOf(receipt.status) !== -1;
     }
     return false;
   }

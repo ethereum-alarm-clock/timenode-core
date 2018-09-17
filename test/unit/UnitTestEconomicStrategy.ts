@@ -2,12 +2,17 @@ import BigNumber from 'bignumber.js';
 import { assert } from 'chai';
 import { Config } from '../../src/index';
 import { mockConfig, mockTxRequest } from '../helpers';
-import { shouldClaimTx, getExecutionGasPrice, shouldExecuteTx } from '../../src/EconomicStrategy';
 import { EconomicStrategyStatus } from '../../src/Enum';
+import {
+  IEconomicStrategyManager,
+  EconomicStrategyManager
+} from '../../src/EconomicStrategy/EconomicStrategyManager';
+import { IEconomicStrategy } from '../../src/EconomicStrategy';
 
 describe('Economic Strategy Tests', () => {
   let config: Config;
   let txTimestamp: any;
+  let economicStrategyManager: IEconomicStrategyManager;
 
   const reset = async () => {
     config = await mockConfig();
@@ -18,36 +23,69 @@ describe('Economic Strategy Tests', () => {
 
   describe('shouldClaimTx()', () => {
     it('returns CLAIM if economic strategy is default', async () => {
+      economicStrategyManager = new EconomicStrategyManager(null, null, null, null);
+
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
+        txTimestamp,
+        nextAccount
+      );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
     });
 
     it('returns CLAIM if economic strategy not set', async () => {
-      config.economicStrategy = null;
+      economicStrategyManager = new EconomicStrategyManager(null, null, null, null);
+
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
+        txTimestamp,
+        nextAccount
+      );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
     });
 
     it('returns DEPOSIT_TOO_HIGH if transaction exceeds maxDeposit', async () => {
-      config.economicStrategy.maxDeposit = new BigNumber(1);
+      const strategy: IEconomicStrategy = {
+        maxDeposit: new BigNumber(1)
+      };
+
+      economicStrategyManager = new EconomicStrategyManager(strategy, null, null, null);
+
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
+        txTimestamp,
+        nextAccount
+      );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.DEPOSIT_TOO_HIGH);
     });
 
     it('returns INSUFFICIENT_BALANCE if balance below minBalance', async () => {
-      config.economicStrategy.minBalance = new BigNumber(config.web3.toWei(101, 'ether'));
+      const strategy: IEconomicStrategy = {
+        minBalance: new BigNumber(config.web3.toWei(101, 'ether'))
+      };
+
+      economicStrategyManager = new EconomicStrategyManager(strategy, null, null, null);
+
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
+        txTimestamp,
+        nextAccount
+      );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.INSUFFICIENT_BALANCE);
     });
 
     it('returns NOT_PROFITABLE if reward lower than minProfitability', async () => {
-      config.economicStrategy.minProfitability = new BigNumber(config.web3.toWei(100, 'ether'));
+      const strategy: IEconomicStrategy = {
+        minProfitability: new BigNumber(config.web3.toWei(100, 'ether'))
+      };
+
+      economicStrategyManager = new EconomicStrategyManager(strategy, null, null, null);
+
       const nextAccount = config.wallet.nextAccount.getAddressString();
-      const shouldClaimStatus = await shouldClaimTx(txTimestamp, config, nextAccount);
+      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
+        txTimestamp,
+        nextAccount
+      );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.NOT_PROFITABLE);
     });
   });

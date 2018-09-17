@@ -11,9 +11,11 @@ export interface ICachedTxDetails {
 export default class Cache<T> {
   public cache: {} = {};
   public logger: any;
+  private eac: any;
 
-  constructor(logger: ILogger = new DefaultLogger()) {
+  constructor(logger: ILogger = new DefaultLogger(), eac: any) {
     this.logger = logger;
+    this.eac = eac;
   }
 
   public set(key: string, value: T) {
@@ -56,7 +58,7 @@ export default class Cache<T> {
     return this.length() === 0;
   }
 
-  public getTxRequestsClaimedBy(address: string, config: Config): string[] {
+  public getTxRequestsClaimedBy(address: string): string[] {
     const storedInCache = this.stored();
     if (!storedInCache) {
       return [''];
@@ -69,12 +71,9 @@ export default class Cache<T> {
         return cached;
       })
       .filter(async (txRequestAddress: string) => {
-        const txRequest = await config.eac.transactionRequest(txRequestAddress);
+        const txRequest = await this.eac.transactionRequest(txRequestAddress);
         await txRequest.refreshData();
         return txRequest.claimedBy === address;
       });
   }
 }
-
-// The cache assigns each key (txRequestAddress) the original value of its WindowStart
-//  99 - Expired (ready to be swept)

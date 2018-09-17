@@ -1,8 +1,11 @@
 import IActions from '../Actions';
 import Config from '../Config';
-import { shouldClaimTx, shouldExecuteTx } from '../EconomicStrategy';
 import { ClaimStatus, EconomicStrategyStatus, ExecuteStatus, TxStatus } from '../Enum';
 import { Address, ITxRequest } from '../Types';
+import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
+import Cache, { ICachedTxDetails } from '../Cache';
+import { ILogger } from '../Logger';
+import { Wallet } from '../Wallet';
 
 export default interface IRouter {
   route(txRequest: ITxRequest): Promise<TxStatus>;
@@ -10,13 +13,27 @@ export default interface IRouter {
 
 export default class Router implements IRouter {
   private actions: IActions;
-  private config: Config;
+  private cache: Cache<ICachedTxDetails>;
+  private logger: ILogger;
   private txRequestStates: object = {};
   private transitions: object = {};
+  private economicStrategyManager: IEconomicStrategyManager;
+  private wallet: Wallet;
+  private isClaimingEnabled: boolean;
 
-  constructor(config: Config, actions: IActions) {
+  constructor(
+    isClaimingEnabled: boolean,
+    cache: Cache<ICachedTxDetails>,
+    logger: ILogger,
+    actions: IActions,
+    economicStrategyManager: IEconomicStrategyManager,
+    wallet: Wallet
+  ) {
     this.actions = actions;
-    this.config = config;
+    this.cache = cache;
+    this.logger = logger;
+    this.wallet = wallet;
+    this.economicStrategyManager = economicStrategyManager;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
@@ -25,8 +42,8 @@ export default class Router implements IRouter {
     this.transitions[TxStatus.Executed] = this.executed.bind(this);
     this.transitions[TxStatus.Missed] = this.missed.bind(this);
     this.transitions[TxStatus.Done] = (txRequest: ITxRequest) => {
-      this.config.logger.info('Finished. Deleting from cache...', txRequest.address);
-      this.config.cache.del(txRequest.address);
+      this.logger.info('Finished. Deleting from cache...', txRequest.address);
+      this.cache.del(txRequest.address);
       return TxStatus.Done;
     };
   }
@@ -49,11 +66,10 @@ export default class Router implements IRouter {
       return TxStatus.FreezePeriod;
     }
 
-    if (this.config.claiming) {
-      const nextAccount: Address = this.config.wallet.nextAccount.getAddressString();
-      const shouldClaimStatus: EconomicStrategyStatus = await shouldClaimTx(
+    if (this.isClaimingEnabled) {
+      const nextAccount: Address = this.wallet.nextAccount.getAddressString();
+      const shouldClaimStatus: EconomicStrategyStatus = await this.economicStrategyManager.shouldClaimTx(
         txRequest,
-        this.config,
         nextAccount
       );
 
@@ -67,13 +83,13 @@ export default class Router implements IRouter {
             return TxStatus.FreezePeriod;
           }
         } catch (err) {
-          this.config.logger.error(err, txRequest.address);
+          this.logger.error(err, txRequest.address);
           throw new Error(err);
         }
       } else {
-        this.config.logger.info(`Claiming: Skipped - ${shouldClaimStatus}`, txRequest.address);
-        this.config.logger.debug(
-          `ECONOMIC STRATEGY: ${JSON.stringify(this.config.economicStrategy)}`
+        this.logger.info(`Claiming: Skipped - ${shouldClaimStatus}`, txRequest.address);
+        this.logger.debug(
+          `ECONOMIC STRATEGY: ${JSON.stringify(this.economicStrategyManager.strategy)}`
         );
       }
     }
@@ -110,7 +126,7 @@ export default class Router implements IRouter {
       return TxStatus.ExecutionWindow;
     }
 
-    const shouldExecute = await shouldExecuteTx(txRequest, this.config);
+    const shouldExecute = await this.economicStrategyManager.shouldExecuteTx(txRequest);
 
     if (shouldExecute) {
       try {
@@ -122,11 +138,11 @@ export default class Router implements IRouter {
           return TxStatus.Executed;
         }
       } catch (err) {
-        this.config.logger.error(err, txRequest.address);
+        this.logger.error(err, txRequest.address);
         throw new Error(err);
       }
     } else {
-      this.config.logger.info('Not profitable to execute. Gas price too high.', txRequest.address);
+      this.logger.info('Not profitable to execute. Gas price too high.', txRequest.address);
     }
 
     return TxStatus.ExecutionWindow;
@@ -156,13 +172,10 @@ export default class Router implements IRouter {
   }
 
   public isLocalClaim(txRequest: ITxRequest): boolean {
-    const localClaim = this.config.wallet.isKnownAddress(txRequest.claimedBy);
+    const localClaim = this.wallet.isKnownAddress(txRequest.claimedBy);
 
     if (!localClaim) {
-      this.config.logger.debug(
-        `In reserve window and not claimed by this TimeNode.`,
-        txRequest.address
-      );
+      this.logger.debug(`In reserve window and not claimed by this TimeNode.`, txRequest.address);
     }
 
     return localClaim;
@@ -175,7 +188,7 @@ export default class Router implements IRouter {
     let nextStatus: TxStatus = await statusFunction(txRequest);
 
     while (nextStatus !== status) {
-      this.config.logger.debug(
+      this.logger.debug(
         `Transitioning from ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`,
         txRequest.address
       );
@@ -193,17 +206,17 @@ export default class Router implements IRouter {
   ): void {
     switch (status) {
       case ClaimStatus.SUCCESS:
-        this.config.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
+        this.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
       case ExecuteStatus.SUCCESS:
-        this.config.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
+        this.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
       case ClaimStatus.ACCOUNT_BUSY:
       case ClaimStatus.NOT_ENABLED:
       case ClaimStatus.PENDING:
       case ExecuteStatus.WALLET_BUSY:
       case ExecuteStatus.PENDING:
-        this.config.logger.info(status, txRequest.address);
+        this.logger.info(status, txRequest.address);
         break;
       case ClaimStatus.FAILED:
       case ExecuteStatus.FAILED:
@@ -214,7 +227,7 @@ export default class Router implements IRouter {
       case ExecuteStatus.ABORTED_RESERVED_FOR_CLAIMER:
       case ExecuteStatus.ABORTED_TOO_LOW_GAS_PRICE:
       case ExecuteStatus.ABORTED_WAS_CANCELLED:
-        this.config.logger.error(status, txRequest.address);
+        this.logger.error(status, txRequest.address);
         break;
       case ClaimStatus.IN_PROGRESS:
       case ExecuteStatus.IN_PROGRESS:

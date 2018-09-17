@@ -1,6 +1,7 @@
+import BigNumber from 'bignumber.js';
 import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
-import BigNumber from 'bignumber.js';
+
 import { IBlock, ITxRequest } from './Types';
 
 export default class W3Util {
@@ -133,5 +134,17 @@ export default class W3Util {
     }
 
     return new Web3(provider);
+  }
+
+  public balanceOf(address: string): Promise<BigNumber> {
+    return new Promise<BigNumber>((resolve, reject) => {
+      this.web3.eth.getBalance(address, (err: any, tx: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(tx);
+        }
+      });
+    });
   }
 }
