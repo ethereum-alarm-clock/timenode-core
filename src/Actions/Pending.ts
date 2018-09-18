@@ -24,14 +24,12 @@ export class Pending {
   }
 
   /**
-   * Uses a locally maintained TxPool to return whether
-   * a TransactionRequest has a pending transaction in the transaction pool.
-   * @param {Config} conf Config object.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {string} type (optional) Type of pending request: claim,execute.
-   * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
-   * @param {number} minPrice (optional) Expected gasPrice to compare.
+   *
+   *
+   * @param {ITxRequestPending} txRequest Transaction Request object to check.
+   * @param {PendingOpts} opts Options for pending check
    * @returns {Promise<boolean>} True if a pending transaction to this address exists.
+   * @memberof Pending
    */
   public async hasPending(txRequest: ITxRequestPending, opts: PendingOpts): Promise<boolean> {
     let result: boolean = false;
@@ -41,16 +39,6 @@ export class Pending {
     return result;
   }
 
-  /**
-   * Uses the locally maintained TxPool to check
-   * for pending transactions in the transaction pool.
-   * @param {Config} conf Config object.
-   * @param {TransactionRequest} txRequest
-   * @param {string} type (optional) Type of pending request: claim,execute.
-   * @param {boolean} checkGasPrice (optional, default: true) Check if transaction's gasPrice is sufficient for Network.
-   * @param {number} minPrice (optional) Expected gasPrice.
-   * @returns {Promise<boolean>} True if a pending transaction to this address exists.
-   */
   private async hasPendingPool(txRequest: ITxRequestPending, opts: PendingOpts): Promise<boolean> {
     let validPending: (boolean | ITxPoolTxDetails)[] = [];
 
@@ -71,13 +59,6 @@ export class Pending {
     return true; //if there is an error, assume tq exists so we don't loose
   }
 
-  /**
-   * Uses the Geth specific RPC request `txpool_content` to search
-   * for pending transactions in the transaction pool.
-   * @param {TransactionReceipt} transaction Ethereum transaction receipt
-   * @param {string} type Type of pending request: claim,execute.
-   * @returns {Promise<boolean>} True if a pending transaction to this address exists.
-   */
   private isOfType(transaction: ITxPoolTxDetails, type?: string) {
     if (transaction && !type) {
       return true;
@@ -85,13 +66,6 @@ export class Pending {
     return transaction.input === FnSignatures[type];
   }
 
-  /**
-   * Checks that pending transactions in the transaction pool have valid gasPrices.
-   * @param {Config} conf Config object.
-   * @param {TransactionReceipt} transaction Ethereum transaction receipt
-   * @param {number} minPrice (optional) Expected gasPrice.
-   * @returns {Promise<boolean>} Transaction, if a pending transaction to this address exists.
-   */
   private hasValidGasPrice(
     networkPrice: BigNumber,
     transaction: ITxPoolTxDetails,
