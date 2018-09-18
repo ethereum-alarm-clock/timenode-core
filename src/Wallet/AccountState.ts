@@ -1,3 +1,5 @@
+import { Operation } from '../Types/Operation';
+
 export enum TransactionState {
   ERROR,
   PENDING,
@@ -6,10 +8,10 @@ export enum TransactionState {
 }
 
 export interface IAccountState {
-  set(account: string, to: string, state: TransactionState): void;
+  set(account: string, to: string, operation: Operation, state: TransactionState): void;
   hasPending(account: string): boolean;
-  isConfirmed(to: string): boolean;
-  isPending(to: string): boolean;
+  isPending(to: string, operation: Operation): boolean;
+  isSent(to: string, operation: Operation): boolean;
 }
 
 export class AccountState implements IAccountState {
@@ -18,13 +20,14 @@ export class AccountState implements IAccountState {
     Map<string, TransactionState>
   >();
 
-  public set(account: string, to: string, state: TransactionState) {
+  public set(account: string, to: string, operation: Operation, state: TransactionState) {
     const hasAccount = this.states.has(account);
     if (!hasAccount) {
       this.states.set(account, new Map<string, TransactionState>());
     }
 
-    this.states.get(account).set(to, state);
+    const key = this.createKey(to, operation);
+    this.states.get(account).set(key, state);
   }
 
   public hasPending(account: string): boolean {
@@ -36,21 +39,22 @@ export class AccountState implements IAccountState {
     return Array.from(accountStates.values()).some(s => s === TransactionState.PENDING);
   }
 
-  public isConfirmed(to: string): boolean {
-    return this.hasState(to, TransactionState.CONFIRMED);
+  public isSent(to: string, operation: Operation): boolean {
+    return this.hasState(to, operation, TransactionState.SENT);
   }
 
-  public isPending(to: string): boolean {
-    return this.hasState(to, TransactionState.PENDING);
+  public isPending(to: string, operation: Operation): boolean {
+    return this.hasState(to, operation, TransactionState.PENDING);
   }
 
-  public isError(to: string): boolean {
-    return this.hasState(to, TransactionState.ERROR);
-  }
-
-  private hasState(to: string, state: TransactionState): boolean {
+  private hasState(to: string, operation: Operation, state: TransactionState): boolean {
     const transactions = Array.from(this.states.values());
+    const key = this.createKey(to, operation);
 
-    return transactions.some(tx => tx.get(to) === state);
+    return transactions.some(tx => tx.get(key) === state);
+  }
+
+  private createKey(to: string, operation: Operation): string {
+    return to.concat('-', operation.toString());
   }
 }

@@ -40,9 +40,12 @@ export class EconomicStrategyManager {
   }
 
   /**
-   * Validates all the economic strategy parameters before claiming a certain transaction.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {Config} config Configuration object.
+   * Tests transaction if claiming should be performed
+   *
+   * @param {ITxRequest} txRequest Request under test
+   * @param {Address} nextAccount Account
+   * @returns {Promise<EconomicStrategyStatus>} Status
+   * @memberof EconomicStrategyManager
    */
   public async shouldClaimTx(
     txRequest: ITxRequest,

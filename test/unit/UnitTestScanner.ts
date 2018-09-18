@@ -1,9 +1,12 @@
 /* tslint:disable:no-unused-expression */
 import BigNumber from 'bignumber.js';
 import { assert, expect } from 'chai';
+import * as TypeMoq from 'typemoq';
+
+import { Config } from '../../src';
 import { BucketSize } from '../../src/Buckets';
 import { CacheStates } from '../../src/Enum';
-import { Config } from '../../src/index';
+import IRouter from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { ITxRequest } from '../../src/Types';
 import { mockConfig, mockTxRequest } from '../helpers';
@@ -15,10 +18,11 @@ describe('Scanner Unit Tests', () => {
   let scanner: Scanner;
 
   const reset = async () => {
+    const router = TypeMoq.Mock.ofType<IRouter>();
     config = await mockConfig();
     txBlock = await mockTxRequest(config.web3, true);
 
-    scanner = new Scanner(config, null);
+    scanner = new Scanner(config, router.object);
   };
 
   beforeEach(reset);
@@ -52,32 +56,6 @@ describe('Scanner Unit Tests', () => {
     }).timeout(5000);
   });
 
-  // describe('handleRequest()', () => {
-  //   it('stores request into cache if discovered', () => {
-  //     const params = [].fill(new BigNumber(10), 0, 12);
-  //     const address = txTimestamp.address;
-
-  //     scanner.handleRequest({ address, params });
-  //     expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
-  //     assert.equal(scanner.config.cache.get(txTimestamp.address).windowStart, params[7]);
-  //   });
-
-  //   it('rejects request if invalid address', () => {
-  //     const address = txTimestamp.address.substring(0, 3);
-  //     const params = [].fill(new BigNumber(10), 0, 12);
-
-  //     expect(() => scanner.handleRequest({ address, params })).to.throw();
-  //   });
-  // });
-
-  // describe('stopWatcher()', () => {
-  //   it('clears the watcher', async () => {
-  //     const block = (await txBlock.now()).toNumber();
-  //     await scanner.stopWatcher(block);
-  //     expect(scanner.eventWatchers[block]).to.not.exist;
-  //   });
-  // });
-
   describe('watchRequestsByBucket()', () => {
     it('starts watchers for a new bucket', async () => {
       const bucket = (await txBlock.now()).toNumber();
@@ -97,28 +75,6 @@ describe('Scanner Unit Tests', () => {
       expect(scanner.buckets).to.haveOwnProperty('nextBuckets');
     });
   });
-
-  // describe('isValid()', () => {
-  //   it('returns true when correct address format', () => {
-  //     assert.isTrue(scanner.isValid(txBlock.address));
-  //   });
-
-  //   it('errors when an invalid address', () => {
-  //     expect(() => scanner.isValid(txBlock.address.substring(0, 5))).to.throw();
-  //   });
-
-  //   it('returns false when null address', () => {
-  //     assert.isFalse(scanner.isValid(scanner.config.eac.Constants.NULL_ADDRESS));
-  //   });
-  // });
-
-  // describe('store()', () => {
-  //   it('returns true when correct address format', () => {
-  //     const params = [].fill(new BigNumber(10), 0, 12);
-  //     scanner.store({ address: txTimestamp.address, params });
-  //     expect(config.cache.get(txTimestamp.address)).to.exist;
-  //   });
-  // });
 
   describe('scanCache()', () => {
     it('returns EMPTY when cache empty', async () => {

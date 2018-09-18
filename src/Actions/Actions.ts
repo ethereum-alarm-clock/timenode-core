@@ -12,6 +12,7 @@ import { IWalletReceipt, Wallet } from '../Wallet';
 import { getAbortedExecuteStatus, isAborted, isExecuted } from './Helpers';
 import { ILedger } from './Ledger';
 import { Pending } from './Pending';
+import { Operation } from '../Types/Operation';
 
 export default interface IActions {
   claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus>;
@@ -50,7 +51,7 @@ export default class Actions implements IActions {
     //   return ClaimStatus.NOT_ENABLED;
     // }
     //TODO: merge wallet ifs into 1 getWalletStatus or something
-    if (this.wallet.hasPendingTransaction(txRequest.address)) {
+    if (this.wallet.hasPendingTransaction(txRequest.address, Operation.CLAIM)) {
       return ClaimStatus.IN_PROGRESS;
     }
     if (!this.wallet.isAccountAbleToSendTx(nextAccount)) {
@@ -86,7 +87,7 @@ export default class Actions implements IActions {
   }
 
   public async execute(txRequest: ITxRequest): Promise<ExecuteStatus> {
-    if (this.wallet.hasPendingTransaction(txRequest.address)) {
+    if (this.wallet.hasPendingTransaction(txRequest.address, Operation.EXECUTE)) {
       return ExecuteStatus.IN_PROGRESS;
     }
     if (!(await this.wallet.isNextAccountFree())) {
@@ -165,7 +166,8 @@ export default class Actions implements IActions {
       value: txRequest.requiredDeposit,
       gas: 120000,
       gasPrice: await this.utils.networkGasPrice(),
-      data: txRequest.claimData
+      data: txRequest.claimData,
+      operation: Operation.CLAIM
     };
   }
 
@@ -178,7 +180,8 @@ export default class Actions implements IActions {
       value: new BigNumber(0),
       gas: gas.toNumber(),
       gasPrice,
-      data: txRequest.executeData
+      data: txRequest.executeData,
+      operation: Operation.EXECUTE
     };
   }
 }

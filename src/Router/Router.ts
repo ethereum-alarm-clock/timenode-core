@@ -5,6 +5,7 @@ import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyMa
 import Cache, { ICachedTxDetails } from '../Cache';
 import { ILogger } from '../Logger';
 import { Wallet } from '../Wallet';
+import { Operation } from '../Types/Operation';
 
 export default interface IRouter {
   route(txRequest: ITxRequest): Promise<TxStatus>;
@@ -62,7 +63,7 @@ export default class Router implements IRouter {
   }
 
   public async claimWindow(txRequest: ITxRequest): Promise<TxStatus> {
-    if (!this.wallet.isConfirmed(txRequest.address)) {
+    if (this.wallet.isWaitingForConfirmation(txRequest.address, Operation.CLAIM)) {
       return TxStatus.ClaimWindow;
     }
 
@@ -119,7 +120,7 @@ export default class Router implements IRouter {
   }
 
   public async executionWindow(txRequest: ITxRequest): Promise<TxStatus> {
-    if (!this.wallet.isConfirmed(txRequest.address)) {
+    if (this.wallet.isWaitingForConfirmation(txRequest.address, Operation.EXECUTE)) {
       return TxStatus.ExecutionWindow;
     }
     if (txRequest.wasCalled) {

@@ -9,6 +9,7 @@ import W3Util from '../Util';
 import { IWalletReceipt } from './IWalletReceipt';
 import { ITransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
 import { IAccountState, AccountState, TransactionState } from './AccountState';
+import { Operation } from '../Types/Operation';
 
 const ethTx = require('ethereumjs-tx');
 
@@ -122,19 +123,19 @@ export class Wallet {
     return !this.accountState.hasPending(account);
   }
 
-  public isConfirmed(to: Address): boolean {
-    return this.accountState.isConfirmed(to);
+  public isWaitingForConfirmation(to: Address, operation: Operation): boolean {
+    return this.accountState.isSent(to, operation);
   }
 
   public isNextAccountFree(): boolean {
     return this.isWalletAbleToSendTx(this.nonce % this.accounts.length);
   }
 
-  public hasPendingTransaction(to: string): boolean {
-    return this.accountState.isPending(to);
+  public hasPendingTransaction(to: string, operation: Operation): boolean {
+    return this.accountState.isPending(to, operation);
   }
 
-  public async sendFromIndex(idx: number, opts: any): Promise<IWalletReceipt> {
+  public async sendFromIndex(idx: number, opts: ITransactionOptions): Promise<IWalletReceipt> {
     if (this.accounts[idx] === undefined) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -145,7 +146,7 @@ export class Wallet {
   }
 
   public async sendFromAccount(from: Address, opts: ITransactionOptions): Promise<IWalletReceipt> {
-    if (this.hasPendingTransaction(opts.to)) {
+    if (this.hasPendingTransaction(opts.to, opts.operation)) {
       return {
         from,
         status: TxSendErrors.IN_PROGRESS
@@ -179,18 +180,18 @@ export class Wallet {
     let hash: string;
 
     try {
-      this.accountState.set(from, opts.to, TransactionState.PENDING);
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.PENDING);
 
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
       hash = await this.sendRawTransaction(signedTx);
       receipt = await this.transactionReceiptAwaiter.waitForConfirmations(hash, 1);
 
-      this.accountState.set(from, opts.to, TransactionState.SENT);
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.SENT);
 
       this.logger.debug(`Receipt: ${JSON.stringify(receipt)}`);
     } catch (error) {
-      this.accountState.set(from, opts.to, TransactionState.ERROR);
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.ERROR);
       this.logger.error(error, opts.to);
       return {
         from,
@@ -205,11 +206,11 @@ export class Wallet {
         hash,
         this.CONFIRMATION_BLOCKS
       );
-      this.accountState.set(from, opts.to, TransactionState.CONFIRMED);
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.CONFIRMED);
 
       this.logger.debug(`Transaction ${hash} from ${from} confirmed`, opts.to);
     } catch (error) {
-      this.accountState.set(from, opts.to, TransactionState.ERROR);
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.ERROR);
       return {
         from,
         status: TxSendErrors.MINED_IN_UNCLE

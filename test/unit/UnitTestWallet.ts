@@ -12,6 +12,8 @@ import {
   TransactionReceiptAwaiter
 } from '../../src/Wallet/TransactionReceiptAwaiter';
 import { AccountState, TransactionState } from '../../src/Wallet/AccountState';
+import { Operation } from '../../src/Types/Operation';
+import ITransactionOptions from '../../src/Types/ITransactionOptions';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
@@ -19,7 +21,7 @@ describe('Wallet Unit Tests', () => {
   let config: Config;
   let wallet: Wallet;
   let myAccount: string;
-  let opts: object;
+  let opts: ITransactionOptions;
 
   const createTestWallet = (
     baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
@@ -57,9 +59,11 @@ describe('Wallet Unit Tests', () => {
     myAccount = accounts[0];
     opts = {
       to: myAccount,
-      gas: new BigNumber(150000),
+      gas: 150000,
       gasPrice: new BigNumber(config.web3.toWei(21, 'gwei')),
-      value: new BigNumber(config.web3.toWei(0.1, 'ether'))
+      value: new BigNumber(config.web3.toWei(0.1, 'ether')),
+      operation: Operation.CLAIM,
+      data: ''
     };
   };
 
@@ -172,7 +176,7 @@ describe('Wallet Unit Tests', () => {
       wallet.create(1);
       const address = wallet.getAddresses()[0];
 
-      accountState.set(address, '0x1234', TransactionState.PENDING);
+      accountState.set(address, '0x1234', Operation.CLAIM, TransactionState.PENDING);
 
       assert.isFalse(wallet.isWalletAbleToSendTx(0));
     });
@@ -219,7 +223,7 @@ describe('Wallet Unit Tests', () => {
       const idx = 0;
       const address = wallet.getAddresses()[idx];
 
-      accountState.set(address, address, TransactionState.PENDING);
+      accountState.set(address, address, opts.operation, TransactionState.PENDING);
 
       await fundWallet(address);
 
