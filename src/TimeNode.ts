@@ -17,6 +17,10 @@ export default class TimeNode {
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
 
+    if (this.config.providerUrl.indexOf('wss://') !== -1) {
+      this.handleDisconnectingWS();
+    }
+
     this.startupMessage();
   }
 
@@ -95,5 +99,20 @@ export default class TimeNode {
     }
 
     return unsuccessfulClaims;
+  }
+
+  private handleDisconnectingWS(): void {
+    const { logger, web3 } = this.config;
+    const { currentProvider } = web3;
+    currentProvider.on('error', (err: any) => {
+      logger.debug('WS Error' + err);
+      logger.debug('Restarting Scanning...');
+      this.startScanning();
+    });
+    currentProvider.on('end', (err: any) => {
+      logger.debug('WS End' + err);
+      logger.debug('Restarting Scanning...');
+      this.startScanning();
+    });
   }
 }
