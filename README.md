@@ -27,6 +27,8 @@ It will produce an `index.js` file which can be imported into any project and us
 
 ## Test
 ```
+npm run ganache
+npm run deploy-eac
 npm run test
 ```
 
