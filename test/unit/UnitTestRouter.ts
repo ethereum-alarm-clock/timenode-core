@@ -27,8 +27,8 @@ describe('Router Unit Tests', () => {
 
     const wallet = TypeMoq.Mock.ofType<Wallet>();
     wallet
-      .setup(w => w.isConfirmed(TypeMoq.It.isAnyString(), TypeMoq.It.isAny()))
-      .returns(() => true);
+      .setup(w => w.isWaitingForConfirmation(TypeMoq.It.isAnyString(), TypeMoq.It.isAny()))
+      .returns(() => false);
     wallet.setup(w => w.nextAccount).returns(() => v3wallet.object);
     wallet.setup(w => w.isKnownAddress(myAccount)).returns(() => true);
     wallet.setup(w => w.isKnownAddress(TypeMoq.It.isAnyString())).returns(() => false);
