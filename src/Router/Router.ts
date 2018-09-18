@@ -216,6 +216,8 @@ export default class Router implements IRouter {
       case ClaimStatus.PENDING:
       case ExecuteStatus.WALLET_BUSY:
       case ExecuteStatus.PENDING:
+      case ExecuteStatus.MINED_IN_UNCLE:
+      case ClaimStatus.MINED_IN_UNCLE:
         this.logger.info(status, txRequest.address);
         break;
       case ClaimStatus.FAILED:

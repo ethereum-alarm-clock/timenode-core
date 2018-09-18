@@ -16,6 +16,7 @@ import {
 import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
 import { Ledger } from '../Actions/Ledger';
 import { Pending } from '../Actions/Pending';
+import { AccountState } from '../Wallet/AccountState';
 
 export default class Config implements IConfigParams {
   public static readonly DEFAULT_ECONOMIC_STRATEGY: IEconomicStrategy = {
@@ -86,7 +87,12 @@ export default class Config implements IConfigParams {
     this.pending = new Pending(this.util, this.txPool, this.logger);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
-      this.wallet = new Wallet(this.transactionReceiptAwaiter, this.util, this.logger);
+      this.wallet = new Wallet(
+        this.transactionReceiptAwaiter,
+        this.util,
+        new AccountState(),
+        this.logger
+      );
 
       params.walletStores = params.walletStores.map((store: object | string) => {
         if (typeof store === 'object') {

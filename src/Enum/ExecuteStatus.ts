@@ -11,5 +11,6 @@ export enum ExecuteStatus {
   ABORTED_RESERVED_FOR_CLAIMER = 'Execution: Aborted with reason ReservedForClaimer',
   ABORTED_INSUFFICIENT_GAS = 'Execution: Aborted with reason InsufficientGas',
   ABORTED_TOO_LOW_GAS_PRICE = 'Execution: Aborted with reason TooLowGasPrice',
-  ABORTED_UNKNOWN = 'Execution: Aborted with reason UNKNOWN'
+  ABORTED_UNKNOWN = 'Execution: Aborted with reason UNKNOWN',
+  MINED_IN_UNCLE = 'Execution: Transaction mined in uncle block'
 }

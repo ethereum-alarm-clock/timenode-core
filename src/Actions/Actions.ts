@@ -75,6 +75,8 @@ export default class Actions implements IActions {
           return ClaimStatus.ACCOUNT_BUSY;
         case TxSendErrors.IN_PROGRESS:
           return ClaimStatus.IN_PROGRESS;
+        case TxSendErrors.MINED_IN_UNCLE:
+          return ClaimStatus.MINED_IN_UNCLE;
       }
     } catch (err) {
       this.logger.error(err);
@@ -135,6 +137,8 @@ export default class Actions implements IActions {
           return ExecuteStatus.WALLET_BUSY;
         case TxSendErrors.IN_PROGRESS:
           return ExecuteStatus.IN_PROGRESS;
+        case TxSendErrors.MINED_IN_UNCLE:
+          return ExecuteStatus.MINED_IN_UNCLE;
       }
     } catch (err) {
       this.logger.error(err, txRequest.address);

@@ -7,9 +7,13 @@ import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
 import { TxSendErrors } from '../../src/Enum/TxSendErrors';
 import { isTransactionStatusSuccessful } from '../../src/Actions/Helpers';
-import { ITransactionReceiptAwaiter } from '../../src/Wallet/TransactionReceiptAwaiter';
+import {
+  ITransactionReceiptAwaiter,
+  TransactionReceiptAwaiter
+} from '../../src/Wallet/TransactionReceiptAwaiter';
+import { AccountState, TransactionState } from '../../src/Wallet/AccountState';
 
-const PRIVKEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
+const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
 describe('Wallet Unit Tests', () => {
   let config: Config;
@@ -17,15 +21,34 @@ describe('Wallet Unit Tests', () => {
   let myAccount: string;
   let opts: object;
 
-  const reset = async () => {
-    config = await mockConfig();
-
+  const createTestWallet = (
+    baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
+    accountState = new AccountState()
+  ) => {
     const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
     transactionReceiptAwaiter
-      .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString()))
-      .returns(async (hash: string) => config.util.getReceipt(hash));
+      .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString(), TypeMoq.It.isAnyNumber()))
+      .returns(async (hash: string) => baseTransactionReceiptAwaiter.waitForConfirmations(hash, 1));
 
-    wallet = new Wallet(transactionReceiptAwaiter.object, config.util);
+    return new Wallet(transactionReceiptAwaiter.object, config.util, accountState);
+  };
+
+  const fundWallet = async (address: string) => {
+    await new Promise(resolve => {
+      config.web3.eth.sendTransaction(
+        {
+          from: myAccount,
+          to: address,
+          value: config.web3.toWei('0.5', 'ether')
+        },
+        () => setTimeout(resolve, 1000)
+      );
+    });
+  };
+
+  const reset = async () => {
+    config = await mockConfig();
+    wallet = createTestWallet(new TransactionReceiptAwaiter(config.util));
 
     const accounts = await Bb.fromCallback((callback: any) =>
       config.web3.eth.getAccounts(callback)
@@ -76,8 +99,8 @@ describe('Wallet Unit Tests', () => {
 
   describe('loadPrivateKeys()', () => {
     it('creates a wallet from a private key', () => {
-      const privKey = PRIVKEY;
-      wallet.loadPrivateKeys([privKey]);
+      const privateKey = PRIVATE_KEY;
+      wallet.loadPrivateKeys([privateKey]);
 
       assert.equal(
         wallet.getAddresses()[0].toLowerCase(),
@@ -86,8 +109,8 @@ describe('Wallet Unit Tests', () => {
     });
 
     it('throws an error in case invalid key', () => {
-      const privKey = PRIVKEY.substring(0, PRIVKEY.length - 1);
-      assert.throw(() => wallet.loadPrivateKeys([privKey]));
+      const privateKey = PRIVATE_KEY.substring(0, PRIVATE_KEY.length - 1);
+      assert.throw(() => wallet.loadPrivateKeys([privateKey]));
     });
   });
 
@@ -144,13 +167,13 @@ describe('Wallet Unit Tests', () => {
     });
 
     it('returns false if wallet state set', () => {
+      const accountState = new AccountState();
+      wallet = createTestWallet(null, accountState);
       wallet.create(1);
       const address = wallet.getAddresses()[0];
 
-      wallet.walletStates.set(address, {
-        sendingTxInProgress: true,
-        to: '0x1234'
-      });
+      accountState.set(address, '0x1234', TransactionState.PENDING);
+
       assert.isFalse(wallet.isWalletAbleToSendTx(0));
     });
 
@@ -189,25 +212,16 @@ describe('Wallet Unit Tests', () => {
     });
 
     it('returns error when sending a Tx is in progress', async () => {
+      const accountState = new AccountState();
+      wallet = createTestWallet(null, accountState);
       wallet.create(1);
+
       const idx = 0;
       const address = wallet.getAddresses()[idx];
-      wallet.walletStates.set(address, {
-        sendingTxInProgress: true,
-        to: address
-      });
 
-      // Fund new wallet
-      await new Promise(resolve => {
-        config.web3.eth.sendTransaction(
-          {
-            from: myAccount,
-            to: address,
-            value: config.web3.toWei('0.5', 'ether')
-          },
-          resolve
-        );
-      });
+      accountState.set(address, address, TransactionState.PENDING);
+
+      await fundWallet(address);
 
       const receipt = await wallet.sendFromIndex(idx, opts);
       assert.equal(receipt.status, TxSendErrors.WALLET_BUSY);
@@ -219,16 +233,7 @@ describe('Wallet Unit Tests', () => {
       const address = wallet.getAddresses()[idx];
 
       // Fund new wallet
-      await new Promise(resolve => {
-        config.web3.eth.sendTransaction(
-          {
-            from: myAccount,
-            to: address,
-            value: config.web3.toWei('0.5', 'ether')
-          },
-          resolve
-        );
-      });
+      await fundWallet(address);
 
       let receipt = await wallet.sendFromIndex(
         idx,
@@ -237,33 +242,23 @@ describe('Wallet Unit Tests', () => {
         })
       );
       assert.equal(receipt.status, TxSendErrors.UNKNOWN_ERROR);
-      assert.isNotOk(wallet.walletStates.get(address).sendingTxInProgress);
 
       receipt = await wallet.sendFromIndex(idx, opts);
-      assert.ok(isTransactionStatusSuccessful(receipt.receipt.status));
-    });
+
+      assert.isTrue(isTransactionStatusSuccessful(receipt.receipt.status));
+    }).timeout(10000);
 
     it('returns receipt when is able to send the transaction', async () => {
       wallet.create(1);
       const idx = 0;
       const address = wallet.getAddresses()[idx];
 
-      const txHash = (await Bb.fromCallback((callback: any) =>
-        config.web3.eth.sendTransaction(
-          {
-            from: myAccount,
-            to: address,
-            value: config.web3.toWei('0.5', 'ether')
-          },
-          callback
-        )
-      )) as string;
-      assert.equal(txHash.length, 66);
+      await fundWallet(address);
 
       const receipt = await wallet.sendFromIndex(idx, opts);
       assert.property(receipt, 'from');
       assert.property(receipt, 'receipt');
-    });
+    }).timeout(10000);
   });
 
   describe('sendFromNext()', () => {

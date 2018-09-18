@@ -1,10 +1,10 @@
 import { ITransactionReceipt } from '../Types/ITransactionReceipt';
 import { W3Util } from '..';
 
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 3000;
 
 export interface ITransactionReceiptAwaiter {
-  waitForConfirmations(hash: string): Promise<ITransactionReceipt>;
+  waitForConfirmations(hash: string, blocks: number): Promise<ITransactionReceipt>;
 }
 
 export class TransactionReceiptAwaiter implements ITransactionReceiptAwaiter {
@@ -14,10 +14,14 @@ export class TransactionReceiptAwaiter implements ITransactionReceiptAwaiter {
     this.util = util;
   }
 
-  public async waitForConfirmations(hash: string): Promise<ITransactionReceipt> {
+  public async waitForConfirmations(
+    hash: string,
+    blocks: number = 12
+  ): Promise<ITransactionReceipt> {
     return await this.awaitTx(hash, {
       ensureNotUncle: true,
-      interval: POLL_INTERVAL
+      interval: POLL_INTERVAL,
+      blocks
     });
   }
 
@@ -41,7 +45,7 @@ export class TransactionReceiptAwaiter implements ITransactionReceiptAwaiter {
               try {
                 const block = await this.util.getBlock(resolvedReceipt.blockNumber);
                 const current = await this.util.getBlock('latest');
-                if (current.number - block.number >= 12) {
+                if (current.number - block.number >= options.blocks) {
                   const txn = await this.util.getTransaction(txnHash);
                   if (txn.blockNumber != null) {
                     resolve(resolvedReceipt);

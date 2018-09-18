@@ -9,7 +9,7 @@ const CLAIM_WINDOW_SIZE = 255;
 const w3Util = new W3Util();
 
 export const getHelperMethods = (web3: any) => {
-  function sendRpc(method: any, params?: any) {
+  function sendRpc(method: any, params?: any): Promise<any> {
     return new Promise((resolve, reject) => {
       web3.currentProvider.sendAsync(
         {
@@ -50,7 +50,21 @@ export const getHelperMethods = (web3: any) => {
     });
   }
 
-  return { waitUntilBlock };
+  function takeSnapshot(): Promise<number> {
+    return sendRpc('evm_snapshot').then(res => res.result);
+  }
+
+  function revertSnapshot(id: number): Promise<boolean> {
+    return sendRpc('evm_revert', id).then(res => res.result);
+  }
+
+  async function withSnapshotRevert(fn: any): Promise<boolean> {
+    const snapshot = await takeSnapshot();
+    await fn();
+    return await revertSnapshot(snapshot);
+  }
+
+  return { waitUntilBlock, withSnapshotRevert };
 };
 
 export const SCHEDULED_TX_PARAMS = {
@@ -123,9 +137,14 @@ export const scheduleTestTx = async () => {
 if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('ScheduleTx', () => {
     it('schedules a basic transaction', async () => {
-      const receipt = await scheduleTestTx();
+      const web3 = w3Util.getWeb3FromProviderUrl(providerUrl);
+      const { withSnapshotRevert } = getHelperMethods(web3);
 
-      expect(receipt).to.exist; // tslint:disable-line no-unused-expression
+      await withSnapshotRevert(async () => {
+        const receipt = await scheduleTestTx();
+
+        expect(receipt).to.exist; // tslint:disable-line no-unused-expression
+      });
     }).timeout(20000);
   });
 }

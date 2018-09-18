@@ -9,7 +9,7 @@
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
     "deploy-eac": "sh scripts/deploy_eac.sh",
-    "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002",
+    "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002 -b 1",
     "lint": "tslint --project .",
     "lint-fix": "tslint --fix --project .",
     "precommit": "lint-staged",

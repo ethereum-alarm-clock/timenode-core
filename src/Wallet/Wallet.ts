@@ -8,16 +8,12 @@ import { ITransactionReceipt } from '../Types/ITransactionReceipt';
 import W3Util from '../Util';
 import { IWalletReceipt } from './IWalletReceipt';
 import { ITransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
+import { IAccountState, AccountState, TransactionState } from './AccountState';
 
 const ethTx = require('ethereumjs-tx');
 
 declare const Buffer: any;
 declare const require: any;
-
-interface AccountState {
-  sendingTxInProgress: boolean;
-  to: string;
-}
 
 interface V3Wallet {
   privKey: any;
@@ -27,8 +23,9 @@ interface V3Wallet {
 
 export class Wallet {
   public nonce: number = 0;
-  public walletStates: Map<string, AccountState> = new Map<string, AccountState>();
+  public accountState: IAccountState;
 
+  private CONFIRMATION_BLOCKS = 6;
   private logger: ILogger;
   private accounts: V3Wallet[] = [];
   private transactionReceiptAwaiter: ITransactionReceiptAwaiter;
@@ -37,10 +34,12 @@ export class Wallet {
   constructor(
     transactionReceiptAwaiter: ITransactionReceiptAwaiter,
     util: W3Util,
+    accountState: IAccountState = new AccountState(),
     logger: ILogger = new DefaultLogger()
   ) {
     this.logger = logger;
     this.transactionReceiptAwaiter = transactionReceiptAwaiter;
+    this.accountState = accountState;
     this.util = util;
   }
 
@@ -60,7 +59,6 @@ export class Wallet {
 
     if (!this.accounts.some(a => a.getAddressString() === address)) {
       this.accounts.push(wallet);
-      this.walletStates.set(address, {} as AccountState);
     }
 
     return wallet;
@@ -116,11 +114,16 @@ export class Wallet {
     }
 
     const from: string = this.accounts[idx].getAddressString();
-    return !this.walletStates.get(from).sendingTxInProgress;
+
+    return this.isAccountAbleToSendTx(from);
   }
 
   public isAccountAbleToSendTx(account: Address): boolean {
-    return !this.walletStates.get(account).sendingTxInProgress;
+    return !this.accountState.hasPending(account);
+  }
+
+  public isConfirmed(to: Address): boolean {
+    return this.accountState.isConfirmed(to);
   }
 
   public isNextAccountFree(): boolean {
@@ -128,7 +131,7 @@ export class Wallet {
   }
 
   public hasPendingTransaction(to: string): boolean {
-    return Array.from(this.walletStates.values()).some((state: any) => state.to === to);
+    return this.accountState.isPending(to);
   }
 
   public async sendFromIndex(idx: number, opts: any): Promise<IWalletReceipt> {
@@ -173,23 +176,44 @@ export class Wallet {
     }
 
     let receipt: ITransactionReceipt;
+    let hash: string;
+
     try {
-      this.walletStates.set(from, { sendingTxInProgress: true, to: opts.to });
+      this.accountState.set(from, opts.to, TransactionState.PENDING);
 
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
-      const hash = await this.sendRawTransaction(signedTx);
-      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(hash);
+      hash = await this.sendRawTransaction(signedTx);
+      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(hash, 1);
+
+      this.accountState.set(from, opts.to, TransactionState.SENT);
 
       this.logger.debug(`Receipt: ${JSON.stringify(receipt)}`);
     } catch (error) {
+      this.accountState.set(from, opts.to, TransactionState.ERROR);
       this.logger.error(error, opts.to);
       return {
         from,
         status: TxSendErrors.UNKNOWN_ERROR
       };
-    } finally {
-      this.walletStates.set(from, {} as AccountState);
+    }
+
+    try {
+      this.logger.debug(`Awaiting for confirmation for tx ${hash} from ${from}`, opts.to);
+
+      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(
+        hash,
+        this.CONFIRMATION_BLOCKS
+      );
+      this.accountState.set(from, opts.to, TransactionState.CONFIRMED);
+
+      this.logger.debug(`Transaction ${hash} from ${from} confirmed`, opts.to);
+    } catch (error) {
+      this.accountState.set(from, opts.to, TransactionState.ERROR);
+      return {
+        from,
+        status: TxSendErrors.MINED_IN_UNCLE
+      };
     }
 
     const status = this.isTransactionStatusSuccessful(receipt)

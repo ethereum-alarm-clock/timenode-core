@@ -4,5 +4,6 @@ export enum TxSendErrors {
   IN_PROGRESS = 'Transaction in progress',
   UNKNOWN_ERROR = 'An error happened',
   OK = 'OK',
-  FAILED = 'FAILED'
+  FAILED = 'FAILED',
+  MINED_IN_UNCLE = 'Transaction minded in uncle block'
 }
