@@ -62,6 +62,10 @@ export default class Router implements IRouter {
   }
 
   public async claimWindow(txRequest: ITxRequest): Promise<TxStatus> {
+    if (!this.wallet.isConfirmed(txRequest.address)) {
+      return TxStatus.ClaimWindow;
+    }
+
     if (!(await txRequest.inClaimWindow()) || txRequest.isClaimed) {
       return TxStatus.FreezePeriod;
     }
@@ -115,6 +119,9 @@ export default class Router implements IRouter {
   }
 
   public async executionWindow(txRequest: ITxRequest): Promise<TxStatus> {
+    if (!this.wallet.isConfirmed(txRequest.address)) {
+      return TxStatus.ExecutionWindow;
+    }
     if (txRequest.wasCalled) {
       return TxStatus.Executed;
     }

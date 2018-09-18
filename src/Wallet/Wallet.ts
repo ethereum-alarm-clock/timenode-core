@@ -15,7 +15,7 @@ const ethTx = require('ethereumjs-tx');
 declare const Buffer: any;
 declare const require: any;
 
-interface V3Wallet {
+export interface V3Wallet {
   privKey: any;
   getAddressString(): string;
   toV3(password: string, opts: object): string;

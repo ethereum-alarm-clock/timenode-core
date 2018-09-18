@@ -1,12 +1,14 @@
 /* tslint:disable:no-unused-expression */
 import { expect, assert } from 'chai';
+import * as TypeMoq from 'typemoq';
 
-import { Config } from '../../src/index';
+import { Config, Wallet } from '../../src/index';
 import { mockConfig, mockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus } from '../../src/Enum';
 import { ITxRequest } from '../../src/Types';
+import { V3Wallet } from '../../src/Wallet/Wallet';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
@@ -20,6 +22,15 @@ describe('Router Unit Tests', () => {
   let myAccount: string;
 
   const createRouter = (claimingEnabled = true) => {
+    const v3wallet = TypeMoq.Mock.ofType<V3Wallet>();
+    v3wallet.setup(w => w.getAddressString()).returns(() => myAccount);
+
+    const wallet = TypeMoq.Mock.ofType<Wallet>();
+    wallet.setup(w => w.isConfirmed(TypeMoq.It.isAnyString())).returns(() => true);
+    wallet.setup(w => w.nextAccount).returns(() => v3wallet.object);
+    wallet.setup(w => w.isKnownAddress(myAccount)).returns(() => true);
+    wallet.setup(w => w.isKnownAddress(TypeMoq.It.isAnyString())).returns(() => false);
+
     const actions = new Actions(
       config.wallet,
       config.ledger,
@@ -35,7 +46,7 @@ describe('Router Unit Tests', () => {
       config.logger,
       actions,
       config.economicStrategyManager,
-      config.wallet
+      wallet.object
     );
   };
 
