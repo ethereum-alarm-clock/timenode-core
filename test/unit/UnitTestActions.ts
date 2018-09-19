@@ -9,45 +9,6 @@ import {
 } from '../../src/Actions/Helpers';
 import { ExecuteStatus } from '../../src/Enum';
 
-//TODO: Add test for actions
-
-// describe('Actions Unit Tests', async () => {
-//   it('sets claimingFailed to true when claim transaction reverts', async () => {
-//     const config = await mockConfig();
-//     const myAccount = config.wallet.getAddresses()[0];
-//     const timenode = new TimeNode(config);
-
-//     config.wallet.sendRawTransaction = async () => {
-//       return {};
-//     };
-
-//     config.wallet.getTransactionReceipt = async () => {
-//       return {
-//         from: config.wallet.getAddresses()[0],
-//         receipt: {
-//           status: '0x0',
-//           gasUsed: 22000
-//         }
-//       };
-//     };
-
-//     const actions = new Actions(config);
-
-//     const tx = await mockTxRequest(config.web3);
-
-//     assert.equal(timenode.getClaimedNotExecutedTransactions()[myAccount].length, 0);
-//     assert.equal(timenode.getUnsucessfullyClaimedTransactions()[myAccount].length, 0);
-
-//     const nextAccount = config.wallet.nextAccount.getAddressString();
-//     const claimingResult = await actions.claim(tx, nextAccount);
-
-//     assert.equal(timenode.getClaimedNotExecutedTransactions()[myAccount].length, 0);
-//     assert.equal(timenode.getUnsucessfullyClaimedTransactions()[myAccount].length, 1);
-
-//     assert.equal(claimingResult, ClaimStatus.FAILED);
-//   });
-// });
-
 describe('Actions Helpers Unit Tests', () => {
   describe('isExecuted()', () => {
     it('returns true when executed event present in receipt', () => {
@@ -225,6 +186,7 @@ describe('Actions Helpers Unit Tests', () => {
       assert.equal(ExecuteStatus.ABORTED_UNKNOWN, executeStatus);
     });
 
+    // tslint:disable-next-line:no-identical-functions
     it('returns ExecuteStatus.ABORTED_UNKNOWN when no data found', () => {
       const receipt = {
         logs: [

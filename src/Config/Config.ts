@@ -47,6 +47,7 @@ export default class Config implements IConfigParams {
   public ledger: Ledger;
   public pending: Pending;
 
+  // tslint:disable-next-line:cognitive-complexity
   constructor(params: IConfigParams) {
     if (params.providerUrl) {
       this.web3 = W3Util.getWeb3FromProviderUrl(params.providerUrl);

@@ -2,6 +2,7 @@ import { assert } from 'chai';
 
 import { createWallet, createWalletKeystore } from '../helpers';
 
+// tslint:disable-next-line:no-hardcoded-credentials
 const password = 'password123';
 
 if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {

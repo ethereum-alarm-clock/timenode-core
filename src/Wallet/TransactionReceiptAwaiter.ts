@@ -25,6 +25,7 @@ export class TransactionReceiptAwaiter implements ITransactionReceiptAwaiter {
     });
   }
 
+  // tslint:disable-next-line:cognitive-complexity
   private awaitTx(hash: string, options: any): Promise<ITransactionReceipt> {
     const interval = options && options.interval ? options.interval : 500;
     const transactionReceiptAsync = async (txnHash: string, resolve: any, reject: any) => {

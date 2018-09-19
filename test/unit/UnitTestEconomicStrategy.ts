@@ -12,13 +12,15 @@ import {
 import { EconomicStrategyStatus } from '../../src/Enum';
 import { ITxRequest } from '../../src/Types';
 
+// tslint:disable-next-line:no-big-function
 describe('Economic Strategy Tests', () => {
   let economicStrategyManager: IEconomicStrategyManager;
+  const MWei = new BigNumber(10000000);
 
   const account = '0x123456';
-  const defaultBalance = new BigNumber(10000000);
-  const defaultBounty = new BigNumber(10000000);
-  const defaultGasPrice = new BigNumber(10000000);
+  const defaultBalance = MWei;
+  const defaultBounty = MWei;
+  const defaultGasPrice = MWei;
 
   const createTxRequest = (
     gasPrice = defaultGasPrice,
@@ -28,7 +30,7 @@ describe('Economic Strategy Tests', () => {
     const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
     txRequest.setup(tx => tx.gasPrice).returns(() => gasPrice);
     txRequest.setup(tx => tx.bounty).returns(() => bounty);
-    txRequest.setup(tx => tx.requiredDeposit).returns(() => new BigNumber(10000000));
+    txRequest.setup(tx => tx.requiredDeposit).returns(() => MWei);
     txRequest
       .setup(tx => tx.claimPaymentModifier())
       .returns(() => Promise.resolve(new BigNumber(1)));
@@ -42,7 +44,7 @@ describe('Economic Strategy Tests', () => {
     const util = TypeMoq.Mock.ofType<W3Util>();
     util.setup(u => u.networkGasPrice()).returns(() => Promise.resolve(gasPrice));
     util.setup(u => u.balanceOf(TypeMoq.It.isAny())).returns(() => Promise.resolve(defaultBalance));
-    util.setup(u => u.calculateGasAmount(TypeMoq.It.isAny())).returns(() => new BigNumber(100000));
+    util.setup(u => u.calculateGasAmount(TypeMoq.It.isAny())).returns(() => MWei);
 
     return util.object;
   };
@@ -53,17 +55,7 @@ describe('Economic Strategy Tests', () => {
   cache.setup(c => c.getTxRequestsClaimedBy(TypeMoq.It.isAnyString())).returns(() => []);
 
   describe('shouldClaimTx()', () => {
-    it('returns CLAIM if economic strategy is default', async () => {
-      economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
-
-      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
-        createTxRequest(),
-        account
-      );
-      assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
-    });
-
-    it('returns CLAIM if economic strategy not set', async () => {
+    it('returns CLAIM if economic strategy not set or default', async () => {
       economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
 
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(

@@ -13,6 +13,7 @@ import { V3Wallet } from '../../src/Wallet/Wallet';
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
 
+// tslint:disable-next-line:no-big-function
 describe('Router Unit Tests', () => {
   let config: Config;
   let txTimestamp: ITxRequest;

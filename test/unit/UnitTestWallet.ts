@@ -17,6 +17,7 @@ import ITransactionOptions from '../../src/Types/ITransactionOptions';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
+// tslint:disable-next-line:no-big-function
 describe('Wallet Unit Tests', () => {
   let config: Config;
   let wallet: Wallet;

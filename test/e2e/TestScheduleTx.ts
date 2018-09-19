@@ -27,9 +27,6 @@ export const scheduleTestTx = async () => {
 
   const endowment = calcEndowment(eac, callGas, callValue, gasPrice, fee, bounty);
 
-  // const filename = 'wallet.txt';
-  // const wallet = createWallet(web3, 1, filename, 'password123');
-
   const accounts = await Bb.fromCallback((callback: any) => web3.eth.getAccounts(callback));
   const mainAccount = accounts[0];
 

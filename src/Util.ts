@@ -34,49 +34,25 @@ export default class W3Util {
 
   public estimateGas(opts: any): Promise<number> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.estimateGas(opts, (e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.estimateGas(opts, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public networkGasPrice(): Promise<BigNumber> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getGasPrice((e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.getGasPrice((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public getReceipt(txHash: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public getBlockNumber(): Promise<number> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getBlockNumber((e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.getBlockNumber((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
@@ -114,61 +90,34 @@ export default class W3Util {
 
   public getTransaction(txHash: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this.web3.eth.getTransaction(txHash, (err: any, tx: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(tx);
-        }
-      });
+      this.web3.eth.getTransaction(txHash, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public stopFilter(filter: any): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
-      filter.stopWatching((err: any, res: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res);
-        }
-      });
+      filter.stopWatching((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public balanceOf(address: string): Promise<BigNumber> {
     return new Promise<BigNumber>((resolve, reject) => {
-      this.web3.eth.getBalance(address, (err: any, tx: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(tx);
-        }
-      });
+      this.web3.eth.getBalance(address, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public getTransactionCount(account: string): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      this.web3.eth.getTransactionCount(account, (err: any, tx: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(tx);
-        }
-      });
+      this.web3.eth.getTransactionCount(account, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public sendRawTransaction(transaction: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this.web3.eth.sendRawTransaction(transaction, (err: any, tx: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(tx);
-        }
-      });
+      this.web3.eth.sendRawTransaction(
+        transaction,
+        (e: any, r: any) => (e ? reject(e) : resolve(r))
+      );
     });
   }
 

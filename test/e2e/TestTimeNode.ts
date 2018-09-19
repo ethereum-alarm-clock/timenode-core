@@ -6,6 +6,7 @@ import { getHelperMethods } from '../helpers/Helpers';
 
 const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
 
+// tslint:disable-next-line:no-big-function
 describe('TimeNode', () => {
   let config: Config;
   let myAccount: string;
@@ -70,10 +71,8 @@ describe('TimeNode', () => {
       timeNode.startScanning();
 
       timeNode.config.logger.info = (msg: any, txRequest: string) => {
-        if (msg.includes && msg.includes('EXECUTED')) {
-          if (scheduledTransactionsMap[txRequest]) {
-            scheduledTransactionsMap[txRequest].executionLogged = true;
-          }
+        if (msg.includes && msg.includes('EXECUTED') && scheduledTransactionsMap[txRequest]) {
+          scheduledTransactionsMap[txRequest].executionLogged = true;
         }
         console.log(txRequest, msg);
       };

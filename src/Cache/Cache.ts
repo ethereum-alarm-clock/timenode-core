@@ -64,11 +64,7 @@ export default class Cache<T> {
     }
 
     return storedInCache
-      .filter((txRequestAddress: string) => {
-        const cached = this.get(txRequestAddress);
-
-        return cached;
-      })
+      .filter((txRequestAddress: string) => this.get(txRequestAddress))
       .filter(async (txRequestAddress: string) => {
         const txRequest = await this.eac.transactionRequest(txRequestAddress);
         await txRequest.refreshData();
