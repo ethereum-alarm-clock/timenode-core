@@ -60,7 +60,11 @@ export const getHelperMethods = (web3: any) => {
 
   async function withSnapshotRevert(fn: any): Promise<boolean> {
     const snapshot = await takeSnapshot();
-    await fn();
+    try {
+      await fn();
+    } catch (error) {
+      console.log(`Error ${error} in withSnapshotRevert`);
+    }
     return await revertSnapshot(snapshot);
   }
 
