@@ -106,11 +106,15 @@ export default class TimeNode {
     const { currentProvider } = web3;
     currentProvider.on('error', (err: any) => {
       logger.debug('WS Error' + err);
+      logger.debug('Attempting reconnect...');
+      web3.setProvider(this.config.providerUrl);
       logger.debug('Restarting Scanning...');
       this.startScanning();
     });
     currentProvider.on('end', (err: any) => {
       logger.debug('WS End' + err);
+      logger.debug('Attempting reconnect...');
+      web3.setProvider(this.config.providerUrl);
       logger.debug('Restarting Scanning...');
       this.startScanning();
     });
