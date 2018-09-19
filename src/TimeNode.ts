@@ -5,11 +5,14 @@ import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
 
+const MAX_RETRIES = 10;
+
 export default class TimeNode {
   public actions: Actions;
   public config: Config;
   public scanner: Scanner;
   public router: Router;
+  private reconnectTries: number;
 
   constructor(config: Config) {
     this.actions = new Actions(config);
@@ -17,8 +20,16 @@ export default class TimeNode {
     this.router = new Router(this.config, this.actions);
     this.scanner = new Scanner(this.config, this.router);
 
-    if (this.config.providerUrl.indexOf('wss://') !== -1) {
-      this.handleDisconnectingWS();
+    if (this.isWSConnection()) {
+      const { web3: { currentProvider }} = this.config;
+      currentProvider.on('error', (err: any) => {
+        this.config.logger.error('WS Error' + (err.message || err));
+        this.handleDisconnectingWS();
+      });
+      currentProvider.on('end', (err: any) => {
+        this.config.logger.debug('WS End'  + (err.message || err));
+        this.handleDisconnectingWS();
+      });
     }
 
     this.startupMessage();
@@ -101,22 +112,31 @@ export default class TimeNode {
     return unsuccessfulClaims;
   }
 
+  private isWSConnection() : boolean {
+    return this.config.providerUrl.indexOf('wss://') !== -1;
+  }
+
   private handleDisconnectingWS(): void {
-    const { logger, web3 } = this.config;
-    const { currentProvider } = web3;
-    currentProvider.on('error', (err: any) => {
-      logger.debug('WS Error' + err);
-      logger.debug('Attempting reconnect...');
+    if (this.scanner.scanning && this.reconnectTries < MAX_RETRIES) {
+      this.reconnectWSConnection();
+    } else {
+      this.config.logger.info('Failed to reconnect. Stopping Timenode');
+      this.stopScanning();
+    }
+  }
+
+  private reconnectWSConnection(): void {
+    this.config.logger.debug('Attempting reconnect...');
+    const { web3 } = this.config;
+    try {
       web3.setProvider(this.config.providerUrl);
-      logger.debug('Restarting Scanning...');
+      this.config.logger.debug('Restarting Scanning...');
       this.startScanning();
-    });
-    currentProvider.on('end', (err: any) => {
-      logger.debug('WS End' + err);
-      logger.debug('Attempting reconnect...');
-      web3.setProvider(this.config.providerUrl);
-      logger.debug('Restarting Scanning...');
-      this.startScanning();
-    });
+      this.reconnectTries = 0;
+    } catch (err) {
+      this.config.logger.error(err.message);
+      this.reconnectTries ++;
+      this.handleDisconnectingWS();
+    }
   }
 }
