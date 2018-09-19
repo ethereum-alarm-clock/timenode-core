@@ -137,7 +137,8 @@ describe('TimeNode', () => {
         const firstClaimBlock =
           TEST_TX_REQUEST.windowStart.toNumber() -
           TEST_TX_REQUEST.freezePeriod.toNumber() -
-          TEST_TX_REQUEST.claimWindowSize.toNumber();
+          TEST_TX_REQUEST.claimWindowSize.toNumber() -
+          5; //so have some time to not skip over claimWindowSize
 
         await waitUntilBlock(0, firstClaimBlock);
 
