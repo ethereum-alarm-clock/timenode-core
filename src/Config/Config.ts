@@ -49,12 +49,8 @@ export default class Config implements IConfigParams {
 
   constructor(params: IConfigParams) {
     if (params.providerUrl) {
-      this.util = new W3Util();
-
-      this.web3 = this.util.getWeb3FromProviderUrl(params.providerUrl);
-
-      this.util.web3 = this.web3;
-
+      this.web3 = W3Util.getWeb3FromProviderUrl(params.providerUrl);
+      this.util = new W3Util(this.web3);
       this.eac = EAC(this.web3);
       this.providerUrl = params.providerUrl;
     } else {
