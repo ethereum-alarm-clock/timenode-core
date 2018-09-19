@@ -1,4 +1,4 @@
-import { expect, assert } from 'chai';
+import { assert } from 'chai';
 
 // from https://docs.npmjs.com/files/package.json#dependencies
 const nonExactPrefixes = ['~', '^', '>', '>=', '<', '<='];

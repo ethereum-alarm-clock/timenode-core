@@ -1,11 +1,9 @@
 /* tslint:disable:no-unused-expression */
-import BigNumber from 'bignumber.js';
 import { assert, expect } from 'chai';
 import * as TypeMoq from 'typemoq';
 
 import { Config } from '../../src';
 import { BucketSize } from '../../src/Buckets';
-import { CacheStates } from '../../src/Enum';
 import IRouter from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { ITxRequest } from '../../src/Types';
@@ -77,22 +75,13 @@ describe('Scanner Unit Tests', () => {
   });
 
   describe('scanCache()', () => {
-    it('returns EMPTY when cache empty', async () => {
-      const state = await scanner.scanCache();
-      assert.equal(state, CacheStates.EMPTY);
-    });
+    it('does not route when cache empty', async () => {
+      const router = TypeMoq.Mock.ofType<IRouter>();
+      const localScanner = new Scanner(config, router.object);
 
-    it('returns REFRESHED when cache not empty', async () => {
-      const tx = {
-        claimedBy: '0x0',
-        claimingFailed: false,
-        wasCalled: false,
-        windowStart: new BigNumber(10000)
-      };
-      config.cache.set('tx', tx);
+      await localScanner.scanCache();
 
-      const state = await scanner.scanCache();
-      assert.equal(state, CacheStates.REFRESHED);
+      router.verify(r => r.route(TypeMoq.It.isAny()), TypeMoq.Times.never());
     });
   });
 });

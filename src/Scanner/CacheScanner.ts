@@ -1,6 +1,5 @@
 import { IntervalId, Address, ITxRequest } from '../Types';
 import BaseScanner from './BaseScanner';
-import { CacheStates } from '../Enum';
 import IRouter from '../Router';
 import Config from '../Config';
 
@@ -12,9 +11,9 @@ export default class CacheScanner extends BaseScanner {
     super(config, router);
   }
 
-  public async scanCache(): Promise<CacheStates> {
+  public async scanCache(): Promise<void> {
     if (this.config.cache.isEmpty()) {
-      return CacheStates.EMPTY; // 1 = cache is empty
+      return;
     }
 
     this.config.cache
@@ -22,8 +21,6 @@ export default class CacheScanner extends BaseScanner {
       .filter((address: Address) => this.config.cache.get(address))
       .map((address: Address) => this.config.eac.transactionRequest(address))
       .forEach((txRequest: ITxRequest) => this.route(txRequest));
-
-    return CacheStates.REFRESHED; // 0 = cache loaded successfully
   }
 
   private async route(txRequest: ITxRequest): Promise<void> {
