@@ -179,7 +179,7 @@ describe('TimeNode', () => {
 
         assert.ok(claimedLogged, `Claiming of ${TEST_TX_ADDRESS} hasn't been logged.`);
       });
-    }).timeout(30000);
+    }).timeout(400000);
 
     it('executes transaction', async () => {
       await withSnapshotRevert(async () => {
