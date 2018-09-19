@@ -65,8 +65,8 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
     return this.scanning;
   }
 
-  private async runAndSetInterval(fn: () => void, interval: number): Promise<IntervalId> {
-    const wrapped = async () => {
+  private async runAndSetInterval(fn: () => Promise<void>, interval: number): Promise<IntervalId> {
+    const wrapped = async (): Promise<void> => {
       try {
         await fn();
       } catch (e) {

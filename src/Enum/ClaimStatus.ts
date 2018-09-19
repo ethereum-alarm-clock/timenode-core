@@ -4,5 +4,6 @@ export enum ClaimStatus {
   ACCOUNT_BUSY = 'Claiming: Skipped - Account is busy',
   FAILED = 'Claiming: Transaction already claimed',
   IN_PROGRESS = 'Claiming: Skipped - In progress',
-  SUCCESS = 'Claiming: Success'
+  SUCCESS = 'Claiming: Success',
+  MINED_IN_UNCLE = 'Claiming: Transaction mined in uncle block'
 }

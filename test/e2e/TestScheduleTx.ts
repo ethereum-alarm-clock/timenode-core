@@ -4,83 +4,19 @@ import BigNumber from 'bignumber.js';
 import { expect } from 'chai';
 import { calcEndowment, providerUrl } from '../helpers';
 import { W3Util } from '../../src';
+import { getHelperMethods } from '../helpers/Helpers';
 
-const CLAIM_WINDOW_SIZE = 255;
-const w3Util = new W3Util();
-
-export const getHelperMethods = (web3: any) => {
-  function sendRpc(method: any, params?: any) {
-    return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync(
-        {
-          jsonrpc: '2.0',
-          method,
-          params: params || [],
-          id: new Date().getTime()
-        },
-        (err: any, res: any) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(res);
-        }
-      );
-    });
-  }
-
-  function waitUntilBlock(seconds: any, targetBlock: any) {
-    return new Promise((resolve, reject) => {
-      const asyncIterator = function _asyncIterator() {
-        return web3.eth.getBlock('latest', (err: any, ref: any) => {
-          if (err) {
-            reject(err);
-          }
-
-          const num = ref.number;
-
-          if (num >= targetBlock - 1) {
-            return sendRpc('evm_increaseTime', [seconds])
-              .then(() => sendRpc('evm_mine'))
-              .then(resolve);
-          }
-          return sendRpc('evm_mine').then(asyncIterator);
-        });
-      };
-      asyncIterator();
-    });
-  }
-
-  return { waitUntilBlock };
-};
+const web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
+const util = new W3Util(web3);
 
 export const SCHEDULED_TX_PARAMS = {
   callValue: new BigNumber(Math.pow(10, 18))
 };
 
 export const scheduleTestTx = async () => {
-  const web3 = w3Util.getWeb3FromProviderUrl(providerUrl);
   const eac = EAC(web3);
 
-  const { waitUntilBlock } = getHelperMethods(web3);
-
   const scheduler = await eac.scheduler();
-
-  let latestBlock: number = (await Bb.fromCallback((callback: any) =>
-    web3.eth.getBlockNumber(callback)
-  )) as number;
-
-  /*
-     * Since in transaction request library there's check that subtracts
-     * claimWindowSize from current block then this block should be higher than claimWindowSize
-     * to make sure calculations work fine
-     */
-  if (latestBlock < CLAIM_WINDOW_SIZE + 1) {
-    await waitUntilBlock(0, CLAIM_WINDOW_SIZE);
-  }
-
-  latestBlock = (await Bb.fromCallback((callback: any) =>
-    web3.eth.getBlockNumber(callback)
-  )) as number;
 
   const { callValue } = SCHEDULED_TX_PARAMS;
 
@@ -90,9 +26,6 @@ export const scheduleTestTx = async () => {
   const bounty = new BigNumber(0);
 
   const endowment = calcEndowment(eac, callGas, callValue, gasPrice, fee, bounty);
-
-  // const filename = 'wallet.txt';
-  // const wallet = createWallet(web3, 1, filename, 'password123');
 
   const accounts = await Bb.fromCallback((callback: any) => web3.eth.getAccounts(callback));
   const mainAccount = accounts[0];
@@ -108,8 +41,8 @@ export const scheduleTestTx = async () => {
     callGas,
     '', // callData
     callValue,
-    '255', // windowSize
-    latestBlock + 270, // windowStart
+    30, // windowSize
+    (await util.getBlockNumber()) + 270, // windowStart
     gasPrice, // gasPrice
     fee,
     bounty,
@@ -123,9 +56,13 @@ export const scheduleTestTx = async () => {
 if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {
   describe('ScheduleTx', () => {
     it('schedules a basic transaction', async () => {
-      const receipt = await scheduleTestTx();
+      const { withSnapshotRevert } = getHelperMethods(web3);
 
-      expect(receipt).to.exist; // tslint:disable-line no-unused-expression
+      await withSnapshotRevert(async () => {
+        const receipt = await scheduleTestTx();
+
+        expect(receipt).to.exist; // tslint:disable-line no-unused-expression
+      });
     }).timeout(20000);
   });
 }

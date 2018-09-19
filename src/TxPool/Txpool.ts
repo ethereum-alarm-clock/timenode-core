@@ -70,37 +70,40 @@ export default class TxPool {
 
   public async watchPending() {
     this.subs.pending = await this.config.web3.eth.filter('pending');
-    if (this.subs.pending) {
-      this.subs.pending.watch(async (err: any, res: any) => {
-        if (err) {
-          return this.logger.error(err);
-        }
-
-        if (this.pool.preSet(res)) {
-          try {
-            const tx: any = await this.util.getTransaction(res);
-            if (!tx || tx.blockNumber || tx.blockHash || !this.cache.has(tx.to)) {
-              return this.pool.del(res);
-            }
-
-            const poolDetails: ITxPoolTxDetails = {
-              from: tx.from,
-              to: tx.to,
-              input: tx.input,
-              gasPrice: tx.gasPrice,
-              timestamp: new Date().getTime(),
-              transactionHash: tx.hash
-            };
-
-            if (this.pool.has(res, 'transactionHash')) {
-              this.pool.set(res, poolDetails);
-            }
-          } catch (e) {
-            return this.logger.error(e);
-          }
-        }
-      });
+    if (!this.subs.pending) {
+      return;
     }
+    this.subs.pending.watch(async (err: any, res: any) => {
+      if (err) {
+        return this.logger.error(err);
+      }
+
+      if (!this.pool.preSet(res)) {
+        return;
+      }
+
+      try {
+        const tx: any = await this.util.getTransaction(res);
+        if (!tx || tx.blockNumber || tx.blockHash || !this.cache.has(tx.to)) {
+          return this.pool.del(res);
+        }
+
+        const poolDetails: ITxPoolTxDetails = {
+          from: tx.from,
+          to: tx.to,
+          input: tx.input,
+          gasPrice: tx.gasPrice,
+          timestamp: new Date().getTime(),
+          transactionHash: tx.hash
+        };
+
+        if (this.pool.has(res, 'transactionHash')) {
+          this.pool.set(res, poolDetails);
+        }
+      } catch (e) {
+        return this.logger.error(e);
+      }
+    });
   }
 
   public async watchLatest() {

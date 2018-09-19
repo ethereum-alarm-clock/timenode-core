@@ -27,6 +27,8 @@ const TRANSACTIONS = [
   '0xad08860f3d0c9b0f22b6a48f01b992d2c614dc94e8c19fd21d8dc9a007038e0d'
 ];
 
+const providerUrl = 'http://localhost:8545';
+
 const mockTxDetails = (opts: any) => {
   opts.gasPrice = opts.gasPrice || 0x20;
   return {
@@ -42,7 +44,7 @@ const mockTxDetails = (opts: any) => {
 describe('TxPool unit tests', () => {
   describe('constructor()', () => {
     it('Instantiates new pool', () => {
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
       assert.exists(txPool.pool);
       assert.exists(txPool.config);
     });
@@ -50,7 +52,7 @@ describe('TxPool unit tests', () => {
 
   describe('start()', () => {
     it('Successfully starts new pool', async () => {
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
       await txPool.start();
 
       assert.exists(txPool.subs.pending);
@@ -61,7 +63,7 @@ describe('TxPool unit tests', () => {
 
   describe('stop()', () => {
     it('Successfully starts new pool', async () => {
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
       await txPool.start();
 
       assert.exists(txPool.subs.pending);
@@ -79,7 +81,7 @@ describe('TxPool unit tests', () => {
   describe('TxPool flow', () => {
     it('preSet()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random() * TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
 
       assert.isTrue(txPool.pool.preSet(tx));
       expect(txPool.pool.get(tx, 'transactionHash')).to.deep.equal([true]);
@@ -90,7 +92,7 @@ describe('TxPool unit tests', () => {
       const tx = TRANSACTIONS[Math.floor(Math.random() * TRANSACTIONS.length)];
       const from = ADDRESSES[Math.floor(Math.random() * TRANSACTIONS.length)];
       const to = ADDRESSES[Math.floor(Math.random() * TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
 
       txPool.pool.set(
         tx,
@@ -108,7 +110,7 @@ describe('TxPool unit tests', () => {
     it('length()', async () => {
       const count = Math.floor(Math.random() * TRANSACTIONS.length);
 
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
       for (let i = 0; i < count; i++) {
         txPool.pool.set(
           TRANSACTIONS[i],
@@ -127,7 +129,7 @@ describe('TxPool unit tests', () => {
       const count = Math.floor(Math.random() * TRANSACTIONS.length);
       const expected: any = [];
 
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
       for (let i = 0; i < count; i++) {
         txPool.pool.set(
           TRANSACTIONS[i],
@@ -145,7 +147,7 @@ describe('TxPool unit tests', () => {
 
     it('del()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random() * 10)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
 
       assert.isTrue(txPool.pool.preSet(tx));
       assert.isTrue(txPool.pool.has(tx, 'transactionHash'));
@@ -155,7 +157,7 @@ describe('TxPool unit tests', () => {
 
     it('wipe()', async () => {
       const tx = TRANSACTIONS[Math.floor(Math.random() * TRANSACTIONS.length)];
-      const txPool: TxPool = new TxPool(new Config({ providerUrl: 'http://localhost:8545' }));
+      const txPool: TxPool = new TxPool(new Config({ providerUrl }));
 
       txPool.pool.set(
         tx,
