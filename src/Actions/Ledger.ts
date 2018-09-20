@@ -68,7 +68,7 @@ export class Ledger implements ILedger {
       const actualGasPrice = new BigNumber(`0x${data.slice(66, 130)}`);
       const totalBounty = bounty.mul(paymentModifier);
       const totalMinimumCost = gasUsed.mul(minimumGasPrice);
-      const totalReimbursedCost = actualGasPrice.mul(gasUsed);
+      const totalReimbursedCost = gasUsed.mul(actualGasPrice);
 
       cost = totalBounty.add(totalMinimumCost).sub(totalReimbursedCost);
     } else {

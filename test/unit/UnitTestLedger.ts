@@ -95,7 +95,7 @@ describe('Ledger Unit Tests', async () => {
 
     const totalBounty = expectedReward.mul(paymentModifier);
     const totalMinimumCost = gasUsed.mul(minimumGasPrice);
-    const totalReimbursedCost = actualGasPrice.mul(gasUsed);
+    const totalReimbursedCost = gasUsed.mul(actualGasPrice);
 
     const expectedCost = totalBounty.add(totalMinimumCost).sub(totalReimbursedCost);
 
