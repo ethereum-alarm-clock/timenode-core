@@ -1,26 +1,57 @@
-/* tslint:disable:no-unused-expression */
-import { expect, assert } from 'chai';
+import * as TypeMoq from 'typemoq';
+import { assert } from 'chai';
 import { Config, Wallet } from '../../src/index';
 import { mockConfig } from '../helpers';
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
 import { TxSendErrors } from '../../src/Enum/TxSendErrors';
-import { DefaultLogger } from '../../src/Logger';
 import { isTransactionStatusSuccessful } from '../../src/Actions/Helpers';
+import {
+  ITransactionReceiptAwaiter,
+  TransactionReceiptAwaiter
+} from '../../src/Wallet/TransactionReceiptAwaiter';
+import { AccountState, TransactionState } from '../../src/Wallet/AccountState';
+import { Operation } from '../../src/Types/Operation';
+import ITransactionOptions from '../../src/Types/ITransactionOptions';
 
-const PRIVKEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
+const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
+// tslint:disable-next-line:no-big-function
 describe('Wallet Unit Tests', () => {
   let config: Config;
   let wallet: Wallet;
   let myAccount: string;
-  let opts: object;
+  let opts: ITransactionOptions;
+
+  const createTestWallet = (
+    baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
+    accountState = new AccountState()
+  ) => {
+    const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
+    transactionReceiptAwaiter
+      .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString(), TypeMoq.It.isAnyNumber()))
+      .returns(async (hash: string) => baseTransactionReceiptAwaiter.waitForConfirmations(hash, 1));
+
+    return new Wallet(transactionReceiptAwaiter.object, config.util, accountState);
+  };
+
+  const fundWallet = async (address: string) => {
+    await new Promise(resolve => {
+      config.web3.eth.sendTransaction(
+        {
+          from: myAccount,
+          to: address,
+          value: config.web3.toWei('0.5', 'ether')
+        },
+        () => setTimeout(resolve, 1000)
+      );
+    });
+  };
 
   const reset = async () => {
     config = await mockConfig();
-    wallet = new Wallet(config.web3);
-    wallet.logger = new DefaultLogger();
+    wallet = createTestWallet(new TransactionReceiptAwaiter(config.util));
 
     const accounts = await Bb.fromCallback((callback: any) =>
       config.web3.eth.getAccounts(callback)
@@ -29,20 +60,15 @@ describe('Wallet Unit Tests', () => {
     myAccount = accounts[0];
     opts = {
       to: myAccount,
-      gas: new BigNumber(150000),
+      gas: 150000,
       gasPrice: new BigNumber(config.web3.toWei(21, 'gwei')),
-      value: new BigNumber(config.web3.toWei(0.1, 'ether'))
+      value: new BigNumber(config.web3.toWei(0.1, 'ether')),
+      operation: Operation.CLAIM,
+      data: ''
     };
   };
 
   beforeEach(reset);
-
-  describe('getBalanceOf()', () => {
-    it('returns the balance of the current account', async () => {
-      const balance = await wallet.getBalanceOf(myAccount);
-      expect(balance).to.exist;
-    });
-  });
 
   describe('create()', () => {
     it('creates a number of wallets', () => {
@@ -54,12 +80,12 @@ describe('Wallet Unit Tests', () => {
   describe('add()', () => {
     it('creates a new wallet', () => {
       const newWallet = wallet.add(ethWallet.generate());
-      expect(wallet.isKnownAddress(newWallet.getAddressString())).to.be.true;
+      assert.isTrue(wallet.isKnownAddress(newWallet.getAddressString()));
     });
 
     it('returns an existing wallet if already exists', () => {
       const newWallet = wallet.add(ethWallet.generate());
-      expect(wallet.isKnownAddress(newWallet.getAddressString())).to.be.true;
+      assert.isTrue(wallet.isKnownAddress(newWallet.getAddressString()));
 
       const oldWallet = wallet.add(newWallet);
       assert.equal(oldWallet.getAddressString(), newWallet.getAddressString());
@@ -72,16 +98,14 @@ describe('Wallet Unit Tests', () => {
       const encryptedWallets = wallet.encrypt('testpasswd123', {});
 
       assert.equal(encryptedWallets.length, 1);
-      encryptedWallets.forEach(encryptedWallet =>
-        expect(encryptedWallet).to.haveOwnProperty('crypto')
-      );
+      encryptedWallets.forEach(encryptedWallet => assert.property(encryptedWallet, 'crypto'));
     });
   });
 
   describe('loadPrivateKeys()', () => {
     it('creates a wallet from a private key', () => {
-      const privKey = PRIVKEY;
-      wallet.loadPrivateKeys([privKey]);
+      const privateKey = PRIVATE_KEY;
+      wallet.loadPrivateKeys([privateKey]);
 
       assert.equal(
         wallet.getAddresses()[0].toLowerCase(),
@@ -90,15 +114,15 @@ describe('Wallet Unit Tests', () => {
     });
 
     it('throws an error in case invalid key', () => {
-      const privKey = PRIVKEY.substring(0, PRIVKEY.length - 1);
-      expect(() => wallet.loadPrivateKeys([privKey])).to.throw();
+      const privateKey = PRIVATE_KEY.substring(0, PRIVATE_KEY.length - 1);
+      assert.throw(() => wallet.loadPrivateKeys([privateKey]));
     });
   });
 
   describe('getNonce()', () => {
     it('returns a nonce', async () => {
       const nonce = await wallet.getNonce(myAccount);
-      expect(nonce).to.exist;
+      assert.exists(nonce);
       assert.equal(typeof nonce, 'number');
     });
   });
@@ -113,8 +137,8 @@ describe('Wallet Unit Tests', () => {
       wallet.create(1);
 
       const account = wallet.getAccounts()[0];
-      expect(account).to.haveOwnProperty('_privKey');
-      expect(account).to.haveOwnProperty('_pubKey');
+      assert.property(account, '_privKey');
+      assert.property(account, '_pubKey');
     });
   });
 
@@ -148,19 +172,19 @@ describe('Wallet Unit Tests', () => {
     });
 
     it('returns false if wallet state set', () => {
+      const accountState = new AccountState();
+      wallet = createTestWallet(null, accountState);
       wallet.create(1);
       const address = wallet.getAddresses()[0];
 
-      wallet.walletStates.set(address, {
-        sendingTxInProgress: true,
-        to: '0x1234'
-      });
+      accountState.set(address, '0x1234', Operation.CLAIM, TransactionState.PENDING);
+
       assert.isFalse(wallet.isWalletAbleToSendTx(0));
     });
 
     it('errors if wallet not within range', () => {
       wallet.create(1);
-      expect(() => wallet.isWalletAbleToSendTx(1)).to.throw();
+      assert.throw(() => wallet.isWalletAbleToSendTx(1));
     });
   });
 
@@ -175,7 +199,7 @@ describe('Wallet Unit Tests', () => {
         err = e;
       }
 
-      expect(err.message).to.equal('Index is outside range of addresses.');
+      assert.equal(err.message, 'Index is outside range of addresses.');
     });
 
     it('returns error when not enough balance on account and logs', async () => {
@@ -187,32 +211,22 @@ describe('Wallet Unit Tests', () => {
 
     it('returns error when not enough balance on account and doesnt log', async () => {
       wallet.create(1);
-      wallet.logger = null;
 
       const receipt = await wallet.sendFromIndex(0, opts);
       assert.equal(receipt.status, TxSendErrors.NOT_ENOUGH_FUNDS);
     });
 
     it('returns error when sending a Tx is in progress', async () => {
+      const accountState = new AccountState();
+      wallet = createTestWallet(null, accountState);
       wallet.create(1);
+
       const idx = 0;
       const address = wallet.getAddresses()[idx];
-      wallet.walletStates.set(address, {
-        sendingTxInProgress: true,
-        to: address
-      });
 
-      // Fund new wallet
-      await new Promise(resolve => {
-        config.web3.eth.sendTransaction(
-          {
-            from: myAccount,
-            to: address,
-            value: config.web3.toWei('0.5', 'ether')
-          },
-          resolve
-        );
-      });
+      accountState.set(address, address, opts.operation, TransactionState.PENDING);
+
+      await fundWallet(address);
 
       const receipt = await wallet.sendFromIndex(idx, opts);
       assert.equal(receipt.status, TxSendErrors.WALLET_BUSY);
@@ -224,16 +238,7 @@ describe('Wallet Unit Tests', () => {
       const address = wallet.getAddresses()[idx];
 
       // Fund new wallet
-      await new Promise(resolve => {
-        config.web3.eth.sendTransaction(
-          {
-            from: myAccount,
-            to: address,
-            value: config.web3.toWei('0.5', 'ether')
-          },
-          resolve
-        );
-      });
+      await fundWallet(address);
 
       let receipt = await wallet.sendFromIndex(
         idx,
@@ -242,40 +247,30 @@ describe('Wallet Unit Tests', () => {
         })
       );
       assert.equal(receipt.status, TxSendErrors.UNKNOWN_ERROR);
-      assert.isNotOk(wallet.walletStates.get(address).sendingTxInProgress);
 
       receipt = await wallet.sendFromIndex(idx, opts);
-      assert.ok(isTransactionStatusSuccessful(receipt.receipt.status));
-    });
+
+      assert.isTrue(isTransactionStatusSuccessful(receipt.receipt.status));
+    }).timeout(10000);
 
     it('returns receipt when is able to send the transaction', async () => {
       wallet.create(1);
       const idx = 0;
       const address = wallet.getAddresses()[idx];
 
-      const txHash = (await Bb.fromCallback((callback: any) =>
-        config.web3.eth.sendTransaction(
-          {
-            from: myAccount,
-            to: address,
-            value: config.web3.toWei('0.5', 'ether')
-          },
-          callback
-        )
-      )) as string;
-      assert.equal(txHash.length, 66);
+      await fundWallet(address);
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      expect(receipt).to.haveOwnProperty('from');
-      expect(receipt).to.haveOwnProperty('receipt');
-    });
+      assert.property(receipt, 'from');
+      assert.property(receipt, 'receipt');
+    }).timeout(10000);
   });
 
   describe('sendFromNext()', () => {
     it('generates the next index and sends from it', async () => {
       wallet.create(5);
       const receipt = await wallet.sendFromNext(opts);
-      expect(receipt.status).to.exist;
+      assert.exists(receipt.status);
     });
   });
 });

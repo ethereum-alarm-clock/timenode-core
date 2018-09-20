@@ -1,4 +1,5 @@
 import { BigNumber } from 'bignumber.js';
+import { Operation } from './Operation';
 
 export default interface ITransactionOptions {
   to: string;
@@ -6,4 +7,5 @@ export default interface ITransactionOptions {
   gas: number;
   gasPrice: BigNumber;
   data: string;
+  operation: Operation;
 }

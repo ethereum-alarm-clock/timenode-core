@@ -1,12 +1,11 @@
 import { expect, assert } from 'chai';
 import Cache from '../../src/Cache';
-import { DefaultLogger } from '../../src/Logger';
 
 describe('Cache unit tests', () => {
   let cache: Cache<any>;
 
   beforeEach(() => {
-    cache = new Cache(new DefaultLogger());
+    cache = new Cache(null);
   });
 
   describe('get()', () => {

@@ -1,24 +1,57 @@
 /* tslint:disable:no-unused-expression */
 import { expect, assert } from 'chai';
+import * as TypeMoq from 'typemoq';
 
-import { Config } from '../../src/index';
+import { Config, Wallet } from '../../src/index';
 import { mockConfig, mockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus } from '../../src/Enum';
 import { ITxRequest } from '../../src/Types';
+import { V3Wallet } from '../../src/Wallet/Wallet';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
 
+// tslint:disable-next-line:no-big-function
 describe('Router Unit Tests', () => {
   let config: Config;
   let txTimestamp: ITxRequest;
   let txBlock: ITxRequest;
 
   let router: Router;
-  let actions: Actions;
   let myAccount: string;
+
+  const createRouter = (claimingEnabled = true) => {
+    const v3wallet = TypeMoq.Mock.ofType<V3Wallet>();
+    v3wallet.setup(w => w.getAddressString()).returns(() => myAccount);
+
+    const wallet = TypeMoq.Mock.ofType<Wallet>();
+    wallet
+      .setup(w => w.isWaitingForConfirmation(TypeMoq.It.isAnyString(), TypeMoq.It.isAny()))
+      .returns(() => false);
+    wallet.setup(w => w.nextAccount).returns(() => v3wallet.object);
+    wallet.setup(w => w.isKnownAddress(myAccount)).returns(() => true);
+    wallet.setup(w => w.isKnownAddress(TypeMoq.It.isAnyString())).returns(() => false);
+
+    const actions = new Actions(
+      config.wallet,
+      config.ledger,
+      config.logger,
+      config.cache,
+      config.util,
+      config.pending,
+      config.economicStrategyManager
+    );
+    return new Router(
+      claimingEnabled,
+      config.cache,
+      config.logger,
+      actions,
+      config.economicStrategyManager,
+      wallet.object
+    );
+  };
 
   const reset = async () => {
     config = await mockConfig();
@@ -26,16 +59,13 @@ describe('Router Unit Tests', () => {
     txTimestamp = await mockTxRequest(config.web3);
     txBlock = await mockTxRequest(config.web3, true);
 
-    actions = new Actions(config);
-    router = new Router(config, actions);
+    router = createRouter();
     myAccount = config.wallet.getAddresses()[0];
   };
 
   beforeEach(reset);
 
   it('initializes the Router', async () => {
-    actions = new Actions(config);
-    router = new Router(config, actions);
     expect(router).to.exist;
   });
 
@@ -146,9 +176,8 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow when claim window started and claiming disabled', async () => {
         const tx = await mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
-        config.claiming = false;
-        assert.equal(await router.claimWindow(tx), TxStatus.ClaimWindow);
-        config.claiming = true;
+        const routerLocal = createRouter(false);
+        assert.equal(await routerLocal.claimWindow(tx), TxStatus.ClaimWindow);
       });
 
       it('returns FreezePeriod when claim window started and claiming enabled', async () => {
@@ -172,9 +201,10 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow when claim window started and claiming disabled', async () => {
         const tx = await mockTxStatus(txBlock, TxStatus.ClaimWindow);
-        config.claiming = false;
-        assert.equal(await router.claimWindow(tx), TxStatus.ClaimWindow);
-        config.claiming = true;
+        const routerLocal = createRouter(false);
+        const status = await routerLocal.claimWindow(tx);
+
+        assert.equal(status, TxStatus.ClaimWindow);
       });
 
       it('returns FreezePeriod when claim window started and claiming enabled', async () => {
@@ -342,9 +372,8 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow status when claiming disabled', async () => {
         const tx = await mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
-        config.claiming = false;
-        assert.equal(await router.route(tx), TxStatus.ClaimWindow);
-        config.claiming = true;
+        const routerLocal = createRouter(false);
+        assert.equal(await routerLocal.route(tx), TxStatus.ClaimWindow);
       });
 
       // THESE TESTS DO NOT PASS FOR SOME REASON
@@ -377,9 +406,8 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow status when claiming disabled', async () => {
         const tx = await mockTxStatus(txBlock, TxStatus.ClaimWindow);
-        config.claiming = false;
-        assert.equal(await router.route(tx), TxStatus.ClaimWindow);
-        config.claiming = true;
+        const routerLocal = createRouter(false);
+        assert.equal(await routerLocal.route(tx), TxStatus.ClaimWindow);
       });
 
       xit('returns FreezePeriod status', async () => {
