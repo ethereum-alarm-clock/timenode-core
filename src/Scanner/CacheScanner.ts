@@ -30,7 +30,7 @@ export default class CacheScanner extends BaseScanner {
 
       try {
         await txRequest.refreshData();
-        this.router.route(txRequest);
+        await this.router.route(txRequest);
       } finally {
         this.routes.delete(address);
       }

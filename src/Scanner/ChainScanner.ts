@@ -32,8 +32,6 @@ export default class ChainScanner extends CacheScanner {
   public async watchBlockchain(): Promise<void> {
     const buckets = await this.bucketCalc.getBuckets();
 
-    this.config.logger.debug(`Buckets: before current buckets=${JSON.stringify(this.buckets)}`);
-
     if (this.buckets.nextBuckets.blockBucket === buckets.currentBuckets.blockBucket) {
       this.stopWatcher(this.buckets.currentBuckets.blockBucket);
 
@@ -73,8 +71,6 @@ export default class ChainScanner extends CacheScanner {
         this.buckets.nextBuckets.timestampBucket
       );
     }
-
-    this.config.logger.debug(`Buckets: after current buckets=${JSON.stringify(this.buckets)}`);
   }
 
   public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<Bucket> {
