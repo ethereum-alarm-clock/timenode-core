@@ -30,6 +30,9 @@ describe('Ledger Unit Tests', async () => {
   const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
   txRequest.setup(x => x.requiredDeposit).returns(() => requiredDeposit);
   txRequest.setup(x => x.address).returns(() => tx1);
+  txRequest
+    .setup(x => x.claimPaymentModifier)
+    .returns(() => () => Promise.resolve(new BigNumber(1))); //TODO ensure we handle mocking correctly
 
   const reset = async () => {
     stats = TypeMoq.Mock.ofType<IStatsDB>();
@@ -80,12 +83,21 @@ describe('Ledger Unit Tests', async () => {
       ]
     };
 
-    ledger.accountExecution(txRequest.object, receipt, opts, account2, true);
+    const paymentModifier = await txRequest.object.claimPaymentModifier();
+    ledger.accountExecution(txRequest.object, receipt, opts, account2, true, paymentModifier);
 
     const expectedReward = new BigNumber(
       '0x000000000000000000000000000000000000000000000000000fe3c87f4b7363'
     );
-    const expectedCost = new BigNumber(0);
+    const gasUsed = new BigNumber(receipt.gasUsed);
+    const minimumGasPrice = new BigNumber(opts.gasPrice);
+    const actualGasPrice = new BigNumber(`0x${receipt.logs[0].data.slice(66, 130)}`);
+
+    const totalBounty = expectedReward.mul(paymentModifier);
+    const totalMinimumCost = gasUsed.mul(minimumGasPrice);
+    const totalReimbursedCost = actualGasPrice.mul(gasUsed);
+
+    const expectedCost = totalBounty.add(totalMinimumCost).sub(totalReimbursedCost);
 
     assert.doesNotThrow(() =>
       stats.verify(
@@ -95,13 +107,20 @@ describe('Ledger Unit Tests', async () => {
     );
   });
 
-  it('should account for tx costs execution was not successful', async () => {
+  it('should account for tx costs when execution was not successful', async () => {
     const receipt = {
       status: 0,
       gasUsed: gas
     };
 
-    ledger.accountExecution(txRequest.object, receipt, opts, account2, false);
+    ledger.accountExecution(
+      txRequest.object,
+      receipt,
+      opts,
+      account2,
+      false,
+      await txRequest.object.claimPaymentModifier()
+    );
 
     const expectedReward = new BigNumber(0);
     const expectedCost = gasPrice.mul(gas);

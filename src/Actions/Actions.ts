@@ -124,7 +124,14 @@ export default class Actions implements IActions {
             executionStatus = ExecuteStatus.FAILED;
           }
 
-          this.ledger.accountExecution(txRequest, receipt, opts, from, success);
+          this.ledger.accountExecution(
+            txRequest,
+            receipt,
+            opts,
+            from,
+            success,
+            await txRequest.claimPaymentModifier()
+          );
 
           return executionStatus;
         case TxSendErrors.WALLET_BUSY:

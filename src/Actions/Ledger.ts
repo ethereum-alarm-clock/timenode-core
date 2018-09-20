@@ -12,7 +12,8 @@ export interface ILedger {
     receipt: any,
     opts: ITransactionOptions,
     from: string,
-    success: boolean
+    success: boolean,
+    paymentModifier: BigNumber
   ): boolean;
 }
 
@@ -51,18 +52,27 @@ export class Ledger implements ILedger {
     receipt: any,
     opts: ITransactionOptions,
     from: string,
-    success: boolean
+    success: boolean,
+    paymentModifier: BigNumber
   ): boolean {
     let bounty = new BigNumber(0);
     let cost = new BigNumber(0);
 
+    const gasUsed = new BigNumber(receipt.gasUsed);
+    const minimumGasPrice = new BigNumber(opts.gasPrice);
+
     if (success) {
       const data = receipt.logs[0].data;
       bounty = new BigNumber(data.slice(0, 66));
+
+      const actualGasPrice = new BigNumber(`0x${data.slice(66, 130)}`);
+      const totalBounty = bounty.mul(paymentModifier);
+      const totalMinimumCost = gasUsed.mul(minimumGasPrice);
+      const totalReimbursedCost = actualGasPrice.mul(gasUsed);
+
+      cost = totalBounty.add(totalMinimumCost).sub(totalReimbursedCost);
     } else {
-      const gasUsed = new BigNumber(receipt.gasUsed);
-      const gasPrice = new BigNumber(opts.gasPrice);
-      cost = gasUsed.mul(gasPrice);
+      cost = gasUsed.mul(minimumGasPrice);
     }
 
     this.statsDB.executed(from, txRequest.address, cost, bounty, success);
