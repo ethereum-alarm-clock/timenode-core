@@ -3,6 +3,7 @@ import * as loki from 'lokijs';
 import { StatsDB } from '../../src/Stats';
 import { assert } from 'chai';
 
+// tslint:disable-next-line:no-big-function
 describe('Stats Unit Tests', () => {
   const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
   const account2: string = '0x0054a7eef4dc5d729115c71cba074151b3d41804';
@@ -24,6 +25,7 @@ describe('Stats Unit Tests', () => {
   beforeEach(reset);
 
   describe('getFailedExecutions()', () => {
+    // tslint:disable-next-line:no-duplicate-string
     it('returns an empty array if none', () => {
       assert.isEmpty(stats.getFailedExecutions(account1));
     });

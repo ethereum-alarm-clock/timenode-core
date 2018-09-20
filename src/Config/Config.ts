@@ -2,13 +2,21 @@ import * as EAC from 'eac.js-lib';
 import Cache from '../Cache';
 import { Wallet } from '../Wallet';
 import { IConfigParams } from './IConfigParams';
-import { IEconomicStrategy } from '../EconomicStrategy';
+import { IEconomicStrategy, EconomicStrategyManager } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
 import TxPool from '../TxPool';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import BigNumber from 'bignumber.js';
+import {
+  ITransactionReceiptAwaiter,
+  TransactionReceiptAwaiter
+} from '../Wallet/TransactionReceiptAwaiter';
+import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
+import { Ledger } from '../Actions/Ledger';
+import { Pending } from '../Actions/Pending';
+import { AccountState } from '../Wallet/AccountState';
 
 export default class Config implements IConfigParams {
   public static readonly DEFAULT_ECONOMIC_STRATEGY: IEconomicStrategy = {
@@ -34,15 +42,16 @@ export default class Config implements IConfigParams {
   public wallet: Wallet;
   public web3: any;
   public walletStoresAsPrivateKeys: boolean;
+  public economicStrategyManager: IEconomicStrategyManager;
+  public transactionReceiptAwaiter: ITransactionReceiptAwaiter;
+  public ledger: Ledger;
+  public pending: Pending;
 
+  // tslint:disable-next-line:cognitive-complexity
   constructor(params: IConfigParams) {
     if (params.providerUrl) {
-      this.util = new W3Util();
-
-      this.web3 = this.util.getWeb3FromProviderUrl(params.providerUrl);
-
-      this.util.web3 = this.web3;
-
+      this.web3 = W3Util.getWeb3FromProviderUrl(params.providerUrl);
+      this.util = new W3Util(this.web3);
       this.eac = EAC(this.web3);
       this.providerUrl = params.providerUrl;
     } else {
@@ -63,11 +72,24 @@ export default class Config implements IConfigParams {
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
     this.txPool = new TxPool(this);
-
-    this.cache = new Cache(this.logger);
+    this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.util);
+    this.cache = new Cache(this.eac, this.logger);
+    this.economicStrategyManager = new EconomicStrategyManager(
+      this.economicStrategy,
+      this.util,
+      this.cache,
+      this.eac,
+      this.logger
+    );
+    this.pending = new Pending(this.util, this.txPool, this.logger);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
-      this.wallet = new Wallet(this.web3, this.logger);
+      this.wallet = new Wallet(
+        this.transactionReceiptAwaiter,
+        this.util,
+        new AccountState(),
+        this.logger
+      );
 
       params.walletStores = params.walletStores.map((store: object | string) => {
         if (typeof store === 'object') {
@@ -96,5 +118,7 @@ export default class Config implements IConfigParams {
     if (this.statsDb) {
       this.statsDbLoaded = this.statsDb.init();
     }
+
+    this.ledger = new Ledger(this.statsDb);
   }
 }

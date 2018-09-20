@@ -1,47 +1,51 @@
 import * as ethWallet from 'ethereumjs-wallet';
-import { fromCallback } from 'bluebird';
-import { BigNumber } from 'bignumber.js';
-import { ILogger, DefaultLogger } from '../Logger';
-import { TxSendErrors } from '../Enum/TxSendErrors';
-const ethTx = require('ethereumjs-tx');
 
-import { IWalletReceipt } from './IWalletReceipt';
+import { TxSendErrors } from '../Enum/TxSendErrors';
+import { DefaultLogger, ILogger } from '../Logger';
 import { Address } from '../Types';
+import ITransactionOptions from '../Types/ITransactionOptions';
+import { ITransactionReceipt } from '../Types/ITransactionReceipt';
+import W3Util from '../Util';
+import { IWalletReceipt } from './IWalletReceipt';
+import { ITransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
+import { IAccountState, AccountState, TransactionState } from './AccountState';
+import { Operation } from '../Types/Operation';
+
+const ethTx = require('ethereumjs-tx');
 
 declare const Buffer: any;
 declare const require: any;
-declare const console: any;
-declare const setTimeout: any;
 
-interface AccountState {
-  sendingTxInProgress: boolean;
-  to: string;
-}
-
-interface V3Wallet {
+export interface V3Wallet {
   privKey: any;
   getAddressString(): string;
   toV3(password: string, opts: object): string;
 }
 
 export class Wallet {
-  public logger: ILogger;
   public nonce: number = 0;
-  public web3: any;
-  public walletStates: Map<string, AccountState> = new Map<string, AccountState>();
-  private accounts: V3Wallet[] = [];
+  public accountState: IAccountState;
 
-  constructor(web3: any, logger: ILogger = new DefaultLogger()) {
+  private CONFIRMATION_BLOCKS = 6;
+  private logger: ILogger;
+  private accounts: V3Wallet[] = [];
+  private transactionReceiptAwaiter: ITransactionReceiptAwaiter;
+  private util: W3Util;
+
+  constructor(
+    transactionReceiptAwaiter: ITransactionReceiptAwaiter,
+    util: W3Util,
+    accountState: IAccountState = new AccountState(),
+    logger: ILogger = new DefaultLogger()
+  ) {
     this.logger = logger;
-    this.web3 = web3;
+    this.transactionReceiptAwaiter = transactionReceiptAwaiter;
+    this.accountState = accountState;
+    this.util = util;
   }
 
   get nextAccount(): V3Wallet {
     return this.accounts[this.nonce % this.accounts.length];
-  }
-
-  public getBalanceOf(address: string): Promise<BigNumber> {
-    return fromCallback((callback: any) => this.web3.eth.getBalance(address, callback));
   }
 
   public create(numAccounts: number) {
@@ -56,7 +60,6 @@ export class Wallet {
 
     if (!this.accounts.some(a => a.getAddressString() === address)) {
       this.accounts.push(wallet);
-      this.walletStates.set(address, {} as AccountState);
     }
 
     return wallet;
@@ -102,30 +105,8 @@ export class Wallet {
     return this.sendFromIndex(next, opts);
   }
 
-  public getNonce(account: string): Promise<string> {
-    return fromCallback((callback: any) => this.web3.eth.getTransactionCount(account, callback));
-  }
-
-  public async getTransactionReceipt(hash: any, from: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      try {
-        this.web3.eth.getTransactionReceipt(hash, (err: Error, receipt: any) => {
-          if (err) {
-            return;
-          }
-
-          if (receipt === null) {
-            setTimeout(() => {
-              resolve(this.getTransactionReceipt(hash, from));
-            }, 500);
-          } else {
-            resolve({ receipt, from });
-          }
-        });
-      } catch (e) {
-        reject(e);
-      }
-    });
+  public getNonce(account: string): Promise<number> {
+    return this.util.getTransactionCount(account);
   }
 
   public isWalletAbleToSendTx(idx: number): boolean {
@@ -134,22 +115,27 @@ export class Wallet {
     }
 
     const from: string = this.accounts[idx].getAddressString();
-    return !this.walletStates.get(from).sendingTxInProgress;
+
+    return this.isAccountAbleToSendTx(from);
   }
 
   public isAccountAbleToSendTx(account: Address): boolean {
-    return !this.walletStates.get(account).sendingTxInProgress;
+    return !this.accountState.hasPending(account);
+  }
+
+  public isWaitingForConfirmation(to: Address, operation: Operation): boolean {
+    return this.accountState.isSent(to, operation);
   }
 
   public isNextAccountFree(): boolean {
     return this.isWalletAbleToSendTx(this.nonce % this.accounts.length);
   }
 
-  public hasPendingTransaction(to: string): boolean {
-    return Array.from(this.walletStates.values()).some((state: any) => state.to === to);
+  public hasPendingTransaction(to: string, operation: Operation): boolean {
+    return this.accountState.isPending(to, operation);
   }
 
-  public async sendFromIndex(idx: number, opts: any): Promise<IWalletReceipt> {
+  public async sendFromIndex(idx: number, opts: ITransactionOptions): Promise<IWalletReceipt> {
     if (this.accounts[idx] === undefined) {
       throw new Error('Index is outside range of addresses.');
     }
@@ -159,27 +145,25 @@ export class Wallet {
     return this.sendFromAccount(from, opts);
   }
 
-  public async sendFromAccount(from: Address, opts: any): Promise<IWalletReceipt> {
-    if (this.hasPendingTransaction(opts.to)) {
+  public async sendFromAccount(from: Address, opts: ITransactionOptions): Promise<IWalletReceipt> {
+    if (this.hasPendingTransaction(opts.to, opts.operation)) {
       return {
         from,
         status: TxSendErrors.IN_PROGRESS
       };
     }
 
-    const balance = await this.getBalanceOf(from);
+    const balance = await this.util.balanceOf(from);
 
     if (balance.eq(0)) {
-      if (this.logger) {
-        this.logger.info(`${TxSendErrors.NOT_ENOUGH_FUNDS} ${from}`);
-      }
+      this.logger.info(`${TxSendErrors.NOT_ENOUGH_FUNDS} ${from}`);
       return {
         from,
         status: TxSendErrors.NOT_ENOUGH_FUNDS
       };
     }
 
-    const nonce = this.web3.toHex(await this.getNonce(from));
+    const nonce = this.util.toHex(await this.getNonce(from));
     const v3Wallet = this.accounts.find((wallet: V3Wallet) => {
       return wallet.getAddressString() === from;
     });
@@ -192,35 +176,52 @@ export class Wallet {
       };
     }
 
-    let receipt;
+    let receipt: ITransactionReceipt;
+    let hash: string;
+
     try {
-      this.walletStates.set(from, { sendingTxInProgress: true, to: opts.to });
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.PENDING);
 
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
-      const hash = await this.sendRawTransaction(signedTx);
-      receipt = await this.getTransactionReceipt(hash, from);
+      hash = await this.sendRawTransaction(signedTx);
+      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(hash, 1);
+
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.SENT);
 
       this.logger.debug(`Receipt: ${JSON.stringify(receipt)}`);
     } catch (error) {
-      if (this.logger) {
-        this.logger.debug(error);
-      } else {
-        console.log(error);
-      }
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.ERROR);
+      this.logger.error(error, opts.to);
       return {
         from,
         status: TxSendErrors.UNKNOWN_ERROR
       };
-    } finally {
-      this.walletStates.set(from, {} as AccountState);
     }
 
-    const status = this.isTransactionStatusSuccessful(receipt.receipt.status)
+    try {
+      this.logger.debug(`Awaiting for confirmation for tx ${hash} from ${from}`, opts.to);
+
+      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(
+        hash,
+        this.CONFIRMATION_BLOCKS
+      );
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.CONFIRMED);
+
+      this.logger.debug(`Transaction ${hash} from ${from} confirmed`, opts.to);
+    } catch (error) {
+      this.accountState.set(from, opts.to, opts.operation, TransactionState.ERROR);
+      return {
+        from,
+        status: TxSendErrors.MINED_IN_UNCLE
+      };
+    }
+
+    const status = this.isTransactionStatusSuccessful(receipt)
       ? TxSendErrors.OK
       : TxSendErrors.FAILED;
 
-    return { receipt: receipt.receipt, from: receipt.from, status };
+    return { receipt, from, status };
   }
 
   public getAccounts(): V3Wallet[] {
@@ -238,7 +239,7 @@ export class Wallet {
   public sendRawTransaction(tx: any): Promise<any> {
     const serialized = '0x'.concat(tx.serialize().toString('hex'));
 
-    return fromCallback((callback: any) => this.web3.eth.sendRawTransaction(serialized, callback));
+    return this.util.sendRawTransaction(serialized);
   }
 
   private async signTransaction(from: V3Wallet, nonce: number | string, opts: any): Promise<any> {
@@ -246,9 +247,9 @@ export class Wallet {
       nonce,
       from: from.getAddressString(),
       to: opts.to,
-      gas: this.web3.toHex(opts.gas),
-      gasPrice: this.web3.toHex(opts.gasPrice),
-      value: this.web3.toHex(opts.value),
+      gas: this.util.toHex(opts.gas),
+      gasPrice: this.util.toHex(opts.gasPrice),
+      value: this.util.toHex(opts.value),
       data: opts.data
     };
 
@@ -258,9 +259,9 @@ export class Wallet {
     return tx;
   }
 
-  private isTransactionStatusSuccessful(status: string | number): boolean {
-    if (status) {
-      return [1, '0x1', '0x01'].indexOf(status) !== -1;
+  private isTransactionStatusSuccessful(receipt: ITransactionReceipt): boolean {
+    if (receipt) {
+      return [1, '0x1', '0x01'].indexOf(receipt.status) !== -1;
     }
     return false;
   }

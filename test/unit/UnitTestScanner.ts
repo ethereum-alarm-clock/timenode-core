@@ -1,11 +1,10 @@
 /* tslint:disable:no-unused-expression */
-import BigNumber from 'bignumber.js';
 import { assert, expect } from 'chai';
-import Actions from '../../src/Actions';
+import * as TypeMoq from 'typemoq';
+
+import { Config } from '../../src';
 import { BucketSize } from '../../src/Buckets';
-import { CacheStates } from '../../src/Enum';
-import { Config } from '../../src/index';
-import Router from '../../src/Router';
+import IRouter from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { ITxRequest } from '../../src/Types';
 import { mockConfig, mockTxRequest } from '../helpers';
@@ -14,25 +13,20 @@ describe('Scanner Unit Tests', () => {
   let config: Config;
   let txBlock: ITxRequest;
 
-  let router: Router;
-  let actions: Actions;
   let scanner: Scanner;
 
   const reset = async () => {
+    const router = TypeMoq.Mock.ofType<IRouter>();
     config = await mockConfig();
     txBlock = await mockTxRequest(config.web3, true);
 
-    actions = new Actions(config);
-    router = new Router(config, actions);
-    scanner = new Scanner(config, router);
+    scanner = new Scanner(config, router.object);
   };
 
   beforeEach(reset);
 
   it('initializes the Scanner', () => {
-    actions = new Actions(config);
-    router = new Router(config, actions);
-    scanner = new Scanner(config, router);
+    scanner = new Scanner(config, null);
     expect(scanner).to.exist;
   });
 
@@ -60,32 +54,6 @@ describe('Scanner Unit Tests', () => {
     }).timeout(5000);
   });
 
-  // describe('handleRequest()', () => {
-  //   it('stores request into cache if discovered', () => {
-  //     const params = [].fill(new BigNumber(10), 0, 12);
-  //     const address = txTimestamp.address;
-
-  //     scanner.handleRequest({ address, params });
-  //     expect(scanner.config.cache.get(txTimestamp.address)).to.exist;
-  //     assert.equal(scanner.config.cache.get(txTimestamp.address).windowStart, params[7]);
-  //   });
-
-  //   it('rejects request if invalid address', () => {
-  //     const address = txTimestamp.address.substring(0, 3);
-  //     const params = [].fill(new BigNumber(10), 0, 12);
-
-  //     expect(() => scanner.handleRequest({ address, params })).to.throw();
-  //   });
-  // });
-
-  // describe('stopWatcher()', () => {
-  //   it('clears the watcher', async () => {
-  //     const block = (await txBlock.now()).toNumber();
-  //     await scanner.stopWatcher(block);
-  //     expect(scanner.eventWatchers[block]).to.not.exist;
-  //   });
-  // });
-
   describe('watchRequestsByBucket()', () => {
     it('starts watchers for a new bucket', async () => {
       const bucket = (await txBlock.now()).toNumber();
@@ -106,45 +74,14 @@ describe('Scanner Unit Tests', () => {
     });
   });
 
-  // describe('isValid()', () => {
-  //   it('returns true when correct address format', () => {
-  //     assert.isTrue(scanner.isValid(txBlock.address));
-  //   });
-
-  //   it('errors when an invalid address', () => {
-  //     expect(() => scanner.isValid(txBlock.address.substring(0, 5))).to.throw();
-  //   });
-
-  //   it('returns false when null address', () => {
-  //     assert.isFalse(scanner.isValid(scanner.config.eac.Constants.NULL_ADDRESS));
-  //   });
-  // });
-
-  // describe('store()', () => {
-  //   it('returns true when correct address format', () => {
-  //     const params = [].fill(new BigNumber(10), 0, 12);
-  //     scanner.store({ address: txTimestamp.address, params });
-  //     expect(config.cache.get(txTimestamp.address)).to.exist;
-  //   });
-  // });
-
   describe('scanCache()', () => {
-    it('returns EMPTY when cache empty', async () => {
-      const state = await scanner.scanCache();
-      assert.equal(state, CacheStates.EMPTY);
-    });
+    it('does not route when cache empty', async () => {
+      const router = TypeMoq.Mock.ofType<IRouter>();
+      const localScanner = new Scanner(config, router.object);
 
-    it('returns REFRESHED when cache not empty', async () => {
-      const tx = {
-        claimedBy: '0x0',
-        claimingFailed: false,
-        wasCalled: false,
-        windowStart: new BigNumber(10000)
-      };
-      config.cache.set('tx', tx);
+      await localScanner.scanCache();
 
-      const state = await scanner.scanCache();
-      assert.equal(state, CacheStates.REFRESHED);
+      router.verify(r => r.route(TypeMoq.It.isAny()), TypeMoq.Times.never());
     });
   });
 });

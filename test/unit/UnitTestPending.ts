@@ -1,11 +1,11 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'chai';
 
-import hasPending from '../../src/Actions/Pending';
 import Config from '../../src/Config';
 import { FnSignatures } from '../../src/Enum';
 import { IPool } from '../../src/TxPool';
 import { mockConfig } from '../helpers';
+import { Pending } from '../../src/Actions/Pending';
 
 const startAddr = '0x2ffd48cc061331d071a1a8178cfc2a3863d56d4e';
 const PENDINGS = [
@@ -89,20 +89,22 @@ describe('hasPending()', () => {
     const gasPrice = 1 * 1e12;
     const options = { gasPrice };
     const config = preConfig(await mockConfig(), options);
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {
+    const pending = new Pending(config.util, config.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr, gasPrice }), {
       checkGasPrice: true
     });
-    assert.isFalse(pending);
+    assert.isFalse(isPending);
   });
 
   it('Pending pool defaults to false', async () => {
     const gasPrice = 1 * 1e12;
     const config = preConfig(await mockConfig(), { noPool: true, gasPrice });
-    const pending = await hasPending(config, mockTx({ address: startAddr, gasPrice }), {
+    const pending = new Pending(config.util, config.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr, gasPrice }), {
       checkGasPrice: true
     });
 
-    assert.isFalse(pending);
+    assert.isFalse(isPending);
   });
 });
 
@@ -115,13 +117,13 @@ describe('Pending Unit Tests', () => {
     const testConfig: Config = preConfig(config, { gasPrice, noPool: false });
 
     testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
-
-    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+    const pending = new Pending(testConfig.util, testConfig.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr, gasPrice }), {
       checkGasPrice: true,
       type: 'claim'
     });
 
-    assert.isTrue(pending);
+    assert.isTrue(isPending);
   });
 
   it('Detects absence of valid Pending claim request', async () => {
@@ -133,12 +135,13 @@ describe('Pending Unit Tests', () => {
 
     testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
 
-    const pending = await hasPending(testConfig, mockTx({ address: startAddr + '001', gasPrice }), {
+    const pending = new Pending(testConfig.util, testConfig.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr + '001', gasPrice }), {
       checkGasPrice: true,
       type: 'claim'
     });
 
-    assert.isFalse(pending);
+    assert.isFalse(isPending);
   });
 
   it('Ignore Pending claim request with low gasprice', async () => {
@@ -154,12 +157,13 @@ describe('Pending Unit Tests', () => {
 
     testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
 
-    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+    const pending = new Pending(testConfig.util, testConfig.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr, gasPrice }), {
       checkGasPrice: true,
       type: 'claim'
     });
 
-    assert.isFalse(pending);
+    assert.isFalse(isPending);
   });
 
   it('Detects valid Pending execute request', async () => {
@@ -170,12 +174,13 @@ describe('Pending Unit Tests', () => {
 
     testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
 
-    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+    const pending = new Pending(testConfig.util, testConfig.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr, gasPrice }), {
       checkGasPrice: true,
       type: 'execute'
     });
 
-    assert.isTrue(pending);
+    assert.isTrue(isPending);
   });
 
   it('Detects  absence of valid Pending execute request', async () => {
@@ -186,12 +191,13 @@ describe('Pending Unit Tests', () => {
 
     testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
 
-    const pending = await hasPending(testConfig, mockTx({ address: startAddr, gasPrice }), {
+    const pending = new Pending(testConfig.util, testConfig.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr, gasPrice }), {
       checkGasPrice: true,
       type: 'execute'
     });
 
-    assert.isFalse(pending);
+    assert.isFalse(isPending);
   });
 
   it('Detects Invalid Pending execute request', async () => {
@@ -203,16 +209,13 @@ describe('Pending Unit Tests', () => {
 
     testConfig.txPool.pool.pool = new PendingTxPool(options).getPool(PENDINGS);
 
-    const pending = await hasPending(
-      testConfig,
-      mockTx({ address: startAddr, gasPrice: minPrice }),
-      {
-        checkGasPrice: true,
-        type: 'execute',
-        minPrice
-      }
-    );
+    const pending = new Pending(testConfig.util, testConfig.txPool);
+    const isPending = await pending.hasPending(mockTx({ address: startAddr, gasPrice: minPrice }), {
+      checkGasPrice: true,
+      type: 'execute',
+      minPrice
+    });
 
-    assert.isFalse(pending);
+    assert.isFalse(isPending);
   });
 });

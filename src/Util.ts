@@ -1,9 +1,23 @@
+import BigNumber from 'bignumber.js';
 import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
-import BigNumber from 'bignumber.js';
+
 import { IBlock, ITxRequest } from './Types';
 
 export default class W3Util {
+  public static getWeb3FromProviderUrl(providerUrl: string) {
+    let provider: any;
+
+    if (providerUrl.includes('http://') || providerUrl.includes('https://')) {
+      provider = new Web3.providers.HttpProvider(providerUrl);
+    } else if (providerUrl.includes('ws://') || providerUrl.includes('wss://')) {
+      provider = new Web3WsProvider(providerUrl);
+      provider.__proto__.sendAsync = provider.__proto__.sendAsync || provider.__proto__.send;
+    }
+
+    return new Web3(provider);
+  }
+
   public web3: any;
 
   constructor(web3?: any) {
@@ -20,49 +34,25 @@ export default class W3Util {
 
   public estimateGas(opts: any): Promise<number> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.estimateGas(opts, (e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.estimateGas(opts, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public networkGasPrice(): Promise<BigNumber> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getGasPrice((e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.getGasPrice((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public getReceipt(txHash: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.getTransactionReceipt(txHash, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public getBlockNumber(): Promise<number> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getBlockNumber((e: any, r: any) => {
-        if (e) {
-          reject(e);
-        } else {
-          resolve(r);
-        }
-      });
+      this.web3.eth.getBlockNumber((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
@@ -98,40 +88,40 @@ export default class W3Util {
     });
   }
 
-  public getTransaction(txHash: string): Promise<{}> {
-    return new Promise<{}>((resolve, reject) => {
-      this.web3.eth.getTransaction(txHash, (err: any, tx: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(tx);
-        }
-      });
+  public getTransaction(txHash: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this.web3.eth.getTransaction(txHash, (e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
   public stopFilter(filter: any): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
-      filter.stopWatching((err: any, res: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(res);
-        }
-      });
+      filter.stopWatching((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
   }
 
-  public getWeb3FromProviderUrl(providerUrl: string) {
-    let provider: any;
+  public balanceOf(address: string): Promise<BigNumber> {
+    return new Promise<BigNumber>((resolve, reject) => {
+      this.web3.eth.getBalance(address, (e: any, r: any) => (e ? reject(e) : resolve(r)));
+    });
+  }
 
-    if (providerUrl.includes('http://') || providerUrl.includes('https://')) {
-      provider = new Web3.providers.HttpProvider(providerUrl);
-    } else if (providerUrl.includes('ws://') || providerUrl.includes('wss://')) {
-      provider = new Web3WsProvider(providerUrl);
-      provider.__proto__.sendAsync = provider.__proto__.sendAsync || provider.__proto__.send;
-    }
+  public getTransactionCount(account: string): Promise<number> {
+    return new Promise<number>((resolve, reject) => {
+      this.web3.eth.getTransactionCount(account, (e: any, r: any) => (e ? reject(e) : resolve(r)));
+    });
+  }
 
-    return new Web3(provider);
+  public sendRawTransaction(transaction: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this.web3.eth.sendRawTransaction(
+        transaction,
+        (e: any, r: any) => (e ? reject(e) : resolve(r))
+      );
+    });
+  }
+
+  public toHex(input: any): string {
+    return this.web3.toHex(input);
   }
 }

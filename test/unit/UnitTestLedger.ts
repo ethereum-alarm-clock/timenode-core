@@ -4,6 +4,7 @@ import BigNumber from 'bignumber.js';
 import { ILedger, Ledger } from '../../src/Actions/Ledger';
 import { ITxRequest } from '../../src/Types';
 import { IStatsDB } from '../../src/Stats/StatsDB';
+import { Operation } from '../../src/Types/Operation';
 
 describe('Ledger Unit Tests', async () => {
   const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
@@ -19,7 +20,8 @@ describe('Ledger Unit Tests', async () => {
     value: new BigNumber(0),
     gas,
     gasPrice,
-    data: '0x0'
+    data: '0x0',
+    operation: Operation.EXECUTE
   };
 
   let ledger: ILedger;
