@@ -56,7 +56,7 @@ export class Ledger implements ILedger {
     paymentModifier: BigNumber
   ): boolean {
     let bounty = new BigNumber(0);
-    let cost = new BigNumber(0);
+    let cost;
 
     const gasUsed = new BigNumber(receipt.gasUsed);
     const minimumGasPrice = new BigNumber(opts.gasPrice);
