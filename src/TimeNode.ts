@@ -16,7 +16,6 @@ export default class TimeNode {
   public config: Config;
   public scanner: Scanner;
   public router: Router;
-  private reconnectTries: number;
 
   private reconnectTries: number = 0;
   private reconnecting: boolean = false;
