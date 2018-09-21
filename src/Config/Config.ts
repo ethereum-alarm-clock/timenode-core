@@ -50,7 +50,7 @@ export default class Config implements IConfigParams {
   // tslint:disable-next-line:cognitive-complexity
   constructor(params: IConfigParams) {
     if (params.providerUrl) {
-      this.web3 = W3Util.getWeb3FromProviderUrl(params.providerUrl);
+      this.web3 = new W3Util({}).getWeb3FromProviderUrl(params.providerUrl);
       this.util = new W3Util(this.web3);
       this.eac = EAC(this.web3);
       this.providerUrl = params.providerUrl;

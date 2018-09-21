@@ -5,18 +5,6 @@ import * as Web3WsProvider from 'web3-providers-ws';
 import { IBlock, ITxRequest } from './Types';
 
 export default class W3Util {
-  public static getWeb3FromProviderUrl(providerUrl: string) {
-    let provider: any;
-
-    if (providerUrl.includes('http://') || providerUrl.includes('https://')) {
-      provider = new Web3.providers.HttpProvider(providerUrl);
-    } else if (providerUrl.includes('ws://') || providerUrl.includes('wss://')) {
-      provider = new Web3WsProvider(providerUrl);
-      provider.__proto__.sendAsync = provider.__proto__.sendAsync || provider.__proto__.send;
-    }
-
-    return new Web3(provider);
-  }
 
   public web3: any;
 
@@ -123,5 +111,18 @@ export default class W3Util {
 
   public toHex(input: any): string {
     return this.web3.toHex(input);
+  }
+
+  public getWeb3FromProviderUrl(providerUrl: string) {
+    let provider: any;
+
+    if (providerUrl.includes('http://') || providerUrl.includes('https://')) {
+      provider = new Web3.providers.HttpProvider(providerUrl);
+    } else if (providerUrl.includes('ws://') || providerUrl.includes('wss://')) {
+      provider = new Web3WsProvider(providerUrl);
+      provider.__proto__.sendAsync = provider.__proto__.sendAsync || provider.__proto__.send;
+    }
+
+    return new Web3(provider);
   }
 }
