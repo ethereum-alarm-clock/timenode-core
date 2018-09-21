@@ -56,23 +56,19 @@ export class Ledger implements ILedger {
     paymentModifier: BigNumber
   ): boolean {
     let bounty = new BigNumber(0);
-    let cost;
+    let cost = new BigNumber(0);
 
     const gasUsed = new BigNumber(receipt.gasUsed);
-    const minimumGasPrice = new BigNumber(opts.gasPrice);
+    const minimumGasPrice = (txRequest.gasPrice as any)() || new BigNumber(0); //TODO types seem messed up here
+    const actualGasPrice = opts.gasPrice;
 
     if (success) {
       const data = receipt.logs[0].data;
-      bounty = new BigNumber(data.slice(0, 66));
-
-      const actualGasPrice = new BigNumber(`0x${data.slice(66, 130)}`);
-      const totalBounty = bounty.mul(paymentModifier);
-      const totalMinimumCost = gasUsed.mul(minimumGasPrice);
-      const totalReimbursedCost = gasUsed.mul(actualGasPrice);
-
-      cost = totalBounty.add(totalMinimumCost).sub(totalReimbursedCost);
+      bounty = new BigNumber(data.slice(0, 66))
+        .sub(gasUsed.mul(actualGasPrice.sub(minimumGasPrice)))
+        .mul(paymentModifier);
     } else {
-      cost = gasUsed.mul(minimumGasPrice);
+      cost = gasUsed.mul(actualGasPrice);
     }
 
     this.statsDB.executed(from, txRequest.address, cost, bounty, success);

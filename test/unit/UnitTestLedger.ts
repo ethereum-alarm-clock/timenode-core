@@ -86,18 +86,15 @@ describe('Ledger Unit Tests', async () => {
     const paymentModifier = await txRequest.object.claimPaymentModifier();
     ledger.accountExecution(txRequest.object, receipt, opts, account2, true, paymentModifier);
 
+    const gasUsed = new BigNumber(receipt.gasUsed);
+    const minimumGasPrice = (txRequest.object.gasPrice as any)() || new BigNumber(0); //TODO types seem messed up here
+    const actualGasPrice = opts.gasPrice;
+    const expectedCost = new BigNumber(0);
     const expectedReward = new BigNumber(
       '0x000000000000000000000000000000000000000000000000000fe3c87f4b7363'
-    );
-    const gasUsed = new BigNumber(receipt.gasUsed);
-    const minimumGasPrice = new BigNumber(opts.gasPrice);
-    const actualGasPrice = new BigNumber(`0x${receipt.logs[0].data.slice(66, 130)}`);
-
-    const totalBounty = expectedReward.mul(paymentModifier);
-    const totalMinimumCost = gasUsed.mul(minimumGasPrice);
-    const totalReimbursedCost = gasUsed.mul(actualGasPrice);
-
-    const expectedCost = totalBounty.add(totalMinimumCost).sub(totalReimbursedCost);
+    )
+      .sub(gasUsed.mul(actualGasPrice.sub(minimumGasPrice)))
+      .mul(paymentModifier);
 
     assert.doesNotThrow(() =>
       stats.verify(
