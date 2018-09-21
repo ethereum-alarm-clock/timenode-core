@@ -30,9 +30,6 @@ describe('Ledger Unit Tests', async () => {
   const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
   txRequest.setup(x => x.requiredDeposit).returns(() => requiredDeposit);
   txRequest.setup(x => x.address).returns(() => tx1);
-  txRequest
-    .setup(x => x.claimPaymentModifier)
-    .returns(() => () => Promise.resolve(new BigNumber(1))); //TODO ensure we handle mocking correctly
 
   const reset = async () => {
     stats = TypeMoq.Mock.ofType<IStatsDB>();
@@ -83,18 +80,14 @@ describe('Ledger Unit Tests', async () => {
       ]
     };
 
-    const paymentModifier = await txRequest.object.claimPaymentModifier();
-    ledger.accountExecution(txRequest.object, receipt, opts, account2, true, paymentModifier);
+    ledger.accountExecution(txRequest.object, receipt, opts, account2, true);
 
     const gasUsed = new BigNumber(receipt.gasUsed);
-    const minimumGasPrice = (txRequest.object.gasPrice as any)() || new BigNumber(0); //TODO types seem messed up here
     const actualGasPrice = opts.gasPrice;
     const expectedCost = new BigNumber(0);
     const expectedReward = new BigNumber(
       '0x000000000000000000000000000000000000000000000000000fe3c87f4b7363'
-    )
-      .sub(gasUsed.mul(actualGasPrice.sub(minimumGasPrice)))
-      .mul(paymentModifier);
+    ).sub(gasUsed.mul(actualGasPrice));
 
     assert.doesNotThrow(() =>
       stats.verify(
@@ -110,14 +103,7 @@ describe('Ledger Unit Tests', async () => {
       gasUsed: gas
     };
 
-    ledger.accountExecution(
-      txRequest.object,
-      receipt,
-      opts,
-      account2,
-      false,
-      await txRequest.object.claimPaymentModifier()
-    );
+    ledger.accountExecution(txRequest.object, receipt, opts, account2, false);
 
     const expectedReward = new BigNumber(0);
     const expectedCost = gasPrice.mul(gas);
