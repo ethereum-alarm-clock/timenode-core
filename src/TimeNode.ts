@@ -6,10 +6,20 @@ import Router from './Router';
 import Version from './Version';
 import W3Util from './Util';
 
-declare const process: any;
 declare const setTimeout: any;
 
+enum ReconnectMsg {
+  NULL = '',
+  ALREADY_RECONNECTED = 'Recent reconnection. Not attempting for a few seconds.',
+  RECONNECTED = 'Reconnected!',
+  MAX_ATTEMPTS = 'Max attempts reached. Stopped TimeNode.',
+  RECONNECTING = 'Reconnecting in progress.',
+  FAIL = 'Reconnection failed! Trying again...'
+}
+
 const MAX_RETRIES = 25;
+/* tslint:disable */
+// const testerWS = "wss://neatly-tolerant-coral.quiknode.io/73b04107-89ee-4261-9a8f-3c1e946c17b2/CyYMMeeGTb-EeIBHGwORaw==/";
 
 export default class TimeNode {
   public actions: Actions;
@@ -19,6 +29,8 @@ export default class TimeNode {
 
   private reconnectTries: number = 0;
   private reconnecting: boolean = false;
+  private reconnected: boolean = false;
+  private endpoints: string[];
 
   constructor(config: Config) {
     this.actions = new Actions(
@@ -44,6 +56,14 @@ export default class TimeNode {
     this.scanner = new Scanner(this.config, this.router);
 
     const { providerUrl, logger } = this.config;
+
+    const endpoints = [
+      // testerWS,
+      providerUrl
+    ];
+
+    this.endpoints = endpoints;
+
     if (W3Util.isWSConnection(providerUrl)) {
       logger.debug('WebSockets provider detected! Setting up reconnect events...');
       this.setupWsReconnect();
@@ -58,62 +78,71 @@ export default class TimeNode {
       web3: { currentProvider }
     } = this.config;
 
-    /* tslint:disable */
     currentProvider.on('error', (err: any) => {
       logger.debug(`[WS ERROR] ${JSON.stringify(err)}`);
-      setTimeout(() => {
-        this.handleWsDisconnect();
+      setTimeout(async () => {
+        const msg: ReconnectMsg = await this.handleWsDisconnect();
+        logger.debug(`[WS RECONNECT] ${msg}`);
       }, this.reconnectTries * 1000);
     });
 
     currentProvider.on('end', (err: any) => {
       logger.debug(`[WS END] Type= ${err.type} Reason= ${err.reason}`);
-      setTimeout(() => {
-        this.handleWsDisconnect();
+      setTimeout(async () => {
+        const msg = await this.handleWsDisconnect();
+        logger.debug(`[WS RECONNECT] ${msg}`);
       }, this.reconnectTries * 1000);
     });
   }
 
-  public async handleWsDisconnect(): Promise<void> {
-    const { logger } = this.config;
+  public async handleWsDisconnect(): Promise<ReconnectMsg> {
+    if (this.reconnected) {
+      return ReconnectMsg.ALREADY_RECONNECTED;
+    }
     if (this.reconnectTries >= MAX_RETRIES) {
-      logger.debug('Too many reconnect tries!');
       this.stopScanning();
-      process.exit(1);
-      return;
+      return ReconnectMsg.MAX_ATTEMPTS;
     }
     if (this.reconnecting) {
-      logger.debug('Currently reconnecting!');
-      return;
+      return ReconnectMsg.RECONNECTING;
     }
 
+    // Try to reconnect.
     this.reconnecting = true;
     if (await this.wsReconnect()) {
-      logger.info('Reconnected!');
       await this.startScanning();
       this.reconnectTries = 0;
       this.setupWsReconnect();
+      this.reconnected = true;
       this.reconnecting = false;
-      return;
+      setTimeout(() => {
+        this.reconnected = false;
+      }, 10000);
+      return ReconnectMsg.RECONNECTED;
     }
+
     this.reconnecting = false;
     this.reconnectTries++;
     setTimeout(() => {
       this.handleWsDisconnect();
     }, this.reconnectTries * 1000);
+
+    return ReconnectMsg.FAIL;
   }
 
   public async wsReconnect(): Promise<boolean> {
-    const { logger, providerUrl } = this.config;
+    const { logger } = this.config;
     logger.debug('Attempting WS Reconnect.');
     try {
-      this.config.web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
+      const endpoint = this.endpoints[this.reconnectTries % this.endpoints.length];
+      this.config.web3 = W3Util.getWeb3FromProviderUrl(endpoint);
+
       this.config.util = new W3Util(this.config.web3);
       this.scanner.util = this.config.util;
       if (await this.config.util.isWatchingEnabled()) {
         return true;
       } else {
-        throw new Error('Wrong!');
+        throw new Error('Invalid endpoint! eth_getFilterLogs is not enabled.');
       }
     } catch (err) {
       logger.error(err.message);
