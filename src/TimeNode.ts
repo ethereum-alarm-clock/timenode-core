@@ -41,12 +41,10 @@ export default class TimeNode {
     if (W3Util.isWSConnection(this.config.providerUrl)) {
       const { web3: { currentProvider }} = this.config;
       currentProvider.on('error', (err: any) => {
-        this.config.logger.error('WS Error' + (err.message || err));
-        this.handleDisconnectingWS();
+        this.handleDisconnectingWS('error', err);
       });
       currentProvider.on('end', (err: any) => {
-        this.config.logger.debug('WS End'  + (err.message || err));
-        this.handleDisconnectingWS();
+        this.handleDisconnectingWS('end', err);
       });
     }
 
@@ -130,8 +128,9 @@ export default class TimeNode {
     return unsuccessfulClaims;
   }
 
-  private handleDisconnectingWS(): void {
-    if (this.scanner.scanning) {
+  private handleDisconnectingWS(type: string, error: any): void {
+      this.config.logger.error('WS ' + type.toUpperCase() + (error.message || error));
+      if (this.scanner.scanning) {
       if (this.reconnectTries < MAX_RETRIES) {
         this.reconnectWSConnection();
       } else {

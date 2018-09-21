@@ -12,7 +12,7 @@ describe('TimeNode Unit Tests', () => {
       self.emit('close');
     },
     emitEnd: (self: any) => {
-      self.emit('end');
+      self.connection._client.emit('connectFailed');
     },
     emitError: (self: any) => {
       //Trigger connecion failed event
@@ -125,15 +125,40 @@ describe('TimeNode Unit Tests', () => {
 
   describe('handleDisconnections', () => {
 
-    it('detects Error  Disconnects', (done: any) => {
-      Object.assign(timenode, {
-        handleDisconnectingWS: () => {
-          Object.assign(timenode, { handleDisconnectingWS: null });
-          assert.ok("Disconnect not detected");
-          done();
+    it('detects Error  Disconnect', async () => {
+      const newconfig = await mockConfig();
+      const runningNode = new TimeNode(newconfig);
+      let triggered: Promise<boolean>;
+      await runningNode.startScanning();
+      assert.isTrue(runningNode.scanner.scanning);
+      Object.assign(runningNode, {
+        handleDisconnectingWS: (type: any) => {
+          if (type === 'error') {
+            triggered = Promise.resolve(true);
+            runningNode.stopScanning();
+          }
         }
       });
-      emitEvents.emitError(timenode.config.web3.currentProvider);
-    }).timeout(2000);
+      emitEvents.emitError(runningNode.config.web3.currentProvider);
+      assert.isTrue(await triggered, "Disconnect not detected");
+    });
+
+    it('detects End  Disconnect', async () => {
+      const newconfig = await mockConfig();
+      const runningNode = new TimeNode(newconfig);
+      let triggered: Promise<boolean>;
+      await runningNode.startScanning();
+      assert.isTrue(runningNode.scanner.scanning);
+      Object.assign(runningNode, {
+        handleDisconnectingWS: (type: any) => {
+          if (type === 'end') {
+            triggered = Promise.resolve(true);
+            runningNode.stopScanning();
+          }
+        }
+      });
+      emitEvents.emitEnd(runningNode.config.web3.currentProvider);
+      assert.isTrue(await triggered, "Disconnect not detected");
+    });
   });
 });
