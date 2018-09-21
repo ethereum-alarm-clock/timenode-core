@@ -9,7 +9,7 @@ import W3Util from './Util';
 declare const process: any;
 declare const setTimeout: any;
 
-const MAX_RETRIES = 10;
+const MAX_RETRIES = 25;
 
 export default class TimeNode {
   public actions: Actions;
@@ -58,14 +58,19 @@ export default class TimeNode {
       web3: { currentProvider }
     } = this.config;
 
+    /* tslint:disable */
     currentProvider.on('error', (err: any) => {
       logger.debug(`[WS ERROR] ${JSON.stringify(err)}`);
-      this.handleWsDisconnect();
+      setTimeout(() => {
+        this.handleWsDisconnect();
+      }, this.reconnectTries * 1000);
     });
 
     currentProvider.on('end', (err: any) => {
       logger.debug(`[WS END] Type= ${err.type} Reason= ${err.reason}`);
-      this.handleWsDisconnect();
+      setTimeout(() => {
+        this.handleWsDisconnect();
+      }, this.reconnectTries * 1000);
     });
   }
 
@@ -74,39 +79,46 @@ export default class TimeNode {
     if (this.reconnectTries >= MAX_RETRIES) {
       logger.debug('Too many reconnect tries!');
       this.stopScanning();
-      setTimeout(() => {
-        process.exit(1);
-      }, 3000);
+      process.exit(1);
+      return;
     }
     if (this.reconnecting) {
       logger.debug('Currently reconnecting!');
       return;
     }
+
     this.reconnecting = true;
     if (await this.wsReconnect()) {
       logger.info('Reconnected!');
-      this.startScanning();
+      await this.startScanning();
       this.reconnectTries = 0;
       this.setupWsReconnect();
+      this.reconnecting = false;
+      return;
     }
     this.reconnecting = false;
     this.reconnectTries++;
+    setTimeout(() => {
+      this.handleWsDisconnect();
+    }, this.reconnectTries * 1000);
   }
 
-  public wsReconnect(): Promise<boolean> {
+  public async wsReconnect(): Promise<boolean> {
     const { logger, providerUrl } = this.config;
     logger.debug('Attempting WS Reconnect.');
     try {
       this.config.web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
       this.config.util = new W3Util(this.config.web3);
       this.scanner.util = this.config.util;
-      logger.error('here');
-      return this.config.util.isWatchingEnabled();
+      if (await this.config.util.isWatchingEnabled()) {
+        return true;
+      } else {
+        throw new Error('Wrong!');
+      }
     } catch (err) {
       logger.error(err.message);
-      this.reconnectTries++;
       logger.info(`Reconnect tries: ${this.reconnectTries}`);
-      return Promise.resolve(false);
+      return false;
     }
   }
 
