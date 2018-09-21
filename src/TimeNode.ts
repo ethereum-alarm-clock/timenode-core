@@ -4,6 +4,7 @@ import { Networks } from './Enum';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
+import W3Util from './Util';
 
 const MAX_RETRIES = 10;
 
@@ -37,7 +38,7 @@ export default class TimeNode {
     this.config = config;
     this.scanner = new Scanner(this.config, this.router);
 
-    if (this.isWSConnection()) {
+    if (W3Util.isWSConnection(this.config.providerUrl)) {
       const { web3: { currentProvider }} = this.config;
       currentProvider.on('error', (err: any) => {
         this.config.logger.error('WS Error' + (err.message || err));
@@ -129,16 +130,14 @@ export default class TimeNode {
     return unsuccessfulClaims;
   }
 
-  private isWSConnection() : boolean {
-    return this.config.providerUrl.indexOf('wss://') !== -1;
-  }
-
   private handleDisconnectingWS(): void {
-    if (this.scanner.scanning && this.reconnectTries < MAX_RETRIES) {
-      this.reconnectWSConnection();
-    } else {
-      this.config.logger.info('Failed to reconnect. Stopping Timenode');
-      this.stopScanning();
+    if (this.scanner.scanning) {
+      if (this.reconnectTries < MAX_RETRIES) {
+        this.reconnectWSConnection();
+      } else {
+        this.config.logger.info('Failed to reconnect. Stopping Timenode...');
+        this.stopScanning();
+      }
     }
   }
 

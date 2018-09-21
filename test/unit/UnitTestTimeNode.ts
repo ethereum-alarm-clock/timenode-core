@@ -7,6 +7,18 @@ describe('TimeNode Unit Tests', () => {
   let config: Config;
   let myAccount: string;
   let timenode: TimeNode;
+  const emitEvents = {
+    emitClose: (self: any) => {
+      self.emit('close');
+    },
+    emitEnd: (self: any) => {
+      self.emit('end');
+    },
+    emitError: (self: any) => {
+      //Trigger connecion failed event
+      self.connection._client.emit('connectFailed');
+    }
+  };
 
   before(async () => {
     config = await mockConfig();
@@ -109,5 +121,19 @@ describe('TimeNode Unit Tests', () => {
 
       assert.deepEqual(txs, ['0xe87529a6123a74320e13a6dabf3606630683c029']);
     });
+  });
+
+  describe('handleDisconnections', () => {
+
+    it('detects Error  Disconnects', (done: any) => {
+      Object.assign(timenode, {
+        handleDisconnectingWS: () => {
+          Object.assign(timenode, { handleDisconnectingWS: null });
+          assert.ok("Disconnect not detected");
+          done();
+        }
+      });
+      emitEvents.emitError(timenode.config.web3.currentProvider);
+    }).timeout(2000);
   });
 });
