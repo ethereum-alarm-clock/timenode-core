@@ -27,7 +27,9 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
 
   public async start(): Promise<boolean> {
     if (!(await this.util.isWatchingEnabled())) {
-      throw new Error('TimeNode is only supported using WebSockets. Use a wss:// provider!');
+      throw new Error(
+        'Your provider does not support eth_getFilterLogs calls. Please use different provider.'
+      );
     }
 
     await this.txPool.start();
