@@ -82,10 +82,12 @@ describe('Ledger Unit Tests', async () => {
 
     ledger.accountExecution(txRequest.object, receipt, opts, account2, true);
 
+    const gasUsed = new BigNumber(receipt.gasUsed);
+    const actualGasPrice = opts.gasPrice;
+    const expectedCost = new BigNumber(0);
     const expectedReward = new BigNumber(
       '0x000000000000000000000000000000000000000000000000000fe3c87f4b7363'
-    );
-    const expectedCost = new BigNumber(0);
+    ).sub(gasUsed.mul(actualGasPrice));
 
     assert.doesNotThrow(() =>
       stats.verify(
@@ -95,7 +97,7 @@ describe('Ledger Unit Tests', async () => {
     );
   });
 
-  it('should account for tx costs execution was not successful', async () => {
+  it('should account for tx costs when execution was not successful', async () => {
     const receipt = {
       status: 0,
       gasUsed: gas
