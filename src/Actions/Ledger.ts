@@ -62,11 +62,13 @@ export class Ledger implements ILedger {
     const minimumGasPrice = (txRequest.gasPrice as any)() || new BigNumber(0); //TODO types seem messed up here
     const actualGasPrice = opts.gasPrice;
 
+    console.log(txRequest.gasPrice);
+
     if (success) {
       const data = receipt.logs[0].data;
-      bounty = new BigNumber(data.slice(0, 66))
-        .sub(gasUsed.mul(actualGasPrice.sub(minimumGasPrice)))
-        .mul(paymentModifier);
+      bounty = new BigNumber(data.slice(0, 66)).sub(
+        gasUsed.mul(actualGasPrice.sub(minimumGasPrice))
+      );
     } else {
       cost = gasUsed.mul(actualGasPrice);
     }
