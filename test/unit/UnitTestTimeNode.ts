@@ -160,5 +160,22 @@ describe('TimeNode Unit Tests', () => {
       emitEvents.emitEnd(runningNode.config.web3.currentProvider);
       assert.isTrue(await triggered, "Disconnect not detected");
     });
+
+    it('does not restart connection on stop Timenode', async () => {
+      const newconfig = await mockConfig();
+      const runningNode = new TimeNode(newconfig);
+      let triggered: Promise<boolean>;
+      await runningNode.startScanning();
+      assert.isTrue(runningNode.scanner.scanning);
+      Object.assign(runningNode, {
+        reconnectWSConnection: (type: any) => {
+          if (type === 'end') {
+            triggered = Promise.resolve(true);
+          }
+        }
+      });
+      runningNode.stopScanning();
+      assert.isUndefined(await triggered, "Invalid Disconnect detected");
+    });
   });
 });
