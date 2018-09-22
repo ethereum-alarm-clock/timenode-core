@@ -56,13 +56,14 @@ export class Ledger implements ILedger {
     let bounty = new BigNumber(0);
     let cost = new BigNumber(0);
 
+    const gasUsed = new BigNumber(receipt.gasUsed);
+    const actualGasPrice = opts.gasPrice;
+
     if (success) {
       const data = receipt.logs[0].data;
-      bounty = new BigNumber(data.slice(0, 66));
+      bounty = new BigNumber(data.slice(0, 66)).sub(gasUsed.mul(actualGasPrice));
     } else {
-      const gasUsed = new BigNumber(receipt.gasUsed);
-      const gasPrice = new BigNumber(opts.gasPrice);
-      cost = gasUsed.mul(gasPrice);
+      cost = gasUsed.mul(actualGasPrice);
     }
 
     this.statsDB.executed(from, txRequest.address, cost, bounty, success);

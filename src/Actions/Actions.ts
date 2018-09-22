@@ -47,9 +47,6 @@ export default class Actions implements IActions {
   }
 
   public async claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus> {
-    // if (!this.config.claiming) {
-    //   return ClaimStatus.NOT_ENABLED;
-    // }
     //TODO: merge wallet ifs into 1 getWalletStatus or something
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.CLAIM)) {
       return ClaimStatus.IN_PROGRESS;
@@ -63,8 +60,6 @@ export default class Actions implements IActions {
 
     try {
       const opts = await this.getClaimingOpts(txRequest);
-      this.logger.info(`Claiming...`, txRequest.address);
-
       const { receipt, from, status } = await this.wallet.sendFromAccount(nextAccount, opts);
       await this.ledger.accountClaiming(receipt, txRequest, opts, from);
 
@@ -105,10 +100,8 @@ export default class Actions implements IActions {
           `Claimed by our node ${claimIndex} and inReservedWindow`,
           txRequest.address
         );
-        this.logger.info(`Executing...`, txRequest.address);
         executionResult = await this.wallet.sendFromIndex(claimIndex, opts);
       } else if (!(await this.hasPendingExecuteTransaction(txRequest))) {
-        this.logger.info(`Executing...`, txRequest.address);
         executionResult = await this.wallet.sendFromNext(opts);
       } else {
         return ExecuteStatus.PENDING;

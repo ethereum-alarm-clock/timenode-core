@@ -182,6 +182,7 @@ export class Wallet {
     try {
       this.accountState.set(from, opts.to, opts.operation, TransactionState.PENDING);
 
+      this.logger.info(`Sending ${Operation[opts.operation]}`, opts.to);
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
       hash = await this.sendRawTransaction(signedTx);
