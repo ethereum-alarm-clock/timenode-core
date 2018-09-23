@@ -138,7 +138,7 @@ export default class TimeNode {
     } = this.config;
 
     currentProvider.on('error', (err: any) => {
-      logger.debug(`[WS ERROR] ${JSON.stringify(err)}`);
+      logger.debug(`[WS ERROR] ${err}`);
       setTimeout(async () => {
         const msg: ReconnectMsg = await this.handleWsDisconnect();
         logger.debug(`[WS RECONNECT] ${msg}`);

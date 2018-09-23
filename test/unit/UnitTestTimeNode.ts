@@ -123,59 +123,57 @@ describe('TimeNode Unit Tests', () => {
     });
   });
 
+  /* tslint:disable */
   describe('handleDisconnections', () => {
-
     it('detects Error  Disconnect', async () => {
       const newconfig = await mockConfig();
       const runningNode = new TimeNode(newconfig);
-      let triggered: Promise<boolean>;
+      let triggered: boolean;
       await runningNode.startScanning();
       assert.isTrue(runningNode.scanner.scanning);
       Object.assign(runningNode, {
-        handleDisconnectingWS: (type: any) => {
-          if (type === 'error') {
-            triggered = Promise.resolve(true);
-            runningNode.stopScanning();
-          }
+        handleWsDisconnect: () => {
+          triggered = true;
+          runningNode.stopScanning();
         }
       });
       emitEvents.emitError(runningNode.config.web3.currentProvider);
-      assert.isTrue(await triggered, "Disconnect not detected");
+      setTimeout(() => {
+        assert.isTrue(triggered, 'Disconnect not detected');
+      }, 7000);
     });
 
     it('detects End  Disconnect', async () => {
       const newconfig = await mockConfig();
       const runningNode = new TimeNode(newconfig);
-      let triggered: Promise<boolean>;
+      let triggered: boolean;
       await runningNode.startScanning();
       assert.isTrue(runningNode.scanner.scanning);
       Object.assign(runningNode, {
-        handleDisconnectingWS: (type: any) => {
-          if (type === 'end') {
-            triggered = Promise.resolve(true);
-            runningNode.stopScanning();
-          }
+        handleWsDisconnect: () => {
+          triggered = true;
+          runningNode.stopScanning();
         }
       });
       emitEvents.emitEnd(runningNode.config.web3.currentProvider);
-      assert.isTrue(await triggered, "Disconnect not detected");
+      setTimeout(() => {
+        assert.isTrue(triggered, 'Disconnect not detected');
+      }, 7000);
     });
 
     it('does not restart connection on stop Timenode', async () => {
       const newconfig = await mockConfig();
       const runningNode = new TimeNode(newconfig);
-      let triggered: Promise<boolean>;
+      let triggered: boolean;
       await runningNode.startScanning();
       assert.isTrue(runningNode.scanner.scanning);
       Object.assign(runningNode, {
-        reconnectWSConnection: (type: any) => {
-          if (type === 'end') {
-            triggered = Promise.resolve(true);
-          }
+        wsReconnect: () => {
+          triggered = true;
         }
       });
       runningNode.stopScanning();
-      assert.isUndefined(await triggered, "Invalid Disconnect detected");
+      assert.isUndefined(triggered, 'Invalid Disconnect detected');
     });
   });
 });

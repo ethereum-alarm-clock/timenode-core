@@ -68,10 +68,11 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
   }
 
   private async runAndSetInterval(fn: () => Promise<void>, interval: number): Promise<IntervalId> {
-    if (!this.scanning) {
-      this.config.logger.debug('Not starting intervals when TimeNode is intentionally stopped.');
-      return null;
-    }
+    /* tslint:disable */
+    // if (!this.scanning) {
+    //   this.config.logger.debug('Not starting intervals when TimeNode is intentionally stopped.');
+    //   return null;
+    // }
     const wrapped = async (): Promise<void> => {
       try {
         await fn();
