@@ -1,33 +1,23 @@
 import Actions from './Actions';
 import Config from './Config';
-import { Networks } from './Enum';
+import { Networks, ReconnectMsg } from './Enum';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
 import W3Util from './Util';
 
 declare const setTimeout: any;
-
-enum ReconnectMsg {
-  NULL = '',
-  ALREADY_RECONNECTED = 'Recent reconnection. Not attempting for a few seconds.',
-  RECONNECTED = 'Reconnected!',
-  MAX_ATTEMPTS = 'Max attempts reached. Stopped TimeNode.',
-  RECONNECTING = 'Reconnecting in progress.',
-  FAIL = 'Reconnection failed! Trying again...'
-}
-
-const MAX_RETRIES = 25;
 export default class TimeNode {
   public actions: Actions;
   public config: Config;
   public scanner: Scanner;
   public router: Router;
 
+  private endpoints: string[];
+  private maxRetries: number;
   private reconnectTries: number = 0;
   private reconnecting: boolean = false;
   private reconnected: boolean = false;
-  private endpoints: string[];
 
   constructor(config: Config) {
     this.actions = new Actions(
@@ -52,8 +42,9 @@ export default class TimeNode {
     this.config = config;
     this.scanner = new Scanner(this.config, this.router);
 
-    const { endpoints, logger, providerUrl } = this.config;
+    const { endpoints, logger, maxRetries, providerUrl } = this.config;
     this.endpoints = endpoints;
+    this.maxRetries = maxRetries;
 
     if (W3Util.isWSConnection(providerUrl)) {
       logger.debug('WebSockets provider detected! Setting up reconnect events...');
@@ -167,7 +158,7 @@ export default class TimeNode {
     if (this.reconnected) {
       return ReconnectMsg.ALREADY_RECONNECTED;
     }
-    if (this.reconnectTries >= MAX_RETRIES) {
+    if (this.reconnectTries >= this.maxRetries) {
       this.stopScanning();
       return ReconnectMsg.MAX_ATTEMPTS;
     }

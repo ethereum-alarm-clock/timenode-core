@@ -7,6 +7,7 @@ export interface IConfigParams {
   economicStrategy?: IEconomicStrategy;
   endpoints?: string[];
   logger?: ILogger | null;
+  maxRetries?: number;
   ms?: any;
   password?: any;
   providerUrl: string;
