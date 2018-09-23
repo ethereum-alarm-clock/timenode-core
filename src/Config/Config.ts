@@ -31,6 +31,7 @@ export default class Config implements IConfigParams {
   public claiming: boolean;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
+  public endpoints?: string[];
   public logger?: ILogger;
   public ms: any;
   public providerUrl: string;
@@ -67,6 +68,7 @@ export default class Config implements IConfigParams {
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
+    this.endpoints = params.endpoints || [this.providerUrl];
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;

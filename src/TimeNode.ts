@@ -18,9 +18,6 @@ enum ReconnectMsg {
 }
 
 const MAX_RETRIES = 25;
-/* tslint:disable */
-// const testerWS = "wss://neatly-tolerant-coral.quiknode.io/73b04107-89ee-4261-9a8f-3c1e946c17b2/CyYMMeeGTb-EeIBHGwORaw==/";
-
 export default class TimeNode {
   public actions: Actions;
   public config: Config;
@@ -55,13 +52,7 @@ export default class TimeNode {
     this.config = config;
     this.scanner = new Scanner(this.config, this.router);
 
-    const { providerUrl, logger } = this.config;
-
-    const endpoints = [
-      // testerWS,
-      providerUrl
-    ];
-
+    const { endpoints, logger, providerUrl } = this.config;
     this.endpoints = endpoints;
 
     if (W3Util.isWSConnection(providerUrl)) {
@@ -70,85 +61,6 @@ export default class TimeNode {
     }
 
     this.startupMessage();
-  }
-
-  public setupWsReconnect(): void {
-    const {
-      logger,
-      web3: { currentProvider }
-    } = this.config;
-
-    currentProvider.on('error', (err: any) => {
-      logger.debug(`[WS ERROR] ${JSON.stringify(err)}`);
-      setTimeout(async () => {
-        const msg: ReconnectMsg = await this.handleWsDisconnect();
-        logger.debug(`[WS RECONNECT] ${msg}`);
-      }, this.reconnectTries * 1000);
-    });
-
-    currentProvider.on('end', (err: any) => {
-      logger.debug(`[WS END] Type= ${err.type} Reason= ${err.reason}`);
-      setTimeout(async () => {
-        const msg = await this.handleWsDisconnect();
-        logger.debug(`[WS RECONNECT] ${msg}`);
-      }, this.reconnectTries * 1000);
-    });
-  }
-
-  public async handleWsDisconnect(): Promise<ReconnectMsg> {
-    if (this.reconnected) {
-      return ReconnectMsg.ALREADY_RECONNECTED;
-    }
-    if (this.reconnectTries >= MAX_RETRIES) {
-      this.stopScanning();
-      return ReconnectMsg.MAX_ATTEMPTS;
-    }
-    if (this.reconnecting) {
-      return ReconnectMsg.RECONNECTING;
-    }
-
-    // Try to reconnect.
-    this.reconnecting = true;
-    if (await this.wsReconnect()) {
-      await this.startScanning();
-      this.reconnectTries = 0;
-      this.setupWsReconnect();
-      this.reconnected = true;
-      this.reconnecting = false;
-      setTimeout(() => {
-        this.reconnected = false;
-      }, 10000);
-      return ReconnectMsg.RECONNECTED;
-    }
-
-    this.reconnecting = false;
-    this.reconnectTries++;
-    setTimeout(() => {
-      this.handleWsDisconnect();
-    }, this.reconnectTries * 1000);
-
-    return ReconnectMsg.FAIL;
-  }
-
-  public async wsReconnect(): Promise<boolean> {
-    const { logger } = this.config;
-    logger.debug('Attempting WS Reconnect.');
-    try {
-      const endpoint = this.endpoints[this.reconnectTries % this.endpoints.length];
-      this.config.web3 = W3Util.getWeb3FromProviderUrl(endpoint);
-
-      this.config.util = new W3Util(this.config.web3);
-      this.scanner.util = this.config.util;
-      if (await this.config.util.isWatchingEnabled()) {
-        return true;
-      } else {
-        throw new Error('Invalid endpoint! eth_getFilterLogs is not enabled.');
-      }
-    } catch (err) {
-      logger.error(err.message);
-      logger.info(`Reconnect tries: ${this.reconnectTries}`);
-      return false;
-    }
   }
 
   public startupMessage(): void {
@@ -226,5 +138,84 @@ export default class TimeNode {
     }
 
     return unsuccessfulClaims;
+  }
+
+  private setupWsReconnect(): void {
+    const {
+      logger,
+      web3: { currentProvider }
+    } = this.config;
+
+    currentProvider.on('error', (err: any) => {
+      logger.debug(`[WS ERROR] ${JSON.stringify(err)}`);
+      setTimeout(async () => {
+        const msg: ReconnectMsg = await this.handleWsDisconnect();
+        logger.debug(`[WS RECONNECT] ${msg}`);
+      }, this.reconnectTries * 1000);
+    });
+
+    currentProvider.on('end', (err: any) => {
+      logger.debug(`[WS END] Type= ${err.type} Reason= ${err.reason}`);
+      setTimeout(async () => {
+        const msg = await this.handleWsDisconnect();
+        logger.debug(`[WS RECONNECT] ${msg}`);
+      }, this.reconnectTries * 1000);
+    });
+  }
+
+  private async handleWsDisconnect(): Promise<ReconnectMsg> {
+    if (this.reconnected) {
+      return ReconnectMsg.ALREADY_RECONNECTED;
+    }
+    if (this.reconnectTries >= MAX_RETRIES) {
+      this.stopScanning();
+      return ReconnectMsg.MAX_ATTEMPTS;
+    }
+    if (this.reconnecting) {
+      return ReconnectMsg.RECONNECTING;
+    }
+
+    // Try to reconnect.
+    this.reconnecting = true;
+    if (await this.wsReconnect()) {
+      await this.startScanning();
+      this.reconnectTries = 0;
+      this.setupWsReconnect();
+      this.reconnected = true;
+      this.reconnecting = false;
+      setTimeout(() => {
+        this.reconnected = false;
+      }, 10000);
+      return ReconnectMsg.RECONNECTED;
+    }
+
+    this.reconnecting = false;
+    this.reconnectTries++;
+    setTimeout(() => {
+      this.handleWsDisconnect();
+    }, this.reconnectTries * 1000);
+
+    return ReconnectMsg.FAIL;
+  }
+
+  private async wsReconnect(): Promise<boolean> {
+    const { logger } = this.config;
+    logger.debug('Attempting WS Reconnect.');
+    try {
+      const endpoint = this.endpoints[this.reconnectTries % this.endpoints.length];
+      this.config.web3 = W3Util.getWeb3FromProviderUrl(endpoint);
+
+      this.config.util = new W3Util(this.config.web3);
+      this.scanner.util = this.config.util;
+      if (await this.config.util.isWatchingEnabled()) {
+        return true;
+      } else {
+        throw new Error('Invalid endpoint! eth_getFilterLogs is not enabled.');
+      }
+    } catch (err) {
+      logger.error(err.message);
+      logger.info(`Reconnect tries: ${this.reconnectTries}`);
+      return false;
+    }
   }
 }
