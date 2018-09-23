@@ -126,6 +126,9 @@ describe('TimeNode Unit Tests', () => {
   describe('handleDisconnections', () => {
     it('detects Error  Disconnect', async () => {
       const newconfig = await mockConfig();
+      if (!newconfig.providerUrl.includes('ws://') || !newconfig.providerUrl.includes('wss://')) {
+        return;
+      }
       const runningNode = new TimeNode(newconfig);
       let triggered: boolean;
       await runningNode.startScanning();
@@ -144,6 +147,9 @@ describe('TimeNode Unit Tests', () => {
 
     it('detects End  Disconnect', async () => {
       const newconfig = await mockConfig();
+      if (!newconfig.providerUrl.includes('ws://') || !newconfig.providerUrl.includes('wss://')) {
+        return;
+      }
       const runningNode = new TimeNode(newconfig);
       let triggered: boolean;
       await runningNode.startScanning();
@@ -162,6 +168,9 @@ describe('TimeNode Unit Tests', () => {
 
     it('does not restart connection on stop Timenode', async () => {
       const newconfig = await mockConfig();
+      if (!newconfig.providerUrl.includes('ws://') || !newconfig.providerUrl.includes('wss://')) {
+        return;
+      }
       const runningNode = new TimeNode(newconfig);
       let triggered: boolean;
       await runningNode.startScanning();
