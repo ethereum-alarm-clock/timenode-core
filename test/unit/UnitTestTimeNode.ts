@@ -123,7 +123,6 @@ describe('TimeNode Unit Tests', () => {
     });
   });
 
-  /* tslint:disable */
   describe('handleDisconnections', () => {
     it('detects Error  Disconnect', async () => {
       const newconfig = await mockConfig();
