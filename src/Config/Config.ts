@@ -1,3 +1,6 @@
+// tslint:disable-next-line:no-reference
+/// <reference path="../global.d.ts" />
+
 import * as EAC from 'eac.js-lib';
 import Cache from '../Cache';
 import { Wallet } from '../Wallet';
