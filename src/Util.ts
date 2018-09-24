@@ -18,6 +18,27 @@ export default class W3Util {
     return new Web3(provider);
   }
 
+  public static isWatchingEnabled(web3: any): Promise<boolean> {
+    return new Promise<boolean>(resolve => {
+      web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          id: new Date().getTime(),
+          method: 'eth_getFilterLogs',
+          params: ['0x16'] // we need to provide at least 1 argument, this is test data
+        },
+        (err: any) => {
+          resolve(err === null);
+        }
+      );
+    });
+  }
+
+  public static testProvider(providerUrl: string): Promise<boolean> {
+    const web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
+    return W3Util.isWatchingEnabled(web3);
+  }
+
   public web3: any;
 
   constructor(web3?: any) {
@@ -73,19 +94,7 @@ export default class W3Util {
   }
 
   public isWatchingEnabled(): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
-      this.web3.currentProvider.sendAsync(
-        {
-          jsonrpc: '2.0',
-          id: new Date().getTime(),
-          method: 'eth_getFilterLogs',
-          params: ['0x16'] // we need to provide at least 1 argument, this is test data
-        },
-        (err: any) => {
-          resolve(err === null);
-        }
-      );
-    });
+    return W3Util.isWatchingEnabled(this.web3);
   }
 
   public getTransaction(txHash: string): Promise<any> {
