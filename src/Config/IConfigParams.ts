@@ -5,12 +5,11 @@ export interface IConfigParams {
   autostart?: boolean;
   claiming?: boolean;
   economicStrategy?: IEconomicStrategy;
-  endpoints?: string[];
   logger?: ILogger | null;
   maxRetries?: number;
   ms?: any;
   password?: any;
-  providerUrl: string;
+  providerUrls: string[];
   scanSpread?: number | null;
   statsDb?: any;
   walletStores?: any;

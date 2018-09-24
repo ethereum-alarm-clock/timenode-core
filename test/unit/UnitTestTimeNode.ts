@@ -126,7 +126,7 @@ describe('TimeNode Unit Tests', () => {
   describe('handleDisconnections', () => {
     it('detects Error  Disconnect', async () => {
       const newconfig = await mockConfig();
-      if (!W3Util.isWSConnection(newconfig.providerUrl)) {
+      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
         return;
       }
       const runningNode = new TimeNode(newconfig);
@@ -147,7 +147,7 @@ describe('TimeNode Unit Tests', () => {
 
     it('detects End  Disconnect', async () => {
       const newconfig = await mockConfig();
-      if (!W3Util.isWSConnection(newconfig.providerUrl)) {
+      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
         return;
       }
       const runningNode = new TimeNode(newconfig);
@@ -168,7 +168,7 @@ describe('TimeNode Unit Tests', () => {
 
     it('does not restart connection on stop Timenode', async () => {
       const newconfig = await mockConfig();
-      if (!W3Util.isWSConnection(newconfig.providerUrl)) {
+      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
         return;
       }
       const runningNode = new TimeNode(newconfig);

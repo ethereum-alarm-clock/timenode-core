@@ -13,7 +13,6 @@ export default class TimeNode {
   public scanner: Scanner;
   public router: Router;
 
-  private endpoints: string[];
   private maxRetries: number;
   private reconnectTries: number = 0;
   private reconnecting: boolean = false;
@@ -42,11 +41,10 @@ export default class TimeNode {
     this.config = config;
     this.scanner = new Scanner(this.config, this.router);
 
-    const { endpoints, logger, maxRetries, providerUrl } = this.config;
-    this.endpoints = endpoints;
+    const { logger, maxRetries, providerUrls } = this.config;
     this.maxRetries = maxRetries;
 
-    if (W3Util.isWSConnection(providerUrl)) {
+    if (W3Util.isWSConnection(providerUrls[0])) {
       logger.debug('WebSockets provider detected! Setting up reconnect events...');
       this.setupWsReconnect();
     }
@@ -190,18 +188,18 @@ export default class TimeNode {
   }
 
   private async wsReconnect(): Promise<boolean> {
-    const { logger } = this.config;
+    const { logger, providerUrls } = this.config;
     logger.debug('Attempting WS Reconnect.');
     try {
-      const endpoint = this.endpoints[this.reconnectTries % this.endpoints.length];
-      this.config.web3 = W3Util.getWeb3FromProviderUrl(endpoint);
+      const providerUrl = providerUrls[this.reconnectTries % providerUrls.length];
+      this.config.web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
 
       this.config.util = new W3Util(this.config.web3);
       this.scanner.util = this.config.util;
       if (await this.config.util.isWatchingEnabled()) {
         return true;
       } else {
-        throw new Error('Invalid endpoint! eth_getFilterLogs is not enabled.');
+        throw new Error('Invalid providerUrl! eth_getFilterLogs is not enabled.');
       }
     } catch (err) {
       logger.error(err.message);
