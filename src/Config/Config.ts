@@ -69,7 +69,9 @@ export default class Config implements IConfigParams {
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
-    this.endpoints = params.endpoints || [this.providerUrl];
+    this.endpoints = params.endpoints
+      ? params.endpoints.concat(this.providerUrl)
+      : [this.providerUrl];
     this.maxRetries = params.maxRetries || 30;
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;

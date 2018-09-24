@@ -1,5 +1,5 @@
 import { expect, assert } from 'chai';
-import { TimeNode, Config } from '../../src/index';
+import { TimeNode, Config, W3Util } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { BigNumber } from 'bignumber.js';
 
@@ -15,7 +15,7 @@ describe('TimeNode Unit Tests', () => {
       self.connection._client.emit('connectFailed');
     },
     emitError: (self: any) => {
-      //Trigger connecion failed event
+      //Trigger connection failed event
       self.connection._client.emit('connectFailed');
     }
   };
@@ -126,7 +126,7 @@ describe('TimeNode Unit Tests', () => {
   describe('handleDisconnections', () => {
     it('detects Error  Disconnect', async () => {
       const newconfig = await mockConfig();
-      if (!newconfig.providerUrl.includes('ws://') || !newconfig.providerUrl.includes('wss://')) {
+      if (!W3Util.isWSConnection(newconfig.providerUrl)) {
         return;
       }
       const runningNode = new TimeNode(newconfig);
@@ -147,7 +147,7 @@ describe('TimeNode Unit Tests', () => {
 
     it('detects End  Disconnect', async () => {
       const newconfig = await mockConfig();
-      if (!newconfig.providerUrl.includes('ws://') || !newconfig.providerUrl.includes('wss://')) {
+      if (!W3Util.isWSConnection(newconfig.providerUrl)) {
         return;
       }
       const runningNode = new TimeNode(newconfig);
@@ -168,7 +168,7 @@ describe('TimeNode Unit Tests', () => {
 
     it('does not restart connection on stop Timenode', async () => {
       const newconfig = await mockConfig();
-      if (!newconfig.providerUrl.includes('ws://') || !newconfig.providerUrl.includes('wss://')) {
+      if (!W3Util.isWSConnection(newconfig.providerUrl)) {
         return;
       }
       const runningNode = new TimeNode(newconfig);
