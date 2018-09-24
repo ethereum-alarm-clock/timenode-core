@@ -31,7 +31,6 @@ export default class Config implements IConfigParams {
   public claiming: boolean;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
-  public endpoints?: string[];
   public logger?: ILogger;
   public maxRetries?: number;
   public ms: any;

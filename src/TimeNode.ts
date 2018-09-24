@@ -1,22 +1,16 @@
 import Actions from './Actions';
 import Config from './Config';
-import { Networks, ReconnectMsg } from './Enum';
+import { Networks } from './Enum';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
 import W3Util from './Util';
-
-declare const setTimeout: any;
+import WsReconnect from './WsReconnect';
 export default class TimeNode {
   public actions: Actions;
   public config: Config;
   public scanner: Scanner;
   public router: Router;
-
-  private maxRetries: number;
-  private reconnectTries: number = 0;
-  private reconnecting: boolean = false;
-  private reconnected: boolean = false;
 
   constructor(config: Config) {
     this.actions = new Actions(
@@ -41,12 +35,10 @@ export default class TimeNode {
     this.config = config;
     this.scanner = new Scanner(this.config, this.router);
 
-    const { logger, maxRetries, providerUrls } = this.config;
-    this.maxRetries = maxRetries;
-
+    const { logger, providerUrls } = this.config;
     if (W3Util.isWSConnection(providerUrls[0])) {
       logger.debug('WebSockets provider detected! Setting up reconnect events...');
-      this.setupWsReconnect();
+      new WsReconnect(this).setup();
     }
 
     this.startupMessage();
@@ -127,84 +119,5 @@ export default class TimeNode {
     }
 
     return unsuccessfulClaims;
-  }
-
-  private setupWsReconnect(): void {
-    const {
-      logger,
-      web3: { currentProvider }
-    } = this.config;
-
-    currentProvider.on('error', (err: any) => {
-      logger.debug(`[WS ERROR] ${err}`);
-      setTimeout(async () => {
-        const msg: ReconnectMsg = await this.handleWsDisconnect();
-        logger.debug(`[WS RECONNECT] ${msg}`);
-      }, this.reconnectTries * 1000);
-    });
-
-    currentProvider.on('end', (err: any) => {
-      logger.debug(`[WS END] Type= ${err.type} Reason= ${err.reason}`);
-      setTimeout(async () => {
-        const msg = await this.handleWsDisconnect();
-        logger.debug(`[WS RECONNECT] ${msg}`);
-      }, this.reconnectTries * 1000);
-    });
-  }
-
-  private async handleWsDisconnect(): Promise<ReconnectMsg> {
-    if (this.reconnected) {
-      return ReconnectMsg.ALREADY_RECONNECTED;
-    }
-    if (this.reconnectTries >= this.maxRetries) {
-      this.stopScanning();
-      return ReconnectMsg.MAX_ATTEMPTS;
-    }
-    if (this.reconnecting) {
-      return ReconnectMsg.RECONNECTING;
-    }
-
-    // Try to reconnect.
-    this.reconnecting = true;
-    if (await this.wsReconnect()) {
-      await this.startScanning();
-      this.reconnectTries = 0;
-      this.setupWsReconnect();
-      this.reconnected = true;
-      this.reconnecting = false;
-      setTimeout(() => {
-        this.reconnected = false;
-      }, 10000);
-      return ReconnectMsg.RECONNECTED;
-    }
-
-    this.reconnecting = false;
-    this.reconnectTries++;
-    setTimeout(() => {
-      this.handleWsDisconnect();
-    }, this.reconnectTries * 1000);
-
-    return ReconnectMsg.FAIL;
-  }
-
-  private async wsReconnect(): Promise<boolean> {
-    const { logger, providerUrls } = this.config;
-    logger.debug('Attempting WS Reconnect.');
-    try {
-      const providerUrl = providerUrls[this.reconnectTries % providerUrls.length];
-      this.config.web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
-
-      this.config.util = new W3Util(this.config.web3);
-      this.scanner.util = this.config.util;
-      if (await this.config.util.isWatchingEnabled()) {
-        return true;
-      } else {
-        throw new Error('Invalid providerUrl! eth_getFilterLogs is not enabled.');
-      }
-    } catch (err) {
-      logger.error(err.message);
-      logger.info(`Reconnect tries: ${this.reconnectTries}`);
-      return false;
-    }
   }
 }
