@@ -52,7 +52,7 @@ describe('Economic Strategy Tests', () => {
   const defaultUtil = createUtil();
 
   const cache = TypeMoq.Mock.ofType<Cache<ICachedTxDetails>>();
-  cache.setup(c => c.getTxRequestsClaimedBy(TypeMoq.It.isAnyString())).returns(() => []);
+  cache.setup(c => c.stored()).returns(() => []);
 
   describe('shouldClaimTx()', () => {
     it('returns CLAIM if economic strategy not set or default', async () => {

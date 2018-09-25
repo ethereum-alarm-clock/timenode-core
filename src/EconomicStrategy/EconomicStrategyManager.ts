@@ -151,6 +151,13 @@ export class EconomicStrategyManager {
     return false;
   }
 
+  private getTxRequestsClaimedBy(address: string): string[] {
+    return this.cache.stored().filter((txAddress: string) => {
+      const tx = this.cache.get(txAddress);
+      return tx.claimedBy === address && !tx.wasCalled;
+    });
+  }
+
   /**
    * Checks if the balance of the TimeNode is above a set limit.
    * @param {Config} config TimeNode configuration object.
@@ -164,7 +171,7 @@ export class EconomicStrategyManager {
     // Subtract the maximum gas costs of executing all currently claimed
     // transactions. This is to ensure that a TimeNode does not fail to execute
     // because it ran out of funds.
-    const txRequestsClaimed: string[] = this.cache.getTxRequestsClaimedBy(nextAccount);
+    const txRequestsClaimed: string[] = this.getTxRequestsClaimedBy(nextAccount);
 
     this.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
 
