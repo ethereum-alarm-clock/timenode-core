@@ -10,11 +10,9 @@ export interface ICachedTxDetails {
 export default class Cache<T> {
   public cache: {} = {};
   public logger: any;
-  private eac: any;
 
-  constructor(eac: any, logger: ILogger = new DefaultLogger()) {
+  constructor(logger: ILogger = new DefaultLogger()) {
     this.logger = logger;
-    this.eac = eac;
   }
 
   public set(key: string, value: T) {
