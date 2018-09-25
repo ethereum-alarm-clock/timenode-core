@@ -29,6 +29,7 @@ export default class Config implements IConfigParams {
     maxGasSubsidy: 100
   };
 
+  public activeProviderUrl: string;
   public autostart: boolean;
   public cache: Cache<ICachedTxDetails>;
   public claiming: boolean;
@@ -55,6 +56,7 @@ export default class Config implements IConfigParams {
   constructor(params: IConfigParams) {
     if (params.providerUrls.length) {
       this.web3 = W3Util.getWeb3FromProviderUrl(params.providerUrls[0]);
+      this.activeProviderUrl = params.providerUrls[0];
       this.util = new W3Util(this.web3);
       this.eac = EAC(this.web3);
       this.providerUrls = params.providerUrls;

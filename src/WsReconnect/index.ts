@@ -51,7 +51,9 @@ export default class WsReconnect {
 
     // Try to reconnect.
     this.reconnecting = true;
-    if (await this.wsReconnect()) {
+    const nextProviderUrl = await this.wsReconnect();
+    if (nextProviderUrl) {
+      this.timenode.config.activeProviderUrl = nextProviderUrl;
       await this.timenode.startScanning();
       this.reconnectTries = 0;
       this.setup();
@@ -72,7 +74,7 @@ export default class WsReconnect {
     return ReconnectMsg.FAIL;
   }
 
-  private async wsReconnect(): Promise<boolean> {
+  private async wsReconnect(): Promise<string> {
     const {
       config: { logger, providerUrls }
     } = this.timenode;
@@ -83,14 +85,14 @@ export default class WsReconnect {
       this.timenode.config.web3 = nextWeb3;
       this.timenode.scanner.util = this.timenode.config.util = new W3Util(nextWeb3);
       if (await this.timenode.config.util.isWatchingEnabled()) {
-        return true;
+        return providerUrl;
       } else {
         throw new Error('Invalid providerUrl! eth_getFilterLogs not enabled.');
       }
     } catch (err) {
       logger.error(err.message);
       logger.info(`Reconnect tries: ${this.reconnectTries}`);
-      return false;
+      return '';
     }
   }
 }
