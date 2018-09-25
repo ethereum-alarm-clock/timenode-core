@@ -11,6 +11,7 @@ export default class TimeNode {
   public config: Config;
   public scanner: Scanner;
   public router: Router;
+  public wsReconnect: WsReconnect;
 
   constructor(config: Config) {
     this.actions = new Actions(
@@ -38,7 +39,8 @@ export default class TimeNode {
     const { logger, providerUrls } = this.config;
     if (W3Util.isWSConnection(providerUrls[0])) {
       logger.debug('WebSockets provider detected! Setting up reconnect events...');
-      new WsReconnect(this).setup();
+      this.wsReconnect = new WsReconnect(this);
+      this.wsReconnect.setup();
     }
 
     this.startupMessage();

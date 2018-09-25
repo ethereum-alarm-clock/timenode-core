@@ -133,7 +133,7 @@ describe('TimeNode Unit Tests', () => {
       let triggered: boolean;
       await runningNode.startScanning();
       assert.isTrue(runningNode.scanner.scanning);
-      Object.assign(runningNode, {
+      Object.assign(runningNode.wsReconnect, {
         handleWsDisconnect: () => {
           triggered = true;
           runningNode.stopScanning();
@@ -154,7 +154,7 @@ describe('TimeNode Unit Tests', () => {
       let triggered: boolean;
       await runningNode.startScanning();
       assert.isTrue(runningNode.scanner.scanning);
-      Object.assign(runningNode, {
+      Object.assign(runningNode.wsReconnect, {
         handleWsDisconnect: () => {
           triggered = true;
           runningNode.stopScanning();
