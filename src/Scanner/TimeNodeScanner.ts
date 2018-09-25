@@ -34,17 +34,18 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
 
     await this.txPool.start();
 
+    this.scanning = true;
     this.cacheInterval = await this.runAndSetInterval(() => this.scanCache(), this.config.ms);
     this.chainInterval = await this.runAndSetInterval(() => this.watchBlockchain(), 5 * 60 * 1000);
 
     // Mark that we've started.
     this.config.logger.info('Scanner STARTED');
-    this.scanning = true;
     return this.scanning;
   }
 
   public stop(): boolean {
     if (this.scanning) {
+      this.scanning = false;
       // Clear scanning intervals.
       clearInterval(this.cacheInterval);
       clearInterval(this.chainInterval);
@@ -53,7 +54,6 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
 
       // Mark that we've stopped.
       this.config.logger.info('Scanner STOPPED');
-      this.scanning = false;
     }
 
     Object.keys(this.buckets).forEach((bucketType: string) => {
@@ -68,6 +68,10 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
   }
 
   private async runAndSetInterval(fn: () => Promise<void>, interval: number): Promise<IntervalId> {
+    if (!this.scanning) {
+      this.config.logger.debug('Not starting intervals when TimeNode is intentionally stopped.');
+      return null;
+    }
     const wrapped = async (): Promise<void> => {
       try {
         await fn();

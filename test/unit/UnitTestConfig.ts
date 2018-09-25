@@ -11,11 +11,11 @@ const WALLET_KEYSTORE = `{"version":3,"id":"90ff6d22-668b-492a-bc56-8b560fece46d
 describe('Config unit tests', () => {
   describe('constructor()', () => {
     it('throws an error when initiating without required params', () => {
-      expect(() => new Config({ providerUrl: null })).to.throw();
+      expect(() => new Config({ providerUrls: null })).to.throw();
     });
 
     it('check all default values are set when empty config', () => {
-      const config = new Config({ providerUrl });
+      const config = new Config({ providerUrls: [providerUrl] });
 
       assert.isTrue(config.autostart);
       assert.isFalse(config.claiming);
@@ -46,7 +46,7 @@ describe('Config unit tests', () => {
       };
 
       const config = new Config({
-        providerUrl,
+        providerUrls: [providerUrl],
         autostart: false,
         claiming: true,
         economicStrategy,
@@ -69,7 +69,7 @@ describe('Config unit tests', () => {
 
     it('wallet decrypted when using a keystore string', () => {
       const config = new Config({
-        providerUrl,
+        providerUrls: [providerUrl],
         walletStores: [WALLET_KEYSTORE],
         password: WALLET_PASSWD
       });
@@ -79,7 +79,7 @@ describe('Config unit tests', () => {
 
     it('wallet decrypted when using a keystore object', () => {
       const config = new Config({
-        providerUrl,
+        providerUrls: [providerUrl],
         walletStores: [JSON.parse(WALLET_KEYSTORE)],
         password: WALLET_PASSWD
       });
@@ -91,7 +91,7 @@ describe('Config unit tests', () => {
       expect(
         () =>
           new Config({
-            providerUrl,
+            providerUrls: [providerUrl],
             walletStores: [WALLET_KEYSTORE]
           })
       ).to.throw();
