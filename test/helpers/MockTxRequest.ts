@@ -17,13 +17,11 @@ const mockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
       .add(num, 'day')
       .unix();
 
-  const blocksLater = (num: number) => currentBlockNumber + num;
-
-  const oneHourWindowSize = new BigNumber(isBlock ? 255 : 3600);
-
   const currentBlockNumber = (await Bb.fromCallback((callback: any) =>
     web3.eth.getBlockNumber(callback)
   )) as number;
+  const blocksLater = (num: number) => currentBlockNumber + num;
+  const oneHourWindowSize = new BigNumber(isBlock ? 255 : 3600);
 
   return {
     address: '0x24f8e3501b00bd219e864650f5625cd4f9272a25',
