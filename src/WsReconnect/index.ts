@@ -79,10 +79,9 @@ export default class WsReconnect {
     logger.debug('Attempting WS Reconnect.');
     try {
       const providerUrl = providerUrls[this.reconnectTries % providerUrls.length];
-      this.timenode.config.web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
-
-      this.timenode.config.util = new W3Util(this.timenode.config.web3);
-      this.timenode.scanner.util = this.timenode.config.util;
+      const nextWeb3 = W3Util.getWeb3FromProviderUrl(providerUrl);
+      this.timenode.config.web3 = nextWeb3;
+      this.timenode.scanner.util = this.timenode.config.util = new W3Util(nextWeb3);
       if (await this.timenode.config.util.isWatchingEnabled()) {
         return true;
       } else {
