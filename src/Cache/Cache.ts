@@ -1,10 +1,12 @@
 import { ILogger, DefaultLogger } from '../Logger';
 import BigNumber from 'bignumber.js';
+import { TxStatus } from '../Enum';
 
 export interface ICachedTxDetails {
   claimedBy: string;
   wasCalled: boolean;
   windowStart: BigNumber;
+  status: TxStatus;
 }
 
 export default class Cache<T> {
