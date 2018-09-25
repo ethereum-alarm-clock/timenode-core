@@ -5,12 +5,21 @@ import * as Web3WsProvider from 'web3-providers-ws';
 import { IBlock, ITxRequest } from './Types';
 
 export default class W3Util {
+
+  public static isHTTPConnection(url: string) : boolean {
+    return url.includes('http://') || url.includes('https://');
+  }
+
+  public static isWSConnection(url: string) : boolean {
+    return url.includes('ws://') || url.includes('wss://');
+  }
+
   public static getWeb3FromProviderUrl(providerUrl: string) {
     let provider: any;
 
-    if (providerUrl.includes('http://') || providerUrl.includes('https://')) {
+    if (this.isHTTPConnection(providerUrl)) {
       provider = new Web3.providers.HttpProvider(providerUrl);
-    } else if (providerUrl.includes('ws://') || providerUrl.includes('wss://')) {
+    } else if (this.isWSConnection(providerUrl)) {
       provider = new Web3WsProvider(providerUrl);
       provider.__proto__.sendAsync = provider.__proto__.sendAsync || provider.__proto__.send;
     }
