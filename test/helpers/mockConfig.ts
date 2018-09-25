@@ -15,7 +15,7 @@ const mockConfig = async () => {
     logger: new DefaultLogger(),
     ms: 4000,
     password,
-    providerUrl,
+    providerUrls: [providerUrl],
     scanSpread: 0,
     statsDb: new loki('stats.db'),
     walletStores: wallet,

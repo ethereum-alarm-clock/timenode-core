@@ -45,18 +45,16 @@ export default class TxPool {
 
   public async stop(): Promise<boolean> {
     if (this.subs.pending) {
-      try {
-        await this.util.stopFilter(this.subs.pending);
-      } catch (e) {
+      await this.util.stopFilter(this.subs.pending)
+      .catch ((e) => {
         this.logger.error(e);
-      }
+      });
     }
     if (this.subs.latest) {
-      try {
-        await this.util.stopFilter(this.subs.latest);
-      } catch (e) {
+      await this.util.stopFilter(this.subs.latest)
+      .catch ((e) => {
         this.logger.error(e);
-      }
+      })
     }
     if (this.subs.mined) {
       clearInterval(this.subs.mined);
