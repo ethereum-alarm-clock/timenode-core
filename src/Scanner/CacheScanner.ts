@@ -17,7 +17,7 @@ export default class CacheScanner extends BaseScanner {
       return;
     }
 
-    this.config.cache
+    return this.config.cache
       .stored()
       .map(address => this.config.eac.transactionRequest(address))
       .sort((a, b) => this.prioritize(a, b))
@@ -32,7 +32,7 @@ export default class CacheScanner extends BaseScanner {
       return 0;
     }
 
-    return statusA === TxStatus.FreezePeriod && statusB !== TxStatus.FreezePeriod ? 1 : -1;
+    return statusA === TxStatus.FreezePeriod && statusB !== TxStatus.FreezePeriod ? -1 : 1;
   }
 
   private async route(txRequest: ITxRequest): Promise<void> {
