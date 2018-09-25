@@ -1,6 +1,7 @@
 import TimeNode from '../TimeNode';
 import { ReconnectMsg } from '../Enum';
-import W3Util from '../Util';
+import * as EAC from 'eac.js-lib';
+import * as Web3WsProvider from 'web3-providers-ws';
 
 declare const setTimeout: any;
 
@@ -74,16 +75,15 @@ export default class WsReconnect {
     return ReconnectMsg.FAIL;
   }
 
-  private async wsReconnect(): Promise<string> {
+  private async wsReconnect(): Promise<string | null> {
     const {
       config: { logger, providerUrls }
     } = this.timenode;
     logger.debug('Attempting WS Reconnect.');
     try {
       const providerUrl = providerUrls[this.reconnectTries % providerUrls.length];
-      const nextWeb3 = W3Util.getWeb3FromProviderUrl(providerUrl);
-      this.timenode.config.web3 = nextWeb3;
-      this.timenode.scanner.util = this.timenode.config.util = new W3Util(nextWeb3);
+      this.timenode.config.web3.setProvider(new Web3WsProvider(providerUrl));
+      this.timenode.config.eac = EAC(this.timenode.config.web3);
       if (await this.timenode.config.util.isWatchingEnabled()) {
         return providerUrl;
       } else {
@@ -92,7 +92,7 @@ export default class WsReconnect {
     } catch (err) {
       logger.error(err.message);
       logger.info(`Reconnect tries: ${this.reconnectTries}`);
-      return '';
+      return null;
     }
   }
 }
