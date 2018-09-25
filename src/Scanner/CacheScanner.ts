@@ -1,7 +1,8 @@
-import { IntervalId, Address, ITxRequest } from '../Types';
+import { IntervalId, ITxRequest } from '../Types';
 import BaseScanner from './BaseScanner';
 import IRouter from '../Router';
 import Config from '../Config';
+import { TxStatus } from '../Enum';
 
 export default class CacheScanner extends BaseScanner {
   public cacheInterval: IntervalId;
@@ -16,11 +17,22 @@ export default class CacheScanner extends BaseScanner {
       return;
     }
 
-    this.config.cache
+    return this.config.cache
       .stored()
-      .filter((address: Address) => this.config.cache.get(address))
-      .map((address: Address) => this.config.eac.transactionRequest(address))
-      .forEach((txRequest: ITxRequest) => this.route(txRequest));
+      .map(address => this.config.eac.transactionRequest(address))
+      .sort((a, b) => this.prioritize(a, b))
+      .forEach(txRequest => this.route(txRequest));
+  }
+
+  private prioritize(a: ITxRequest, b: ITxRequest): number {
+    const statusA = this.config.cache.get(a.address).status;
+    const statusB = this.config.cache.get(b.address).status;
+
+    if (statusA === statusB) {
+      return 0;
+    }
+
+    return statusA === TxStatus.FreezePeriod && statusB !== TxStatus.FreezePeriod ? -1 : 1;
   }
 
   private async route(txRequest: ITxRequest): Promise<void> {

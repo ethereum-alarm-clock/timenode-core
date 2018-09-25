@@ -2,6 +2,7 @@ import { expect, assert } from 'chai';
 import { TimeNode, Config, W3Util } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { BigNumber } from 'bignumber.js';
+import { TxStatus } from '../../src/Enum';
 
 describe('TimeNode Unit Tests', () => {
   let config: Config;
@@ -89,9 +90,9 @@ describe('TimeNode Unit Tests', () => {
     it('returns a transaction', () => {
       const tx = {
         claimedBy: config.wallet.getAddresses()[0],
-        claimingFailed: false,
         wasCalled: false,
-        windowStart: new BigNumber(10000)
+        windowStart: new BigNumber(10000),
+        status: TxStatus.FreezePeriod
       };
       config.cache.set('tx', tx);
 

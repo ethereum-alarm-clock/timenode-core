@@ -4,6 +4,7 @@ import { IntervalId, Address } from '../Types';
 import CacheScanner from './CacheScanner';
 import { Bucket, IBuckets, BucketCalc, IBucketCalc } from '../Buckets';
 import { ITxRequestRaw } from '../Types/ITxRequest';
+import { TxStatus } from '../Enum';
 
 export default class ChainScanner extends CacheScanner {
   public bucketCalc: IBucketCalc;
@@ -143,7 +144,8 @@ export default class ChainScanner extends CacheScanner {
     this.config.cache.set(txRequest.address, {
       claimedBy: null,
       wasCalled: false,
-      windowStart: txRequest.params[7]
+      windowStart: txRequest.params[7],
+      status: TxStatus.BeforeClaimWindow
     });
   }
 }

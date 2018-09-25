@@ -73,15 +73,4 @@ describe('Scanner Unit Tests', () => {
       expect(scanner.buckets).to.haveOwnProperty('nextBuckets');
     });
   });
-
-  describe('scanCache()', () => {
-    it('does not route when cache empty', async () => {
-      const router = TypeMoq.Mock.ofType<IRouter>();
-      const localScanner = new Scanner(config, router.object);
-
-      await localScanner.scanCache();
-
-      router.verify(r => r.route(TypeMoq.It.isAny()), TypeMoq.Times.never());
-    });
-  });
 });
