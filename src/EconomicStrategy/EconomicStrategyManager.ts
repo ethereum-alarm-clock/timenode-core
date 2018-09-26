@@ -70,6 +70,11 @@ export class EconomicStrategyManager {
       return EconomicStrategyStatus.DEPOSIT_TOO_HIGH;
     }
 
+    const windowTooShort = this.windowTooShort(txRequest);
+    if (windowTooShort) {
+      return EconomicStrategyStatus.WINDOW_TOO_SHORT;
+    }
+
     return EconomicStrategyStatus.CLAIM;
   }
 
@@ -134,12 +139,18 @@ export class EconomicStrategyManager {
     return shouldExecute;
   }
 
-  /**
-   * Checks whether a transaction requires a deposit that's higher than a
-   * user-set maximum deposit limit.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
-   */
+  private windowTooShort(txRequest: ITxRequest): boolean {
+    const minimumWIndow =
+      txRequest.temporalUnit === 1
+        ? this.strategy.minExecutionWindowBlock
+        : this.strategy.minExecutionWindow;
+    if (!minimumWIndow) {
+      return false;
+    }
+
+    return txRequest.reservedWindowSize.lessThan(minimumWIndow);
+  }
+
   private exceedsMaxDeposit(txRequest: ITxRequest): boolean {
     const requiredDeposit = txRequest.requiredDeposit;
     const maxDeposit = this.strategy.maxDeposit;
@@ -151,10 +162,13 @@ export class EconomicStrategyManager {
     return false;
   }
 
-  /**
-   * Checks if the balance of the TimeNode is above a set limit.
-   * @param {Config} config TimeNode configuration object.
-   */
+  private getTxRequestsClaimedBy(address: string): string[] {
+    return this.cache.stored().filter((txAddress: string) => {
+      const tx = this.cache.get(txAddress);
+      return tx.claimedBy === address && !tx.wasCalled;
+    });
+  }
+
   private async isAboveMinBalanceLimit(nextAccount: Address): Promise<boolean> {
     const minBalance = this.strategy.minBalance;
 
@@ -164,7 +178,7 @@ export class EconomicStrategyManager {
     // Subtract the maximum gas costs of executing all currently claimed
     // transactions. This is to ensure that a TimeNode does not fail to execute
     // because it ran out of funds.
-    const txRequestsClaimed: string[] = this.cache.getTxRequestsClaimedBy(nextAccount);
+    const txRequestsClaimed: string[] = this.getTxRequestsClaimedBy(nextAccount);
 
     this.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
 
@@ -201,12 +215,6 @@ export class EconomicStrategyManager {
     return true;
   }
 
-  /**
-   * Compares the profitability user settings and checks if the TimeNode
-   * should claim a transaction.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {Config} config TimeNode configuration object.
-   */
   private async isProfitable(txRequest: ITxRequest): Promise<boolean> {
     const paymentModifier = await txRequest.claimPaymentModifier();
     const claimingGas = new BigNumber(CLAIMING_GAS_ESTIMATE);

@@ -29,4 +29,8 @@ export interface IEconomicStrategy {
    *      to subsidize gas costs to up to 30 gwei.
    */
   maxGasSubsidy?: number;
+
+  minExecutionWindow?: number;
+
+  minExecutionWindowBlock?: number;
 }
