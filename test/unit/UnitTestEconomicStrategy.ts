@@ -37,7 +37,7 @@ describe('Economic Strategy Tests', () => {
     txRequest.setup(tx => tx.claimedBy).returns(() => claimedBy);
     txRequest.setup(tx => tx.address).returns(() => '0x987654321');
 
-    return txRequest.object;
+    return txRequest;
   };
 
   const createUtil = (gasPrice = defaultGasPrice) => {
@@ -57,9 +57,9 @@ describe('Economic Strategy Tests', () => {
   describe('shouldClaimTx()', () => {
     it('returns CLAIM if economic strategy not set or default', async () => {
       economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
-
+      const txRequest = createTxRequest();
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
-        createTxRequest(),
+        txRequest.object,
         account
       );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
@@ -76,9 +76,9 @@ describe('Economic Strategy Tests', () => {
         cache.object,
         null
       );
-
+      const txRequest = createTxRequest();
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
-        createTxRequest(),
+        txRequest.object,
         account
       );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.DEPOSIT_TOO_HIGH);
@@ -95,9 +95,9 @@ describe('Economic Strategy Tests', () => {
         cache.object,
         null
       );
-
+      const txRequest = createTxRequest();
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
-        createTxRequest(),
+        txRequest.object,
         account
       );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.INSUFFICIENT_BALANCE);
@@ -114,12 +114,58 @@ describe('Economic Strategy Tests', () => {
         cache.object,
         null
       );
-
+      const txRequest = createTxRequest();
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
-        createTxRequest(),
+        txRequest.object,
         account
       );
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.NOT_PROFITABLE);
+    });
+
+    it('returns WINDOW_TOO_SHORT if reserved window in timestamp is too short', async () => {
+      const strategy: IEconomicStrategy = {
+        minExecutionWindow: 600
+      };
+
+      economicStrategyManager = new EconomicStrategyManager(
+        strategy,
+        defaultUtil,
+        cache.object,
+        null
+      );
+
+      const txRequest = createTxRequest();
+      txRequest.setup(t => t.temporalUnit).returns(() => 2);
+      txRequest.setup(t => t.reservedWindowSize).returns(() => new BigNumber(100));
+
+      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
+        txRequest.object,
+        account
+      );
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.WINDOW_TOO_SHORT);
+    });
+
+    it('returns WINDOW_TOO_SHORT if reserved window in block is too short', async () => {
+      const strategy: IEconomicStrategy = {
+        minExecutionWindowBlock: 600
+      };
+
+      economicStrategyManager = new EconomicStrategyManager(
+        strategy,
+        defaultUtil,
+        cache.object,
+        null
+      );
+
+      const txRequest = createTxRequest();
+      txRequest.setup(t => t.temporalUnit).returns(() => 1);
+      txRequest.setup(t => t.reservedWindowSize).returns(() => new BigNumber(100));
+
+      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
+        txRequest.object,
+        account
+      );
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.WINDOW_TOO_SHORT);
     });
   });
 
@@ -128,7 +174,7 @@ describe('Economic Strategy Tests', () => {
       const currentNetworkPrice = await defaultUtil.networkGasPrice();
 
       economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
-      const gasPrice = await economicStrategyManager.getExecutionGasPrice(createTxRequest());
+      const gasPrice = await economicStrategyManager.getExecutionGasPrice(createTxRequest().object);
       assert.equal(gasPrice.toNumber(), currentNetworkPrice.toNumber());
     });
 
@@ -144,7 +190,7 @@ describe('Economic Strategy Tests', () => {
         cache.object,
         null
       );
-      const gasPrice = await economicStrategyManager.getExecutionGasPrice(createTxRequest());
+      const gasPrice = await economicStrategyManager.getExecutionGasPrice(createTxRequest().object);
 
       assert.equal(gasPrice.toNumber(), currentNetworkPrice.toNumber());
     });
@@ -159,7 +205,7 @@ describe('Economic Strategy Tests', () => {
         cache.object,
         null
       );
-      const txRequest = createTxRequest();
+      const txRequest = createTxRequest().object;
       const gasPrice = await economicStrategyManager.getExecutionGasPrice(txRequest);
 
       assert.equal(gasPrice.toNumber(), txRequest.gasPrice.toNumber());
@@ -179,7 +225,7 @@ describe('Economic Strategy Tests', () => {
         cache.object,
         null
       );
-      const gasPrice = await economicStrategyManager.getExecutionGasPrice(txRequest);
+      const gasPrice = await economicStrategyManager.getExecutionGasPrice(txRequest.object);
 
       assert.equal(gasPrice.toNumber(), currentNetworkPrice.toNumber());
     });
@@ -190,7 +236,7 @@ describe('Economic Strategy Tests', () => {
       };
 
       const lowerGasPrice = defaultGasPrice.div(2);
-      const txRequest = createTxRequest(lowerGasPrice);
+      const txRequest = createTxRequest(lowerGasPrice).object;
 
       const expectedResult = txRequest.gasPrice.plus(
         txRequest.gasPrice.times(strategy.maxGasSubsidy / 100)
@@ -213,7 +259,7 @@ describe('Economic Strategy Tests', () => {
       const txRequest = createTxRequest();
 
       economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
-      const shouldExecute = await economicStrategyManager.shouldExecuteTx(txRequest);
+      const shouldExecute = await economicStrategyManager.shouldExecuteTx(txRequest.object);
       assert.isTrue(shouldExecute);
     });
 
@@ -222,7 +268,7 @@ describe('Economic Strategy Tests', () => {
       const util = createUtil(defaultGasPrice.times(1000));
 
       economicStrategyManager = new EconomicStrategyManager(null, util, cache.object, null);
-      const shouldExecute = await economicStrategyManager.shouldExecuteTx(txRequest);
+      const shouldExecute = await economicStrategyManager.shouldExecuteTx(txRequest.object);
 
       assert.isFalse(shouldExecute);
     });
@@ -232,7 +278,7 @@ describe('Economic Strategy Tests', () => {
 
       economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
 
-      const shouldExecute = await economicStrategyManager.shouldExecuteTx(txRequest);
+      const shouldExecute = await economicStrategyManager.shouldExecuteTx(txRequest.object);
       assert.isTrue(shouldExecute);
     });
   });
