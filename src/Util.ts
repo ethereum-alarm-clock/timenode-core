@@ -2,9 +2,45 @@ import BigNumber from 'bignumber.js';
 import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
 
-import { IBlock, ITxRequest } from './Types';
+import { IBlock, IService, IServices, ITxRequest } from './Types';
+
+function apiCall(url: string): Promise<any> {
+  const { window } = this;
+  return window.fetch(url)
+    .then((response :any) => {
+      if (!response.ok) {
+        throw new Error(response.statusText)
+      }
+      return response.json()
+    })
+    .then((data: any) => { /* <-- data inferred as { data: T }*/
+      return data.data
+    })
+}
+
+const SERVICES: IServices = {//should return GWEI value of the gasPrice
+  '1': [
+    {
+      api: 'https://dev.blockscale.net/api/gasexpress.json',
+      field: 'standard'
+    },
+    {
+      api: 'https://ethgasstation.info/json/ethgasAPI.json',
+      field: 'average',
+      morph: (val: any): number => {
+        return Number(val)/10; 
+      }
+    }
+  ]
+};
 
 export default class W3Util {
+  public web3: any;
+
+  constructor(web3?: any) {
+    this.web3 = web3;
+  }
+
 
   public static isHTTPConnection(url: string) : boolean {
     return url.includes('http://') || url.includes('https://');
@@ -46,12 +82,6 @@ export default class W3Util {
   public static testProvider(providerUrl: string): Promise<boolean> {
     const web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
     return W3Util.isWatchingEnabled(web3);
-  }
-
-  public web3: any;
-
-  constructor(web3?: any) {
-    this.web3 = web3;
   }
 
   public calculateGasAmount(txRequest: ITxRequest): BigNumber {
