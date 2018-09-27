@@ -1,7 +1,7 @@
 export interface IService {
     api: string,
     field: string,
-    morph?: Function
+    morph?: (value: any) => Number;
 }
 
 export interface IServices {

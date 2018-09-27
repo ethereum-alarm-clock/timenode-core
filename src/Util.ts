@@ -37,11 +37,6 @@ const SERVICES: IServices = {//should return GWEI value of the gasPrice
 export default class W3Util {
   public web3: any;
 
-  constructor(web3?: any) {
-    this.web3 = web3;
-  }
-
-
   public static isHTTPConnection(url: string) : boolean {
     return url.includes('http://') || url.includes('https://');
   }
@@ -82,6 +77,10 @@ export default class W3Util {
   public static testProvider(providerUrl: string): Promise<boolean> {
     const web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
     return W3Util.isWatchingEnabled(web3);
+  }
+
+  constructor(web3?: any) {
+    this.web3 = web3;
   }
 
   public calculateGasAmount(txRequest: ITxRequest): BigNumber {
