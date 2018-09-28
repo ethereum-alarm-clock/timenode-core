@@ -97,9 +97,31 @@ export default class W3Util {
     });
   }
 
-  public networkGasPrice(): Promise<BigNumber> {
+  public getNetworkId(): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.web3.eth.getGasPrice((e: any, r: any) => (e ? reject(e) : resolve(r)));
+      this.web3.version.getNetwork((e: any, r: any) => (e ? reject(e) : resolve(r)));
+    });
+  }
+
+
+  public networkGasPrice(): Promise<BigNumber> {
+    return new Promise(async(resolve, reject) => {
+      try {
+        const networkId = await this.getNetworkId();
+        for ( let s = 0; s < SERVICES[networkId].length; s++) {
+          try {
+            const service: IService = SERVICES[networkId][s]
+            const data = await apiCall(service.api);
+            console.log(data);
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        
+      } catch (e) {
+        this.web3.eth.getGasPrice((e: any, r: any) => (e ? reject(e) : resolve(r)));
+      }
     });
   }
 
