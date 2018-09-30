@@ -2,8 +2,6 @@ import BigNumber from 'bignumber.js';
 
 import Cache, { ICachedTxDetails } from '../Cache';
 import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
-import { ClaimStatus, ExecuteStatus } from '../Enum';
-import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ILogger } from '../Logger';
 import { Address, ITxRequest } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
@@ -13,6 +11,7 @@ import { getAbortedExecuteStatus, isAborted, isExecuted } from './Helpers';
 import { ILedger } from './Ledger';
 import { Pending } from './Pending';
 import { Operation } from '../Types/Operation';
+import { ClaimStatus, ExecuteStatus, TxSendErrors } from '../Enum';
 
 export default interface IActions {
   claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus>;
