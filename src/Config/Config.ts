@@ -1,3 +1,6 @@
+// tslint:disable-next-line:no-reference
+/// <reference path="../global.d.ts" />
+
 import * as EAC from 'eac.js-lib';
 import Cache from '../Cache';
 import { Wallet } from '../Wallet';
@@ -26,14 +29,16 @@ export default class Config implements IConfigParams {
     maxGasSubsidy: 100
   };
 
+  public activeProviderUrl: string;
   public autostart: boolean;
   public cache: Cache<ICachedTxDetails>;
   public claiming: boolean;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
   public logger?: ILogger;
+  public maxRetries?: number;
   public ms: any;
-  public providerUrl: string;
+  public providerUrls: string[];
   public scanSpread: any;
   public statsDb: StatsDB;
   public statsDbLoaded: Promise<boolean>;
@@ -49,13 +54,14 @@ export default class Config implements IConfigParams {
 
   // tslint:disable-next-line:cognitive-complexity
   constructor(params: IConfigParams) {
-    if (params.providerUrl) {
-      this.web3 = W3Util.getWeb3FromProviderUrl(params.providerUrl);
+    if (params.providerUrls.length) {
+      this.web3 = W3Util.getWeb3FromProviderUrl(params.providerUrls[0]);
+      this.activeProviderUrl = params.providerUrls[0];
       this.util = new W3Util(this.web3);
       this.eac = EAC(this.web3);
-      this.providerUrl = params.providerUrl;
+      this.providerUrls = params.providerUrls;
     } else {
-      throw new Error('Please set the providerUrl in the config object.');
+      throw new Error('Must pass at least 1 providerUrl to the config object.');
     }
 
     this.economicStrategy = params.economicStrategy || {
@@ -67,13 +73,14 @@ export default class Config implements IConfigParams {
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
+    this.maxRetries = params.maxRetries || 30;
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
     this.txPool = new TxPool(this);
     this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.util);
-    this.cache = new Cache(this.eac, this.logger);
+    this.cache = new Cache(this.logger);
     this.economicStrategyManager = new EconomicStrategyManager(
       this.economicStrategy,
       this.util,

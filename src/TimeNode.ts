@@ -4,12 +4,14 @@ import { Networks } from './Enum';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
-
+import W3Util from './Util';
+import WsReconnect from './WsReconnect';
 export default class TimeNode {
   public actions: Actions;
   public config: Config;
   public scanner: Scanner;
   public router: Router;
+  public wsReconnect: WsReconnect;
 
   constructor(config: Config) {
     this.actions = new Actions(
@@ -33,6 +35,13 @@ export default class TimeNode {
 
     this.config = config;
     this.scanner = new Scanner(this.config, this.router);
+
+    const { logger, providerUrls } = this.config;
+    if (W3Util.isWSConnection(providerUrls[0])) {
+      logger.debug('WebSockets provider detected! Setting up reconnect events...');
+      this.wsReconnect = new WsReconnect(this);
+      this.wsReconnect.setup();
+    }
 
     this.startupMessage();
   }

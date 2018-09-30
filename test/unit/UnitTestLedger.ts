@@ -5,6 +5,7 @@ import { ILedger, Ledger } from '../../src/Actions/Ledger';
 import { ITxRequest } from '../../src/Types';
 import { IStatsDB } from '../../src/Stats/StatsDB';
 import { Operation } from '../../src/Types/Operation';
+import { ITransactionReceipt, ILog } from '../../src/Types/ITransactionReceipt';
 
 describe('Ledger Unit Tests', async () => {
   const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
@@ -39,12 +40,11 @@ describe('Ledger Unit Tests', async () => {
   beforeEach(reset);
 
   it('should account for required deposit and tx cost when claiming was successful', async () => {
-    const receipt = {
-      status: 1,
-      gasUsed: gas
-    };
+    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => '0x1');
+    receipt.setup(r => r.gasUsed).returns(() => gas);
 
-    ledger.accountClaiming(receipt, txRequest.object, opts, account2);
+    ledger.accountClaiming(receipt.object, txRequest.object, opts, account2);
 
     const expectedCost = gasPrice.mul(gas).add(requiredDeposit);
 
@@ -54,12 +54,11 @@ describe('Ledger Unit Tests', async () => {
   });
 
   it('should account for tx cost when claiming failed', async () => {
-    const receipt = {
-      status: 0,
-      gasUsed: gas
-    };
+    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => '0x0');
+    receipt.setup(r => r.gasUsed).returns(() => gas);
 
-    ledger.accountClaiming(receipt, txRequest.object, opts, account2);
+    ledger.accountClaiming(receipt.object, txRequest.object, opts, account2);
 
     const expectedCost = gasPrice.mul(gas);
 
@@ -69,20 +68,22 @@ describe('Ledger Unit Tests', async () => {
   });
 
   it('should account for bounty only when execution was successful', async () => {
-    const receipt = {
-      status: 1,
-      gasUsed: gas,
-      logs: [
-        {
-          data:
-            '0x000000000000000000000000000000000000000000000000000fe3c87f4b736300000000000000000000000000000000000000000000000000000002540be4000000000000000000000000000000000000000000000000000000000000030cd6'
-        }
-      ]
-    };
+    const log = TypeMoq.Mock.ofType<ILog>();
+    log
+      .setup(l => l.data)
+      .returns(
+        () =>
+          '0x000000000000000000000000000000000000000000000000000fe3c87f4b736300000000000000000000000000000000000000000000000000000002540be4000000000000000000000000000000000000000000000000000000000000030cd6'
+      );
 
-    ledger.accountExecution(txRequest.object, receipt, opts, account2, true);
+    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => '0x1');
+    receipt.setup(r => r.gasUsed).returns(() => gas);
+    receipt.setup(r => r.logs).returns(() => [log.object]);
 
-    const gasUsed = new BigNumber(receipt.gasUsed);
+    ledger.accountExecution(txRequest.object, receipt.object, opts, account2, true);
+
+    const gasUsed = new BigNumber(receipt.object.gasUsed);
     const actualGasPrice = opts.gasPrice;
     const expectedCost = new BigNumber(0);
     const expectedReward = new BigNumber(
@@ -98,12 +99,11 @@ describe('Ledger Unit Tests', async () => {
   });
 
   it('should account for tx costs when execution was not successful', async () => {
-    const receipt = {
-      status: 0,
-      gasUsed: gas
-    };
+    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => '0x0');
+    receipt.setup(r => r.gasUsed).returns(() => gas);
 
-    ledger.accountExecution(txRequest.object, receipt, opts, account2, false);
+    ledger.accountExecution(txRequest.object, receipt.object, opts, account2, false);
 
     const expectedReward = new BigNumber(0);
     const expectedCost = gasPrice.mul(gas);

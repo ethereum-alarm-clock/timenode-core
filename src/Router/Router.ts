@@ -68,6 +68,7 @@ export default class Router implements IRouter {
     }
 
     if (!(await txRequest.inClaimWindow()) || txRequest.isClaimed) {
+      this.cache.get(txRequest.address).claimedBy = txRequest.claimedBy;
       return TxStatus.FreezePeriod;
     }
 
@@ -156,13 +157,14 @@ export default class Router implements IRouter {
     return TxStatus.ExecutionWindow;
   }
 
-  public async executed(): Promise<TxStatus> {
+  public async executed(txRequest: ITxRequest): Promise<TxStatus> {
     /**
      * We don't cleanup because cleanup needs refactor according to latest logic in EAC
      * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
      *
      * await this.actions.cleanup(txRequest);
      */
+    this.cache.get(txRequest.address).wasCalled = true;
 
     return TxStatus.Done;
   }

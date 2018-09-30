@@ -1,12 +1,25 @@
 import { expect, assert } from 'chai';
-import { TimeNode, Config } from '../../src/index';
+import { TimeNode, Config, W3Util } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { BigNumber } from 'bignumber.js';
+import { TxStatus } from '../../src/Enum';
 
 describe('TimeNode Unit Tests', () => {
   let config: Config;
   let myAccount: string;
   let timenode: TimeNode;
+  const emitEvents = {
+    emitClose: (self: any) => {
+      self.emit('close');
+    },
+    emitEnd: (self: any) => {
+      self.connection._client.emit('connectFailed');
+    },
+    emitError: (self: any) => {
+      //Trigger connection failed event
+      self.connection._client.emit('connectFailed');
+    }
+  };
 
   before(async () => {
     config = await mockConfig();
@@ -77,9 +90,9 @@ describe('TimeNode Unit Tests', () => {
     it('returns a transaction', () => {
       const tx = {
         claimedBy: config.wallet.getAddresses()[0],
-        claimingFailed: false,
         wasCalled: false,
-        windowStart: new BigNumber(10000)
+        windowStart: new BigNumber(10000),
+        status: TxStatus.FreezePeriod
       };
       config.cache.set('tx', tx);
 
@@ -108,6 +121,68 @@ describe('TimeNode Unit Tests', () => {
       assert.equal(txs.length, 1);
 
       assert.deepEqual(txs, ['0xe87529a6123a74320e13a6dabf3606630683c029']);
+    });
+  });
+
+  describe('handleDisconnections', () => {
+    it('detects Error  Disconnect', async () => {
+      const newconfig = await mockConfig();
+      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
+        return;
+      }
+      const runningNode = new TimeNode(newconfig);
+      let triggered: boolean;
+      await runningNode.startScanning();
+      assert.isTrue(runningNode.scanner.scanning);
+      Object.assign(runningNode.wsReconnect, {
+        handleWsDisconnect: () => {
+          triggered = true;
+          runningNode.stopScanning();
+        }
+      });
+      emitEvents.emitError(runningNode.config.web3.currentProvider);
+      setTimeout(() => {
+        assert.isTrue(triggered, 'Disconnect not detected');
+      }, 7000);
+    });
+
+    it('detects End  Disconnect', async () => {
+      const newconfig = await mockConfig();
+      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
+        return;
+      }
+      const runningNode = new TimeNode(newconfig);
+      let triggered: boolean;
+      await runningNode.startScanning();
+      assert.isTrue(runningNode.scanner.scanning);
+      Object.assign(runningNode.wsReconnect, {
+        handleWsDisconnect: () => {
+          triggered = true;
+          runningNode.stopScanning();
+        }
+      });
+      emitEvents.emitEnd(runningNode.config.web3.currentProvider);
+      setTimeout(() => {
+        assert.isTrue(triggered, 'Disconnect not detected');
+      }, 7000);
+    });
+
+    it('does not restart connection on stop Timenode', async () => {
+      const newconfig = await mockConfig();
+      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
+        return;
+      }
+      const runningNode = new TimeNode(newconfig);
+      let triggered: boolean;
+      await runningNode.startScanning();
+      assert.isTrue(runningNode.scanner.scanning);
+      Object.assign(runningNode, {
+        wsReconnect: () => {
+          triggered = true;
+        }
+      });
+      runningNode.stopScanning();
+      assert.isUndefined(triggered, 'Invalid Disconnect detected');
     });
   });
 });

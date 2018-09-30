@@ -6,9 +6,10 @@ export interface IConfigParams {
   claiming?: boolean;
   economicStrategy?: IEconomicStrategy;
   logger?: ILogger | null;
+  maxRetries?: number;
   ms?: any;
   password?: any;
-  providerUrl: string;
+  providerUrls: string[];
   scanSpread?: number | null;
   statsDb?: any;
   walletStores?: any;
