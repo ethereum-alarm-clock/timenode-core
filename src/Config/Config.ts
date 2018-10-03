@@ -8,7 +8,6 @@ import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy, EconomicStrategyManager } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
-import TxPool from '../TxPool';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import BigNumber from 'bignumber.js';
@@ -20,13 +19,16 @@ import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyMa
 import { Ledger } from '../Actions/Ledger';
 import { Pending } from '../Actions/Pending';
 import { AccountState } from '../Wallet/AccountState';
+import { TxPool } from '../TxPool';
 
 export default class Config implements IConfigParams {
   public static readonly DEFAULT_ECONOMIC_STRATEGY: IEconomicStrategy = {
     maxDeposit: new BigNumber(1000000000000000000),
     minBalance: new BigNumber(0),
     minProfitability: new BigNumber(0),
-    maxGasSubsidy: 100
+    maxGasSubsidy: 100,
+    minExecutionWindow: 150,
+    minExecutionWindowBlock: 10
   };
 
   public activeProviderUrl: string;
@@ -78,7 +80,7 @@ export default class Config implements IConfigParams {
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
-    this.txPool = new TxPool(this);
+    this.txPool = new TxPool(this.web3, this.util, this.logger);
     this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.util);
     this.cache = new Cache(this.logger);
     this.economicStrategyManager = new EconomicStrategyManager(

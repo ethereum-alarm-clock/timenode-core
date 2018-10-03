@@ -1,34 +1,54 @@
-import Config from '../Config';
-import { Pool, ITxPoolTxDetails } from './Pool';
 import W3Util from '../Util';
-import Cache, { ICachedTxDetails } from '../Cache';
+import { CLAIMED_EVENT, EXECUTED_EVENT } from '../Actions/Helpers';
+import BigNumber from 'bignumber.js';
+import { ILogger } from '../Logger';
+import { Operation } from '../Types/Operation';
 
 const SCAN_INTERVAL = 5000;
+const TIME_IN_POOL = 60 * 1000;
 
-export default class TxPool {
-  public config: Config;
-  public pool: Pool;
+interface IFilterTx {
+  address: string;
+  blockNumber: number;
+  topics: string[];
+  transactionHash: string;
+  type: string;
+}
+
+export interface ITxPoolTxDetails {
+  to: string;
+  from: string;
+  gasPrice: BigNumber;
+  timestamp: number;
+  transactionHash: string;
+  type: string;
+  operation: Operation;
+}
+
+export interface ITxPool {
+  pool: Map<string, ITxPoolTxDetails>;
+  running(): boolean;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
+
+export default class TxPool implements ITxPool {
+  public pool: Map<string, ITxPoolTxDetails>;
   public subs: any = {};
 
-  constructor(config: Config) {
-    this.config = config;
-    this.pool = new Pool();
-  }
+  private logger: ILogger;
+  private util: W3Util;
+  private web3: any;
 
-  private get cache(): Cache<ICachedTxDetails> {
-    return this.config.cache;
-  }
-
-  private get logger(): any {
-    return this.config.logger;
-  }
-
-  private get util(): W3Util {
-    return this.config.util;
+  constructor(web3: any, util: W3Util, logger: ILogger) {
+    this.web3 = web3;
+    this.logger = logger;
+    this.util = util;
+    this.pool = new Map<string, ITxPoolTxDetails>();
   }
 
   public running() {
-    return !this.pool.isEmpty() || !!this.subs.pending || !!this.subs.latest;
+    return this.pool.size > 0 || !!this.subs.pending || !!this.subs.latest;
   }
 
   public async start() {
@@ -36,105 +56,88 @@ export default class TxPool {
       await this.stop();
     }
     await this.watchPending();
-    await this.watchLatest();
     if (this.running()) {
       await this.clearMined();
     }
     this.logger.debug('TxPool started');
   }
 
-  public async stop(): Promise<boolean> {
+  public async stop() {
     if (this.subs.pending) {
-      await this.util.stopFilter(this.subs.pending)
-      .catch ((e) => {
+      await this.util.stopFilter(this.subs.pending).catch(e => {
         this.logger.error(e);
       });
     }
     if (this.subs.latest) {
-      await this.util.stopFilter(this.subs.latest)
-      .catch ((e) => {
+      await this.util.stopFilter(this.subs.latest).catch(e => {
         this.logger.error(e);
-      })
+      });
     }
     if (this.subs.mined) {
       clearInterval(this.subs.mined);
     }
-    this.pool.wipe();
     this.subs = {};
     this.logger.debug('TxPool STOPPED');
-
-    return true;
   }
 
-  public async watchPending() {
-    this.subs.pending = await this.config.web3.eth.filter('pending');
+  private async watchPending() {
+    this.subs.pending = await this.web3.eth.filter({
+      fromBlock: 'pending',
+      toBlock: 'pending',
+      topics: [CLAIMED_EVENT, EXECUTED_EVENT]
+    });
     if (!this.subs.pending) {
       return;
     }
-    this.subs.pending.watch(async (err: any, res: any) => {
+    this.subs.pending.watch(async (err: any, res: IFilterTx) => {
       if (err) {
         return this.logger.error(err);
       }
 
-      if (!this.pool.preSet(res)) {
-        return;
-      }
+      const { transactionHash, type } = res;
+      const operation =
+        res.topics.indexOf(CLAIMED_EVENT) > -1 ? Operation.CLAIM : Operation.EXECUTE;
 
-      try {
-        const tx: any = await this.util.getTransaction(res);
-        if (!tx || tx.blockNumber || tx.blockHash || !this.cache.has(tx.to)) {
-          return this.pool.del(res);
-        }
-
-        const poolDetails: ITxPoolTxDetails = {
-          from: tx.from,
-          to: tx.to,
-          input: tx.input,
-          gasPrice: tx.gasPrice,
-          timestamp: new Date().getTime(),
-          transactionHash: tx.hash
-        };
-
-        if (this.pool.has(res, 'transactionHash')) {
-          this.pool.set(res, poolDetails);
-        }
-      } catch (e) {
-        return this.logger.error(e);
+      if (type === 'pending' || !this.pool.has(transactionHash)) {
+        await this.setTxPoolDetails(transactionHash, type, operation);
+      } else {
+        this.pool.get(transactionHash).type = type;
       }
     });
   }
 
-  public async watchLatest() {
-    this.subs.latest = await this.config.web3.eth.filter({
-      fromBlock: 'latest',
-      toBlock: 'pending'
-    });
-    if (this.subs.latest) {
-      this.subs.latest.watch(async (err: any, res: any) => {
-        if (err) {
-          return this.config.logger.error(err);
-        }
+  private async setTxPoolDetails(transactionHash: string, type: string, operation: Operation) {
+    try {
+      const poolDetails = await this.getTxPoolDetails(transactionHash, type, operation);
 
-        this.pool.del(res.transactionHash);
-      });
+      this.pool.set(transactionHash, poolDetails);
+    } catch (e) {
+      this.logger.error(e);
     }
   }
 
-  public async clearMined() {
+  private async getTxPoolDetails(transactionHash: string, type: string, operation: Operation) {
+    const tx: any = await this.util.getTransaction(transactionHash);
+    const poolDetails: ITxPoolTxDetails = {
+      from: tx.from,
+      to: tx.to,
+      gasPrice: tx.gasPrice,
+      timestamp: new Date().getTime(),
+      transactionHash,
+      type,
+      operation
+    };
+    return poolDetails;
+  }
+
+  private async clearMined() {
     this.subs.mined = setInterval(() => {
-      this.pool
-        .stored()
-        .filter((hash: string) => this.pool.get(hash, 'transactionHash').length > 0)
-        .forEach(async (hash: string) => {
-          try {
-            const tx: any = await this.util.getTransaction(hash);
-            if (!tx || tx.blockNumber || tx.blockHash) {
-              return this.pool.del(hash);
-            }
-          } catch (e) {
-            return this.config.logger.error(e);
-          }
-        });
+      const now = new Date().getTime();
+      this.pool.forEach((value, key) => {
+        if (now - value.timestamp > TIME_IN_POOL) {
+          this.pool.delete(key);
+        }
+      });
     }, SCAN_INTERVAL);
   }
 }

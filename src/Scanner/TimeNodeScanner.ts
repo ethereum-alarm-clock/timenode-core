@@ -2,8 +2,8 @@
 import ChainScanner from './ChainScanner';
 import Config from '../Config';
 import IRouter from '../Router';
-import TxPool from '../TxPool';
 import { IntervalId } from '../Types';
+import { TxPool } from '../TxPool';
 
 declare const clearInterval: any;
 declare const setInterval: any;
