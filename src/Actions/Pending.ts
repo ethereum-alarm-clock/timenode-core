@@ -1,6 +1,5 @@
 import BigNumber from 'bignumber.js';
 
-import { ILogger, DefaultLogger } from '../Logger';
 import { ITxRequestPending } from '../Types/ITxRequest';
 import W3Util from '../Util';
 import { Operation } from '../Types/Operation';
@@ -12,15 +11,15 @@ interface PendingOpts {
   minPrice?: BigNumber;
 }
 
+const NETWORK_GAS_PRICE_RATIO = 0.3;
+
 export class Pending {
   private util: W3Util;
   private txPool: ITxPool;
-  private logger: ILogger;
 
-  constructor(util: W3Util, txPool: ITxPool, logger: ILogger = new DefaultLogger()) {
+  constructor(util: W3Util, txPool: ITxPool) {
     this.util = util;
     this.txPool = txPool;
-    this.logger = logger;
   }
 
   /**
@@ -36,21 +35,15 @@ export class Pending {
   }
 
   private async hasPendingPool(txRequest: ITxRequestPending, opts: PendingOpts): Promise<boolean> {
-    try {
-      const currentGasPrice = await this.util.networkGasPrice();
-      return Array.from(this.txPool.pool.values()).some(poolTx => {
-        const hasCorrectAddress = poolTx.to === txRequest.address;
-        const withValidGasPrice =
-          !opts.checkGasPrice || this.hasValidGasPrice(currentGasPrice, poolTx, opts.minPrice);
-        const hasCorrectOperation = poolTx.operation === opts.type;
+    const currentGasPrice = await this.util.networkGasPrice();
+    return Array.from(this.txPool.pool.values()).some(poolTx => {
+      const hasCorrectAddress = poolTx.to === txRequest.address;
+      const withValidGasPrice =
+        !opts.checkGasPrice || this.hasValidGasPrice(currentGasPrice, poolTx, opts.minPrice);
+      const hasCorrectOperation = poolTx.operation === opts.type;
 
-        return hasCorrectAddress && withValidGasPrice && hasCorrectOperation;
-      });
-    } catch (e) {
-      this.logger.info(e);
-    }
-
-    return true; //if there is an error, assume tq exists so we don't loose
+      return hasCorrectAddress && withValidGasPrice && hasCorrectOperation;
+    });
   }
 
   private hasValidGasPrice(
@@ -58,10 +51,11 @@ export class Pending {
     transaction: ITxPoolTxDetails,
     minPrice?: BigNumber
   ) {
-    const spread = 0.3;
     const hasMinPrice: boolean = !minPrice || minPrice.lte(transaction.gasPrice);
     return (
-      hasMinPrice && networkPrice && networkPrice.times(spread).lte(transaction.gasPrice.valueOf())
+      hasMinPrice &&
+      networkPrice &&
+      networkPrice.times(NETWORK_GAS_PRICE_RATIO).lte(transaction.gasPrice.valueOf())
     );
   }
 }
