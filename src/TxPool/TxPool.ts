@@ -56,7 +56,9 @@ export default class TxPool implements ITxPool {
     if (this.running()) {
       await this.stop();
     }
+
     await this.watchPending();
+    this.clearMined();
 
     this.logger.debug('TxPool started');
   }
@@ -93,7 +95,7 @@ export default class TxPool implements ITxPool {
     );
   }
 
-  private async clearMined() {
+  private clearMined() {
     this.subs.mined = setInterval(() => {
       const now = new Date().getTime();
       this.pool.forEach((value, key) => {
