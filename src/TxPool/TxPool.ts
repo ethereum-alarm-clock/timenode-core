@@ -57,9 +57,7 @@ export default class TxPool implements ITxPool {
       await this.stop();
     }
     await this.watchPending();
-    if (this.running()) {
-      await this.clearMined();
-    }
+
     this.logger.debug('TxPool started');
   }
 
