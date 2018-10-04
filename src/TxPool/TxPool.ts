@@ -49,7 +49,7 @@ export default class TxPool implements ITxPool {
   }
 
   public running() {
-    return this.pool.size > 0 || !!this.subs.pending || !!this.subs.latest;
+    return !!this.subs[EXECUTED_EVENT] && !!this.subs[CLAIMED_EVENT];
   }
 
   public async start() {
@@ -64,16 +64,9 @@ export default class TxPool implements ITxPool {
   }
 
   public async stop() {
-    if (this.subs.pending) {
-      await this.util.stopFilter(this.subs.pending).catch(e => {
-        this.logger.error(e);
-      });
-    }
-    if (this.subs.latest) {
-      await this.util.stopFilter(this.subs.latest).catch(e => {
-        this.logger.error(e);
-      });
-    }
+    await this.stopTopic(CLAIMED_EVENT);
+    await this.stopTopic(EXECUTED_EVENT);
+
     if (this.subs.mined) {
       clearInterval(this.subs.mined);
     }
@@ -81,16 +74,29 @@ export default class TxPool implements ITxPool {
     this.logger.debug('TxPool STOPPED');
   }
 
+  private async stopTopic(topic: string) {
+    if (this.subs[topic]) {
+      await this.util.stopFilter(this.subs[topic]).catch(e => {
+        this.logger.error(e);
+      });
+    }
+  }
+
   private async watchPending() {
-    this.subs.pending = await this.web3.eth.filter({
+    await this.watchTopic(CLAIMED_EVENT);
+    await this.watchTopic(EXECUTED_EVENT);
+  }
+
+  private async watchTopic(topic: string) {
+    this.subs[topic] = await this.web3.eth.filter({
       fromBlock: 'pending',
       toBlock: 'pending',
-      topics: [CLAIMED_EVENT, EXECUTED_EVENT]
+      topics: [topic]
     });
-    if (!this.subs.pending) {
+    if (!this.subs[topic]) {
       return;
     }
-    this.subs.pending.watch(async (err: any, res: IFilterTx) =>
+    this.subs[topic].watch(async (err: any, res: IFilterTx) =>
       this.txPoolProcessor.process(err, res, this.pool)
     );
   }
