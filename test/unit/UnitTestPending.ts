@@ -7,14 +7,8 @@ import { BigNumber } from 'bignumber.js';
 import { Operation } from '../../src/Types/Operation';
 
 describe('Pending Unit Tests', () => {
-  function createTxPoolDetails(
-    transactionHash: string,
-    address: string,
-    poolOperation: Operation,
-    gasPrice: BigNumber
-  ) {
+  function createTxPoolDetails(address: string, poolOperation: Operation, gasPrice: BigNumber) {
     const item = TypeMoq.Mock.ofType<ITxPoolTxDetails>();
-    item.setup(i => i.transactionHash).returns(() => transactionHash);
     item.setup(i => i.to).returns(() => address);
     item.setup(i => i.operation).returns(() => poolOperation);
     item.setup(i => i.gasPrice).returns(() => gasPrice);
@@ -78,7 +72,7 @@ describe('Pending Unit Tests', () => {
     const poolOperation = Operation.CLAIM;
     const requestedOperation = poolOperation;
 
-    const item = createTxPoolDetails(transactionHash, address, poolOperation, gasPrice);
+    const item = createTxPoolDetails(address, poolOperation, gasPrice);
     const txPool = createPool(transactionHash, item.object);
     const util = createUtils(gasPrice);
 
@@ -100,7 +94,7 @@ describe('Pending Unit Tests', () => {
     const poolOperation = Operation.CLAIM;
     const requestedOperation = Operation.EXECUTE;
 
-    const item = createTxPoolDetails(transactionHash, address, poolOperation, gasPrice);
+    const item = createTxPoolDetails(address, poolOperation, gasPrice);
     const txPool = createPool(transactionHash, item.object);
     const util = createUtils(gasPrice);
 
@@ -123,7 +117,7 @@ describe('Pending Unit Tests', () => {
     const poolOperation = Operation.CLAIM;
     const requestedOperation = poolOperation;
 
-    const item = createTxPoolDetails(transactionHash, address, poolOperation, gasPrice);
+    const item = createTxPoolDetails(address, poolOperation, gasPrice);
     const txPool = createPool(transactionHash, item.object);
     const util = createUtils(networkGasPrice);
 

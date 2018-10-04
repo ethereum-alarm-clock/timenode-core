@@ -90,7 +90,7 @@ export default class Config implements IConfigParams {
       this.eac,
       this.logger
     );
-    this.pending = new Pending(this.util, this.txPool, this.logger);
+    this.pending = new Pending(this.util, this.txPool);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
       this.wallet = new Wallet(

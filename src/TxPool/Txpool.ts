@@ -17,10 +17,8 @@ interface IFilterTx {
 
 export interface ITxPoolTxDetails {
   to: string;
-  from: string;
   gasPrice: BigNumber;
   timestamp: number;
-  transactionHash: string;
   type: string;
   operation: Operation;
 }
@@ -123,11 +121,9 @@ export default class TxPool implements ITxPool {
   ): Promise<ITxPoolTxDetails> {
     const tx: any = await this.util.getTransaction(transactionHash);
     return {
-      from: tx.from,
       to: tx.to,
       gasPrice: tx.gasPrice,
       timestamp: new Date().getTime(),
-      transactionHash,
       type,
       operation
     };
