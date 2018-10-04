@@ -116,9 +116,13 @@ export default class TxPool implements ITxPool {
     }
   }
 
-  private async getTxPoolDetails(transactionHash: string, type: string, operation: Operation) {
+  private async getTxPoolDetails(
+    transactionHash: string,
+    type: string,
+    operation: Operation
+  ): Promise<ITxPoolTxDetails> {
     const tx: any = await this.util.getTransaction(transactionHash);
-    const poolDetails: ITxPoolTxDetails = {
+    return {
       from: tx.from,
       to: tx.to,
       gasPrice: tx.gasPrice,
@@ -127,7 +131,6 @@ export default class TxPool implements ITxPool {
       type,
       operation
     };
-    return poolDetails;
   }
 
   private async clearMined() {
