@@ -1,4 +1,4 @@
-import { IFilterTx } from './Txpool';
+import { IFilterTx } from './TxPool';
 import { ILogger, DefaultLogger } from '../Logger';
 import { CLAIMED_EVENT, EXECUTED_EVENT } from '../Actions/Helpers';
 import { Operation } from '../Types/Operation';
