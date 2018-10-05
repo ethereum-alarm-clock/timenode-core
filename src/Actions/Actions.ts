@@ -158,7 +158,9 @@ export default class Actions implements IActions {
       to: txRequest.address,
       value: txRequest.requiredDeposit,
       gas: 120000,
-      gasPrice: await this.utils.networkGasPrice(),
+      // NOTE - as for why we use `getGasPrice` instead of `networkGasPrice` see
+      // note at `src/EconomicStrategy/EconomicStrategyManager.ts` line 221.
+      gasPrice: await this.utils.getGasPrice(),
       data: txRequest.claimData,
       operation: Operation.CLAIM
     };

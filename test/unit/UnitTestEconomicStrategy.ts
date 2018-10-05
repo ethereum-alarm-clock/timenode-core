@@ -43,6 +43,7 @@ describe('Economic Strategy Tests', () => {
   const createUtil = (gasPrice = defaultGasPrice) => {
     const util = TypeMoq.Mock.ofType<W3Util>();
     util.setup(u => u.networkGasPrice()).returns(() => Promise.resolve(gasPrice));
+    util.setup(u => u.getGasPrice()).returns(() => Promise.resolve(gasPrice));
     util.setup(u => u.balanceOf(TypeMoq.It.isAny())).returns(() => Promise.resolve(defaultBalance));
     util.setup(u => u.calculateGasAmount(TypeMoq.It.isAny())).returns(() => MWei);
 
