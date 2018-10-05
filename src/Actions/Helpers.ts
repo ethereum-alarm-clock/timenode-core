@@ -2,6 +2,8 @@ import { AbortReason, ExecuteStatus } from '../Enum';
 
 const EXECUTED_EVENT = '0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9';
 const ABORTED_EVENT = '0xc008bc849b42227c61d5063a1313ce509a6e99211bfd59e827e417be6c65c81b';
+const CLAIMED_EVENT = '0xbcb472984264b16baa8cde752f2af002ea8ce06f35d81caee36625234edd2a46';
+
 const abortReasonToExecuteStatus = new Map<AbortReason, ExecuteStatus>([
   [AbortReason.WasCancelled, ExecuteStatus.ABORTED_WAS_CANCELLED],
   [AbortReason.AlreadyCalled, ExecuteStatus.ABORTED_ALREADY_CALLED],
@@ -49,5 +51,6 @@ export {
   getAbortedExecuteStatus,
   isTransactionStatusSuccessful,
   EXECUTED_EVENT,
-  ABORTED_EVENT
+  ABORTED_EVENT,
+  CLAIMED_EVENT
 };

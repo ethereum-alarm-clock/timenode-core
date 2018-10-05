@@ -54,7 +54,7 @@ export default class Actions implements IActions {
     if (!this.wallet.isAccountAbleToSendTx(nextAccount)) {
       return ClaimStatus.ACCOUNT_BUSY;
     }
-    if (await this.pending.hasPending(txRequest, { type: 'claim', checkGasPrice: true })) {
+    if (await this.pending.hasPending(txRequest, { type: Operation.CLAIM, checkGasPrice: true })) {
       return ClaimStatus.PENDING;
     }
 
@@ -147,7 +147,7 @@ export default class Actions implements IActions {
 
   private async hasPendingExecuteTransaction(txRequest: ITxRequest): Promise<boolean> {
     return this.pending.hasPending(txRequest, {
-      type: 'execute',
+      type: Operation.EXECUTE,
       checkGasPrice: true,
       minPrice: txRequest.gasPrice
     });
