@@ -10,7 +10,7 @@ import {
   IEconomicStrategyManager
 } from '../../src/EconomicStrategy/EconomicStrategyManager';
 import { EconomicStrategyStatus } from '../../src/Enum';
-import { ITxRequest } from '../../src/Types';
+import { ITxRequest, GasPriceEstimation } from '../../src/Types';
 
 // tslint:disable-next-line:no-big-function
 describe('Economic Strategy Tests', () => {
@@ -44,6 +44,14 @@ describe('Economic Strategy Tests', () => {
     const util = TypeMoq.Mock.ofType<W3Util>();
     util.setup(u => u.networkGasPrice()).returns(() => Promise.resolve(gasPrice));
     util.setup(u => u.getGasPrice()).returns(() => Promise.resolve(gasPrice));
+    util.setup(u => u.getAdvancedNetworkGasPrice()).returns(() =>
+      Promise.resolve({
+        safeLow: gasPrice,
+        standard: gasPrice,
+        fast: gasPrice,
+        fastest: gasPrice
+      } as GasPriceEstimation)
+    );
     util.setup(u => u.balanceOf(TypeMoq.It.isAny())).returns(() => Promise.resolve(defaultBalance));
     util.setup(u => u.calculateGasAmount(TypeMoq.It.isAny())).returns(() => MWei);
 
