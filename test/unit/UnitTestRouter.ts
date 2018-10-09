@@ -49,7 +49,7 @@ describe('Router Unit Tests', () => {
 
     const economicStrategyManager = TypeMoq.Mock.ofType<IEconomicStrategyManager>();
     economicStrategyManager
-      .setup(e => e.shouldClaimTx(TypeMoq.It.isAny(), TypeMoq.It.isAny()))
+      .setup(e => e.shouldClaimTx(TypeMoq.It.isAny(), TypeMoq.It.isAny(), TypeMoq.It.isAny()))
       .returns(async () => EconomicStrategyStatus.CLAIM);
 
     txTimestamp = await mockTxRequest(web3);
@@ -64,8 +64,7 @@ describe('Router Unit Tests', () => {
       config.logger,
       config.cache,
       util.object,
-      config.pending,
-      economicStrategyManager.object
+      config.pending
     );
 
     return new Router(
@@ -74,6 +73,7 @@ describe('Router Unit Tests', () => {
       config.logger,
       actions,
       economicStrategyManager.object,
+      util.object,
       wallet.object
     );
   };

@@ -12,8 +12,12 @@ const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a sm
 export interface IEconomicStrategyManager {
   strategy: IEconomicStrategy;
 
-  shouldClaimTx(txRequest: ITxRequest, nextAccount: Address): Promise<EconomicStrategyStatus>;
-  shouldExecuteTx(txRequest: ITxRequest): Promise<boolean>;
+  shouldClaimTx(
+    txRequest: ITxRequest,
+    nextAccount: Address,
+    gasPrice: BigNumber
+  ): Promise<EconomicStrategyStatus>;
+  shouldExecuteTx(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean>;
   getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber>;
 }
 
@@ -49,13 +53,14 @@ export class EconomicStrategyManager {
    */
   public async shouldClaimTx(
     txRequest: ITxRequest,
-    nextAccount: Address
+    nextAccount: Address,
+    fastestGas: BigNumber
   ): Promise<EconomicStrategyStatus> {
     if (!this.strategy) {
       return EconomicStrategyStatus.CLAIM;
     }
 
-    const profitable = await this.isClaimingProfitable(txRequest);
+    const profitable = await this.isClaimingProfitable(txRequest, fastestGas);
     if (!profitable) {
       return EconomicStrategyStatus.NOT_PROFITABLE;
     }
@@ -84,14 +89,50 @@ export class EconomicStrategyManager {
    * @param {TransactionRequest} txRequest Transaction Request object to check.
    * @param {Config} config Configuration object.
    */
+  /* tslint:disable */
   public async getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber> {
-    const currentNetworkPrice = await this.util.networkGasPrice();
+    const { average } = await this.util.getAdvancedNetworkGasPrice();
+
+    let currentNetworkPrice = average;
 
     if (!this.strategy) {
       return currentNetworkPrice;
     }
 
-    const maxGasSubsidy = this.strategy.maxGasSubsidy;
+    const gasStats = await W3Util.getEthGasStationStats();
+    if (gasStats) {
+      // Reserved, need to send transaction before it goes to general window.
+      if (await txRequest.inReservedWindow()) {
+        const timeLeftInReservedWindow = (await txRequest.now()).sub(txRequest.reservedWindowEnd);
+        if (timeLeftInReservedWindow > gasStats.safeLowWait) {
+          currentNetworkPrice = gasStats.safeLow;
+        } else if (timeLeftInReservedWindow > gasStats.avgWait) {
+          currentNetworkPrice = gasStats.average;
+        } else if (timeLeftInReservedWindow > gasStats.fastWait) {
+          currentNetworkPrice = gasStats.fast;
+        } else if (timeLeftInReservedWindow > gasStats.fastestWait) {
+          currentNetworkPrice = gasStats.fastest;
+        } else {
+          return new BigNumber(-1);
+        }
+      } else {
+        // No longer reserved, just send it before it times out.
+        const timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
+        if (timeLeftInExecutionWindow > gasStats.safeLowWait) {
+          currentNetworkPrice = gasStats.safeLow;
+        } else if (timeLeftInExecutionWindow > gasStats.avgWait) {
+          currentNetworkPrice = gasStats.average;
+        } else if (timeLeftInExecutionWindow > gasStats.fastWait) {
+          currentNetworkPrice = gasStats.fast;
+        } else if (timeLeftInExecutionWindow > gasStats.fastestWait) {
+          currentNetworkPrice = gasStats.fastest;
+        } else {
+          return new BigNumber(-1);
+        }
+      }
+    }
+
+    const { maxGasSubsidy } = this.strategy;
 
     if (typeof maxGasSubsidy !== 'undefined' && maxGasSubsidy !== null) {
       const minGasPrice = txRequest.gasPrice;
@@ -118,8 +159,7 @@ export class EconomicStrategyManager {
    * @param {TransactionRequest} txRequest Transaction Request object to check.
    * @param {Config} config Configuration object.
    */
-  public async shouldExecuteTx(txRequest: ITxRequest): Promise<boolean> {
-    const gasPrice = await this.getExecutionGasPrice(txRequest);
+  public async shouldExecuteTx(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean> {
     const gasAmount = this.util.calculateGasAmount(txRequest);
     const reimbursement = txRequest.gasPrice.times(gasAmount);
     const deposit = txRequest.requiredDeposit;
@@ -215,12 +255,11 @@ export class EconomicStrategyManager {
     return true;
   }
 
-  private async isClaimingProfitable(txRequest: ITxRequest): Promise<boolean> {
+  private async isClaimingProfitable(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean> {
     const paymentModifier = await txRequest.claimPaymentModifier();
     const claimingGas = new BigNumber(CLAIMING_GAS_ESTIMATE);
 
-    const claimingGasPrice = (await this.util.getAdvancedNetworkGasPrice()).fastest;
-    const claimingGasCost = claimingGasPrice.times(claimingGas);
+    const claimingGasCost = gasPrice.times(claimingGas);
 
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
 

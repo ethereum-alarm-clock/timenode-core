@@ -5,8 +5,8 @@ export interface IGasPriceFetchingService {
 }
 
 export interface GasPriceEstimation {
-  safeLow: BigNumber;
-  standard: BigNumber;
+  average: BigNumber;
   fast: BigNumber;
   fastest: BigNumber;
+  safeLow: BigNumber;
 }

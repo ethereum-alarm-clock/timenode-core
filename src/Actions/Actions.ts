@@ -1,7 +1,6 @@
 import BigNumber from 'bignumber.js';
 
 import Cache, { ICachedTxDetails } from '../Cache';
-import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
 import { ClaimStatus, ExecuteStatus } from '../Enum';
 import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ILogger } from '../Logger';
@@ -15,8 +14,8 @@ import { Pending } from './Pending';
 import { Operation } from '../Types/Operation';
 
 export default interface IActions {
-  claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus>;
-  execute(txRequest: ITxRequest): Promise<ExecuteStatus>;
+  claim(txRequest: ITxRequest, nextAccount: Address, gasPrice: BigNumber): Promise<ClaimStatus>;
+  execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<ExecuteStatus>;
 }
 
 export default class Actions implements IActions {
@@ -26,7 +25,6 @@ export default class Actions implements IActions {
   private cache: Cache<ICachedTxDetails>;
   private utils: W3Util;
   private pending: Pending;
-  private economicStrategyManager: IEconomicStrategyManager;
 
   constructor(
     wallet: Wallet,
@@ -34,8 +32,7 @@ export default class Actions implements IActions {
     logger: ILogger,
     cache: Cache<ICachedTxDetails>,
     utils: W3Util,
-    pending: Pending,
-    economicStrategyManager: IEconomicStrategyManager
+    pending: Pending
   ) {
     this.wallet = wallet;
     this.logger = logger;
@@ -43,10 +40,13 @@ export default class Actions implements IActions {
     this.cache = cache;
     this.utils = utils;
     this.pending = pending;
-    this.economicStrategyManager = economicStrategyManager;
   }
 
-  public async claim(txRequest: ITxRequest, nextAccount: Address): Promise<ClaimStatus> {
+  public async claim(
+    txRequest: ITxRequest,
+    nextAccount: Address,
+    gasPrice: BigNumber
+  ): Promise<ClaimStatus> {
     //TODO: merge wallet ifs into 1 getWalletStatus or something
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.CLAIM)) {
       return ClaimStatus.IN_PROGRESS;
@@ -59,7 +59,7 @@ export default class Actions implements IActions {
     }
 
     try {
-      const opts = await this.getClaimingOpts(txRequest);
+      const opts = this.getClaimingOpts(txRequest, gasPrice);
       const { receipt, from, status } = await this.wallet.sendFromAccount(nextAccount, opts);
       await this.ledger.accountClaiming(receipt, txRequest, opts, from);
 
@@ -81,7 +81,7 @@ export default class Actions implements IActions {
     return ClaimStatus.FAILED;
   }
 
-  public async execute(txRequest: ITxRequest): Promise<ExecuteStatus> {
+  public async execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<ExecuteStatus> {
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.EXECUTE)) {
       return ExecuteStatus.IN_PROGRESS;
     }
@@ -90,7 +90,7 @@ export default class Actions implements IActions {
     }
 
     try {
-      const opts = await this.getExecutionOpts(txRequest);
+      const opts = this.getExecutionOpts(txRequest, gasPrice);
       const claimIndex = this.wallet.getAddresses().indexOf(txRequest.claimedBy);
       const wasClaimedByOurNode = claimIndex > -1;
       let executionResult: IWalletReceipt;
@@ -153,20 +153,19 @@ export default class Actions implements IActions {
     });
   }
 
-  private async getClaimingOpts(txRequest: ITxRequest): Promise<ITransactionOptions> {
+  private getClaimingOpts(txRequest: ITxRequest, gasPrice: BigNumber): ITransactionOptions {
     return {
       to: txRequest.address,
       value: txRequest.requiredDeposit,
       gas: 120000,
-      gasPrice: (await this.utils.getAdvancedNetworkGasPrice()).fastest,
+      gasPrice,
       data: txRequest.claimData,
       operation: Operation.CLAIM
     };
   }
 
-  private async getExecutionOpts(txRequest: ITxRequest): Promise<ITransactionOptions> {
+  private getExecutionOpts(txRequest: ITxRequest, gasPrice: BigNumber): ITransactionOptions {
     const gas = this.utils.calculateGasAmount(txRequest);
-    const gasPrice = await this.economicStrategyManager.getExecutionGasPrice(txRequest);
 
     return {
       to: txRequest.address,

@@ -15,10 +15,10 @@ export class BlockScaleGasPriceFetchingService implements IGasPriceFetchingServi
     const json = await response.json();
 
     return {
-      safeLow: new BigNumber(json.safeLow),
-      standard: new BigNumber(json.standard),
+      average: new BigNumber(json.standard),
       fast: new BigNumber(json.fast),
-      fastest: new BigNumber(json.fastest)
+      fastest: new BigNumber(json.fastest),
+      safeLow: new BigNumber(json.safeLow)
     };
   }
 }

@@ -1,3 +1,6 @@
+// tslint:disable-next-line:no-reference
+/// <reference path="global.d.ts" />
+
 import BigNumber from 'bignumber.js';
 import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
@@ -5,9 +8,13 @@ import * as Web3WsProvider from 'web3-providers-ws';
 import { Networks } from './Enum';
 import { IBlock, ITxRequest, GasPriceEstimation } from './Types';
 import { BlockScaleGasPriceFetchingService } from './Utils/BlockScaleGasPriceFetchingService';
+import { EthGasStationFetchingService, EthGasStationInfo } from './Utils/EthGasStationFetcher';
 
 const GAS_PRICE_FETCHING_SERVICES = {
-  [Networks.Mainnet]: new BlockScaleGasPriceFetchingService()
+  [Networks.Mainnet]: {
+    blockScale: new BlockScaleGasPriceFetchingService(),
+    ethGasStation: new EthGasStationFetchingService()
+  }
 };
 
 export default class W3Util {
@@ -53,6 +60,11 @@ export default class W3Util {
     return W3Util.isWatchingEnabled(web3);
   }
 
+  public static async getEthGasStationStats(): Promise<EthGasStationInfo> {
+    const ethGasStation = new EthGasStationFetchingService();
+    return ethGasStation.fetchGasPrice();
+  }
+
   public web3: any;
   constructor(web3?: any) {
     this.web3 = web3;
@@ -79,22 +91,33 @@ export default class W3Util {
   }
 
   public async networkGasPrice(): Promise<BigNumber> {
-    const gasPriceEstimation = await this.externalApiNetworkPrice();
+    const gasPriceEstimation = await this.externalApiGasPrice();
 
-    return (gasPriceEstimation && gasPriceEstimation.standard) || (await this.getGasPrice());
+    return (gasPriceEstimation && gasPriceEstimation.average) || (await this.getGasPrice());
   }
 
   public async getAdvancedNetworkGasPrice(): Promise<GasPriceEstimation> {
     try {
-      return await this.externalApiNetworkPrice();
+      const gasPrices = await this.externalApiGasPrice();
+      if (!gasPrices) {
+        const fallbackGasPrice = await this.getGasPrice();
+
+        return {
+          average: fallbackGasPrice,
+          fast: fallbackGasPrice,
+          fastest: fallbackGasPrice,
+          safeLow: fallbackGasPrice
+        };
+      }
+      return gasPrices;
     } catch (error) {
       const fallbackGasPrice = await this.getGasPrice();
 
       return {
-        safeLow: fallbackGasPrice,
-        standard: fallbackGasPrice,
+        average: fallbackGasPrice,
         fast: fallbackGasPrice,
-        fastest: fallbackGasPrice
+        fastest: fallbackGasPrice,
+        safeLow: fallbackGasPrice
       };
     }
   }
@@ -174,14 +197,21 @@ export default class W3Util {
     return this.web3.toHex(input);
   }
 
-  private async externalApiNetworkPrice(): Promise<GasPriceEstimation> {
+  private async externalApiGasPrice(): Promise<GasPriceEstimation> {
     const networkId = await this.getNetworkId();
-    const service = GAS_PRICE_FETCHING_SERVICES[networkId];
+    const services = GAS_PRICE_FETCHING_SERVICES[networkId];
 
-    if (!service) {
+    if (!services) {
       return null;
     }
 
-    return await service.fetchGasPrice();
+    for (const key of Object.keys(services)) {
+      const gasEstimate = await services[key].fetchGasPrice();
+      if (gasEstimate) {
+        return gasEstimate;
+      }
+    }
+
+    return null;
   }
 }

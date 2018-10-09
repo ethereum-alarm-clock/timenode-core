@@ -6,6 +6,7 @@ import Cache, { ICachedTxDetails } from '../Cache';
 import { ILogger } from '../Logger';
 import { Wallet } from '../Wallet';
 import { Operation } from '../Types/Operation';
+import { W3Util } from '..';
 
 export default interface IRouter {
   route(txRequest: ITxRequest): Promise<TxStatus>;
@@ -20,6 +21,7 @@ export default class Router implements IRouter {
   private economicStrategyManager: IEconomicStrategyManager;
   private wallet: Wallet;
   private isClaimingEnabled: boolean;
+  private util: W3Util;
 
   constructor(
     isClaimingEnabled: boolean,
@@ -27,6 +29,7 @@ export default class Router implements IRouter {
     logger: ILogger,
     actions: IActions,
     economicStrategyManager: IEconomicStrategyManager,
+    util: W3Util,
     wallet: Wallet
   ) {
     this.actions = actions;
@@ -35,6 +38,7 @@ export default class Router implements IRouter {
     this.wallet = wallet;
     this.economicStrategyManager = economicStrategyManager;
     this.isClaimingEnabled = isClaimingEnabled;
+    this.util = util;
 
     this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
     this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
@@ -74,14 +78,20 @@ export default class Router implements IRouter {
 
     if (this.isClaimingEnabled) {
       const nextAccount: Address = this.wallet.nextAccount.getAddressString();
+      const fastestGas = (await this.util.getAdvancedNetworkGasPrice()).fastest;
       const shouldClaimStatus: EconomicStrategyStatus = await this.economicStrategyManager.shouldClaimTx(
         txRequest,
-        nextAccount
+        nextAccount,
+        fastestGas
       );
 
       if (shouldClaimStatus === EconomicStrategyStatus.CLAIM) {
         try {
-          const claimingStatus: ClaimStatus = await this.actions.claim(txRequest, nextAccount);
+          const claimingStatus: ClaimStatus = await this.actions.claim(
+            txRequest,
+            nextAccount,
+            fastestGas
+          );
 
           this.handleWalletTransactionResult(claimingStatus, txRequest);
 
@@ -135,11 +145,16 @@ export default class Router implements IRouter {
       return TxStatus.ExecutionWindow;
     }
 
-    const shouldExecute = await this.economicStrategyManager.shouldExecuteTx(txRequest);
+    const executionGas = await this.economicStrategyManager.getExecutionGasPrice(txRequest);
+
+    const shouldExecute = await this.economicStrategyManager.shouldExecuteTx(
+      txRequest,
+      executionGas
+    );
 
     if (shouldExecute) {
       try {
-        const executionStatus: ExecuteStatus = await this.actions.execute(txRequest);
+        const executionStatus: ExecuteStatus = await this.actions.execute(txRequest, executionGas);
 
         this.handleWalletTransactionResult(executionStatus, txRequest);
 

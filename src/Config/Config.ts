@@ -37,22 +37,22 @@ export default class Config implements IConfigParams {
   public claiming: boolean;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
+  public economicStrategyManager: IEconomicStrategyManager;
+  public ledger: Ledger;
   public logger?: ILogger;
   public maxRetries?: number;
   public ms: any;
+  public pending: Pending;
   public providerUrls: string[];
   public scanSpread: any;
   public statsDb: StatsDB;
   public statsDbLoaded: Promise<boolean>;
+  public transactionReceiptAwaiter: ITransactionReceiptAwaiter;
   public txPool: TxPool;
   public util: W3Util;
   public wallet: Wallet;
   public web3: any;
   public walletStoresAsPrivateKeys: boolean;
-  public economicStrategyManager: IEconomicStrategyManager;
-  public transactionReceiptAwaiter: ITransactionReceiptAwaiter;
-  public ledger: Ledger;
-  public pending: Pending;
 
   // tslint:disable-next-line:cognitive-complexity
   constructor(params: IConfigParams) {
