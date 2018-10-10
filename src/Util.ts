@@ -124,7 +124,7 @@ export default class W3Util {
     }
   }
 
-  public getGasPrice(): Promise<BigNumber> {
+  public async getGasPrice(): Promise<any> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getGasPrice((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });

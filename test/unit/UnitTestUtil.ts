@@ -26,7 +26,7 @@ describe('Util Unit Tests', async () => {
       const advNetworkGasPrice = await util.getAdvancedNetworkGasPrice();
       const expectedFields = ['average', 'fast', 'fastest', 'safeLow'];
 
-      expectedFields.map(field => {
+      expectedFields.forEach(field => {
         assert.isTrue(advNetworkGasPrice[field].greaterThan(0));
       });
     });
