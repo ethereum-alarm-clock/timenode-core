@@ -87,7 +87,7 @@ export default class ChainScanner extends CacheScanner {
 
   protected async stopAllWatchers(): Promise<void> {
     for (const type of Object.keys(this.buckets)) {
-      for (const key of this.buckets[type]) {
+      for (const key of Object.keys(this.buckets[type])) {
         await this.stopWatcher(this.buckets[type][key]);
         // Reset to default value when stopping TimeNode.
         this.buckets[type][key] = -1;
