@@ -21,7 +21,10 @@
       "no-console": false,
       "no-var-requires": false,
       "comment-format": false,
-      "ordered-imports": false
+      "ordered-imports": false,
+      "await-promise": [true, "Bb"],
+      "no-unsafe-finally": true,
+      "no-return-await": true
     },
     "rulesDirectory": [
       "node_modules/tslint-microsoft-contrib"
