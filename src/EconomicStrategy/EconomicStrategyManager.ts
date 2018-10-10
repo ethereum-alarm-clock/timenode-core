@@ -95,7 +95,7 @@ export class EconomicStrategyManager {
 
       if (txRequest.temporalUnit === 1) {
         // Normalize the estimate
-        const blockTime = (stats as any).block_time;
+        const blockTime = stats.block_time;
         normalizedTimes = {
           safeLow: Math.floor(normalizedTimes.safeLow.div(blockTime)),
           avg: Math.floor(normalizedTimes.avg.div(blockTime)),
