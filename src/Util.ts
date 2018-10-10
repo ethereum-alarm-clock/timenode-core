@@ -7,7 +7,7 @@ import * as Web3WsProvider from 'web3-providers-ws';
 
 import { Networks } from './Enum';
 import {
-  BlockScaleGasPriceFetchingService,
+  BlockScaleFetchingService,
   EthGasStationFetchingService,
   EthGasStationInfo
 } from './GasEstimation';
@@ -15,18 +15,15 @@ import { IBlock, ITxRequest, GasPriceEstimation } from './Types';
 
 const GAS_PRICE_FETCHING_SERVICES = {
   [Networks.Mainnet]: {
-    blockScale: new BlockScaleGasPriceFetchingService(),
+    blockScale: new BlockScaleFetchingService(),
     ethGasStation: new EthGasStationFetchingService()
   }
 };
 
 export default class W3Util {
-  public static isHTTPConnection(url: string): boolean {
-    return url.includes('http://') || url.includes('https://');
-  }
-
-  public static isWSConnection(url: string): boolean {
-    return url.includes('ws://') || url.includes('wss://');
+  public static async getEthGasStationStats(): Promise<EthGasStationInfo> {
+    const ethGasStation = new EthGasStationFetchingService();
+    return ethGasStation.fetchGasPrice();
   }
 
   public static getWeb3FromProviderUrl(providerUrl: string) {
@@ -40,6 +37,9 @@ export default class W3Util {
     }
 
     return new Web3(provider);
+  }
+  public static isHTTPConnection(url: string): boolean {
+    return url.includes('http://') || url.includes('https://');
   }
 
   public static isWatchingEnabled(web3: any): Promise<boolean> {
@@ -58,14 +58,13 @@ export default class W3Util {
     });
   }
 
+  public static isWSConnection(url: string): boolean {
+    return url.includes('ws://') || url.includes('wss://');
+  }
+
   public static testProvider(providerUrl: string): Promise<boolean> {
     const web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
     return W3Util.isWatchingEnabled(web3);
-  }
-
-  public static async getEthGasStationStats(): Promise<EthGasStationInfo> {
-    const ethGasStation = new EthGasStationFetchingService();
-    return ethGasStation.fetchGasPrice();
   }
 
   public web3: any;

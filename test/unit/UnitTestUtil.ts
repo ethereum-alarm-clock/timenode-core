@@ -21,6 +21,17 @@ describe('Util Unit Tests', async () => {
     });
   });
 
+  describe('getAdvancedNetworkGasPrice()', () => {
+    it('returns an object containing BigNumber', async () => {
+      const advNetworkGasPrice = await util.getAdvancedNetworkGasPrice();
+      const expectedFields = ['average', 'fast', 'fastest', 'safeLow'];
+
+      expectedFields.map(field => {
+        assert.isTrue(advNetworkGasPrice[field].greaterThan(0));
+      });
+    });
+  });
+
   describe('getBlockNumber()', () => {
     it('returns a block number', async () => {
       const blockNum = await util.getBlockNumber();
