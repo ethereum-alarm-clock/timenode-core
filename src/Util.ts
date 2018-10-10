@@ -6,9 +6,12 @@ import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
 
 import { Networks } from './Enum';
+import {
+  BlockScaleGasPriceFetchingService,
+  EthGasStationFetchingService,
+  EthGasStationInfo
+} from './GasEstimation';
 import { IBlock, ITxRequest, GasPriceEstimation } from './Types';
-import { BlockScaleGasPriceFetchingService } from './Utils/BlockScaleGasPriceFetchingService';
-import { EthGasStationFetchingService, EthGasStationInfo } from './Utils/EthGasStationFetcher';
 
 const GAS_PRICE_FETCHING_SERVICES = {
   [Networks.Mainnet]: {
