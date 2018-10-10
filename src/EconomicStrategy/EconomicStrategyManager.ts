@@ -85,18 +85,41 @@ export class EconomicStrategyManager {
 
   // tslint:disable-next-line:cognitive-complexity
   public async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
+    const normalizeWaitTimes = (stats: any) => {
+      let normalizedTimes = {
+        safeLow: stats.safeLowWait.mul(10),
+        avg: stats.avgWait.mul(10),
+        fast: stats.fastWait.mul(10),
+        fastest: stats.fastestWait.mul(10)
+      };
+
+      if (txRequest.temporalUnit === 1) {
+        // Normalize the estimate
+        const blockTime = (stats as any).block_time;
+        normalizedTimes = {
+          safeLow: Math.floor(normalizedTimes.safeLow.div(blockTime)),
+          avg: Math.floor(normalizedTimes.avg.div(blockTime)),
+          fast: Math.floor(normalizedTimes.fast.div(blockTime)),
+          fastest: Math.floor(normalizedTimes.fastest.div(blockTime))
+        };
+      }
+
+      return normalizedTimes;
+    };
+
     const gasStats = await W3Util.getEthGasStationStats();
     if (gasStats) {
+      const normTimes = normalizeWaitTimes(gasStats);
       // Reserved, need to send transaction before it goes to general window.
       if (await txRequest.inReservedWindow()) {
         const timeLeftInReservedWindow = (await txRequest.now()).sub(txRequest.reservedWindowEnd);
-        if (timeLeftInReservedWindow > gasStats.safeLowWait) {
+        if (timeLeftInReservedWindow > normTimes.safeLow) {
           return gasStats.safeLow;
-        } else if (timeLeftInReservedWindow > gasStats.avgWait) {
+        } else if (timeLeftInReservedWindow > normTimes.avg) {
           return gasStats.average;
-        } else if (timeLeftInReservedWindow > gasStats.fastWait) {
+        } else if (timeLeftInReservedWindow > normTimes.fast) {
           return gasStats.fast;
-        } else if (timeLeftInReservedWindow > gasStats.fastestWait) {
+        } else if (timeLeftInReservedWindow > normTimes.fastest) {
           return gasStats.fastest;
         } else {
           return null;
@@ -104,13 +127,13 @@ export class EconomicStrategyManager {
       } else {
         // No longer reserved, just send it before it times out.
         const timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
-        if (timeLeftInExecutionWindow > gasStats.safeLowWait) {
+        if (timeLeftInExecutionWindow > normTimes.safeLow) {
           return gasStats.safeLow;
-        } else if (timeLeftInExecutionWindow > gasStats.avgWait) {
+        } else if (timeLeftInExecutionWindow > normTimes.avg) {
           return gasStats.average;
-        } else if (timeLeftInExecutionWindow > gasStats.fastWait) {
+        } else if (timeLeftInExecutionWindow > normTimes.fast) {
           return gasStats.fast;
-        } else if (timeLeftInExecutionWindow > gasStats.fastestWait) {
+        } else if (timeLeftInExecutionWindow > normTimes.fastest) {
           return gasStats.fastest;
         } else {
           return null;
@@ -190,15 +213,15 @@ export class EconomicStrategyManager {
   }
 
   private windowTooShort(txRequest: ITxRequest): boolean {
-    const minimumWIndow =
+    const minimumWindow =
       txRequest.temporalUnit === 1
         ? this.strategy.minExecutionWindowBlock
         : this.strategy.minExecutionWindow;
-    if (!minimumWIndow) {
+    if (!minimumWindow) {
       return false;
     }
 
-    return txRequest.reservedWindowSize.lessThan(minimumWIndow);
+    return txRequest.reservedWindowSize.lessThan(minimumWindow);
   }
 
   private exceedsMaxDeposit(txRequest: ITxRequest): boolean {
