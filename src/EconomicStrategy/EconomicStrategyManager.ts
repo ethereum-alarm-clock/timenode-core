@@ -83,66 +83,6 @@ export class EconomicStrategyManager {
     return EconomicStrategyStatus.CLAIM;
   }
 
-  // tslint:disable-next-line:cognitive-complexity
-  public async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
-    const normalizeWaitTimes = (stats: any) => {
-      let normalizedTimes = {
-        safeLow: stats.safeLowWait.mul(10),
-        avg: stats.avgWait.mul(10),
-        fast: stats.fastWait.mul(10),
-        fastest: stats.fastestWait.mul(10)
-      };
-
-      if (txRequest.temporalUnit === 1) {
-        // Normalize the estimate
-        const blockTime = stats.block_time;
-        normalizedTimes = {
-          safeLow: Math.floor(normalizedTimes.safeLow.div(blockTime)),
-          avg: Math.floor(normalizedTimes.avg.div(blockTime)),
-          fast: Math.floor(normalizedTimes.fast.div(blockTime)),
-          fastest: Math.floor(normalizedTimes.fastest.div(blockTime))
-        };
-      }
-
-      return normalizedTimes;
-    };
-
-    const gasStats = await W3Util.getEthGasStationStats();
-    if (gasStats) {
-      const normTimes = normalizeWaitTimes(gasStats);
-      // Reserved, need to send transaction before it goes to general window.
-      if (await txRequest.inReservedWindow()) {
-        const timeLeftInReservedWindow = (await txRequest.now()).sub(txRequest.reservedWindowEnd);
-        if (timeLeftInReservedWindow > normTimes.safeLow) {
-          return gasStats.safeLow;
-        } else if (timeLeftInReservedWindow > normTimes.avg) {
-          return gasStats.average;
-        } else if (timeLeftInReservedWindow > normTimes.fast) {
-          return gasStats.fast;
-        } else if (timeLeftInReservedWindow > normTimes.fastest) {
-          return gasStats.fastest;
-        } else {
-          return null;
-        }
-      } else {
-        // No longer reserved, just send it before it times out.
-        const timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
-        if (timeLeftInExecutionWindow > normTimes.safeLow) {
-          return gasStats.safeLow;
-        } else if (timeLeftInExecutionWindow > normTimes.avg) {
-          return gasStats.average;
-        } else if (timeLeftInExecutionWindow > normTimes.fast) {
-          return gasStats.fast;
-        } else if (timeLeftInExecutionWindow > normTimes.fastest) {
-          return gasStats.fastest;
-        } else {
-          return null;
-        }
-      }
-    }
-    return null;
-  }
-
   /**
    * Calculates the correct gas price to use for execution, taking into consideration
    * the economicStrategy `maxGasSubsidy` and the current network conditions.
@@ -303,5 +243,65 @@ export class EconomicStrategyManager {
     }
 
     return true;
+  }
+
+  // tslint:disable-next-line:cognitive-complexity
+  private async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
+    const normalizeWaitTimes = (stats: any) => {
+      let normalizedTimes = {
+        safeLow: stats.safeLowWait.mul(10),
+        avg: stats.avgWait.mul(10),
+        fast: stats.fastWait.mul(10),
+        fastest: stats.fastestWait.mul(10)
+      };
+
+      if (txRequest.temporalUnit === 1) {
+        // Normalize the estimate
+        const blockTime = stats.block_time;
+        normalizedTimes = {
+          safeLow: Math.floor(normalizedTimes.safeLow.div(blockTime)),
+          avg: Math.floor(normalizedTimes.avg.div(blockTime)),
+          fast: Math.floor(normalizedTimes.fast.div(blockTime)),
+          fastest: Math.floor(normalizedTimes.fastest.div(blockTime))
+        };
+      }
+
+      return normalizedTimes;
+    };
+
+    const gasStats = await W3Util.getEthGasStationStats();
+    if (gasStats) {
+      const normTimes = normalizeWaitTimes(gasStats);
+      // Reserved, need to send transaction before it goes to general window.
+      if (await txRequest.inReservedWindow()) {
+        const timeLeftInReservedWindow = (await txRequest.now()).sub(txRequest.reservedWindowEnd);
+        if (timeLeftInReservedWindow > normTimes.safeLow) {
+          return gasStats.safeLow;
+        } else if (timeLeftInReservedWindow > normTimes.avg) {
+          return gasStats.average;
+        } else if (timeLeftInReservedWindow > normTimes.fast) {
+          return gasStats.fast;
+        } else if (timeLeftInReservedWindow > normTimes.fastest) {
+          return gasStats.fastest;
+        } else {
+          return null;
+        }
+      } else {
+        // No longer reserved, just send it before it times out.
+        const timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
+        if (timeLeftInExecutionWindow > normTimes.safeLow) {
+          return gasStats.safeLow;
+        } else if (timeLeftInExecutionWindow > normTimes.avg) {
+          return gasStats.average;
+        } else if (timeLeftInExecutionWindow > normTimes.fast) {
+          return gasStats.fast;
+        } else if (timeLeftInExecutionWindow > normTimes.fastest) {
+          return gasStats.fastest;
+        } else {
+          return null;
+        }
+      }
+    }
+    return null;
   }
 }

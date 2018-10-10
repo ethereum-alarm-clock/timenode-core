@@ -95,7 +95,7 @@ export default class W3Util {
   public async networkGasPrice(): Promise<BigNumber> {
     const gasPriceEstimation = await this.externalApiGasPrice();
 
-    return (gasPriceEstimation && gasPriceEstimation.average) || (await this.getGasPrice());
+    return (gasPriceEstimation && gasPriceEstimation.average) || this.getGasPrice();
   }
 
   public async getAdvancedNetworkGasPrice(): Promise<GasPriceEstimation> {
@@ -124,7 +124,7 @@ export default class W3Util {
     }
   }
 
-  public async getGasPrice(): Promise<any> {
+  public getGasPrice(): Promise<BigNumber> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getGasPrice((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
