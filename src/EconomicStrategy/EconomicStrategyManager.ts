@@ -183,7 +183,7 @@ export class EconomicStrategyManager {
   }
 
   private async isAboveMinBalanceLimit(nextAccount: Address): Promise<boolean> {
-    const minBalance = this.strategy.minBalance;
+    let minBalance = this.strategy.minBalance || new BigNumber(0);
 
     // Determine the next batter up to claim.
     const currentBalance = await this.util.balanceOf(nextAccount);
@@ -195,37 +195,26 @@ export class EconomicStrategyManager {
 
     this.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
 
-    const gasPricesPromise = txRequestsClaimed.map(async (address: string) => {
-      const txRequest = await this.eac.transactionRequest(address);
-      await txRequest.refreshData();
+    const gasPrices: BigNumber[] = await Promise.all(
+      txRequestsClaimed.map(async (address: string) => {
+        const txRequest = await this.eac.transactionRequest(address);
+        await txRequest.refreshData();
 
-      return txRequest.gasPrice;
-    });
-
-    const gasPrices: BigNumber[] = await Promise.all(gasPricesPromise);
+        return txRequest.gasPrice;
+      })
+    );
 
     if (gasPrices.length) {
-      const maxGasSubsidy = this.strategy.maxGasSubsidy;
-
+      const maxGasSubsidy = (this.strategy.maxGasSubsidy || 0) / 100;
+      const subsidyFactor = maxGasSubsidy + 1;
       const costOfExecutingFutureTransactions = gasPrices.reduce(
-        (sum: BigNumber, current: BigNumber) => {
-          if (maxGasSubsidy) {
-            const maxGasPrice = current.plus(current.times(maxGasSubsidy / 100));
-            return sum.add(maxGasPrice);
-          }
-          return sum.add(current);
-        }
+        (sum: BigNumber, current: BigNumber) => sum.add(current.times(subsidyFactor))
       );
 
-      if (minBalance) {
-        return currentBalance.gt(minBalance.add(costOfExecutingFutureTransactions));
-      }
+      minBalance = minBalance.add(costOfExecutingFutureTransactions);
     }
 
-    if (minBalance) {
-      return currentBalance.gt(minBalance);
-    }
-    return true;
+    return currentBalance.gt(minBalance);
   }
 
   private async isClaimingProfitable(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean> {
