@@ -199,7 +199,11 @@ describe('Economic Strategy Tests', () => {
 
       economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
       const gasPrice = await economicStrategyManager.getExecutionGasPrice(createTxRequest().object);
-      assert.equal(gasPrice.toNumber(), currentNetworkPrice.toNumber());
+      assert.equal(
+        gasPrice.toNumber(),
+        currentNetworkPrice.toNumber(),
+        'Execution gas price is not equal to current network price!'
+      );
     });
 
     it('returns current network price if maxGasSubsidy not set', async () => {
@@ -296,7 +300,7 @@ describe('Economic Strategy Tests', () => {
       const util = createUtil(defaultGasPrice.times(1000));
 
       economicStrategyManager = new EconomicStrategyManager(null, util, cache.object, null);
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+      const gasPrice = await util.getAdvancedNetworkGasPrice();
       const shouldExecute = await economicStrategyManager.shouldExecuteTx(
         txRequest.object,
         gasPrice.average

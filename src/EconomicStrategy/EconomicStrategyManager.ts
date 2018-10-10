@@ -83,13 +83,49 @@ export class EconomicStrategyManager {
     return EconomicStrategyStatus.CLAIM;
   }
 
+  // tslint:disable-next-line:cognitive-complexity
+  public async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
+    const gasStats = await W3Util.getEthGasStationStats();
+    if (gasStats) {
+      // Reserved, need to send transaction before it goes to general window.
+      if (await txRequest.inReservedWindow()) {
+        const timeLeftInReservedWindow = (await txRequest.now()).sub(txRequest.reservedWindowEnd);
+        if (timeLeftInReservedWindow > gasStats.safeLowWait) {
+          return gasStats.safeLow;
+        } else if (timeLeftInReservedWindow > gasStats.avgWait) {
+          return gasStats.average;
+        } else if (timeLeftInReservedWindow > gasStats.fastWait) {
+          return gasStats.fast;
+        } else if (timeLeftInReservedWindow > gasStats.fastestWait) {
+          return gasStats.fastest;
+        } else {
+          return null;
+        }
+      } else {
+        // No longer reserved, just send it before it times out.
+        const timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
+        if (timeLeftInExecutionWindow > gasStats.safeLowWait) {
+          return gasStats.safeLow;
+        } else if (timeLeftInExecutionWindow > gasStats.avgWait) {
+          return gasStats.average;
+        } else if (timeLeftInExecutionWindow > gasStats.fastWait) {
+          return gasStats.fast;
+        } else if (timeLeftInExecutionWindow > gasStats.fastestWait) {
+          return gasStats.fastest;
+        } else {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+
   /**
    * Calculates the correct gas price to use for execution, taking into consideration
    * the economicStrategy `maxGasSubsidy` and the current network conditions.
    * @param {TransactionRequest} txRequest Transaction Request object to check.
    * @param {Config} config Configuration object.
    */
-  /* tslint:disable */
   public async getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber> {
     const { average } = await this.util.getAdvancedNetworkGasPrice();
 
@@ -99,36 +135,10 @@ export class EconomicStrategyManager {
       return currentNetworkPrice;
     }
 
-    const gasStats = await W3Util.getEthGasStationStats();
-    if (gasStats) {
-      // Reserved, need to send transaction before it goes to general window.
-      if (await txRequest.inReservedWindow()) {
-        const timeLeftInReservedWindow = (await txRequest.now()).sub(txRequest.reservedWindowEnd);
-        if (timeLeftInReservedWindow > gasStats.safeLowWait) {
-          currentNetworkPrice = gasStats.safeLow;
-        } else if (timeLeftInReservedWindow > gasStats.avgWait) {
-          currentNetworkPrice = gasStats.average;
-        } else if (timeLeftInReservedWindow > gasStats.fastWait) {
-          currentNetworkPrice = gasStats.fast;
-        } else if (timeLeftInReservedWindow > gasStats.fastestWait) {
-          currentNetworkPrice = gasStats.fastest;
-        } else {
-          return new BigNumber(-1);
-        }
-      } else {
-        // No longer reserved, just send it before it times out.
-        const timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
-        if (timeLeftInExecutionWindow > gasStats.safeLowWait) {
-          currentNetworkPrice = gasStats.safeLow;
-        } else if (timeLeftInExecutionWindow > gasStats.avgWait) {
-          currentNetworkPrice = gasStats.average;
-        } else if (timeLeftInExecutionWindow > gasStats.fastWait) {
-          currentNetworkPrice = gasStats.fast;
-        } else if (timeLeftInExecutionWindow > gasStats.fastestWait) {
-          currentNetworkPrice = gasStats.fastest;
-        } else {
-          return new BigNumber(-1);
-        }
+    if (this.strategy.usingSmartGasEstimation) {
+      const smartGasEstimate = await this.smartGasEstimation(txRequest);
+      if (smartGasEstimate) {
+        currentNetworkPrice = smartGasEstimate;
       }
     }
 

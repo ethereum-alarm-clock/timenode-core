@@ -7,7 +7,7 @@ import { mockConfig, mockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus, EconomicStrategyStatus } from '../../src/Enum';
-import { ITxRequest } from '../../src/Types';
+import { ITxRequest, GasPriceEstimation } from '../../src/Types';
 import { V3Wallet } from '../../src/Wallet/Wallet';
 import { BigNumber } from 'bignumber.js';
 import { IEconomicStrategyManager } from '../../src/EconomicStrategy/EconomicStrategyManager';
@@ -46,6 +46,11 @@ describe('Router Unit Tests', () => {
 
     const util = TypeMoq.Mock.ofType<W3Util>();
     util.setup(u => u.networkGasPrice()).returns(async () => new BigNumber(20000));
+    util.setup(u => u.getAdvancedNetworkGasPrice()).returns(() =>
+      Promise.resolve({
+        fastest: new BigNumber(20000)
+      } as GasPriceEstimation)
+    );
 
     const economicStrategyManager = TypeMoq.Mock.ofType<IEconomicStrategyManager>();
     economicStrategyManager
