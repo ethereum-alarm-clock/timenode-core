@@ -65,12 +65,4 @@ describe('Scanner Unit Tests', () => {
       expect(scanner.eventWatchers[previousBucket]).to.not.exist;
     });
   });
-
-  describe('watchBlockchain()', () => {
-    it('sets the buckets', async () => {
-      await scanner.watchBlockchain();
-      expect(scanner.buckets).to.haveOwnProperty('currentBuckets');
-      expect(scanner.buckets).to.haveOwnProperty('nextBuckets');
-    });
-  });
 });

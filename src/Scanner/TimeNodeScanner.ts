@@ -56,13 +56,7 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
       this.config.logger.info('Scanner STOPPED');
     }
 
-    Object.keys(this.buckets).forEach((bucketType: string) => {
-      Object.keys(this.buckets[bucketType]).forEach(async (key: string) => {
-        await this.stopWatcher(this.buckets[bucketType][key]);
-        // Reset to default value when stopping TimeNode.
-        this.buckets[bucketType][key] = -1;
-      });
-    });
+    await this.stopAllWatchers();
 
     return this.scanning;
   }
