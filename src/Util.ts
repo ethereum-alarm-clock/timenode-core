@@ -1,40 +1,13 @@
 import BigNumber from 'bignumber.js';
-import fetch from 'node-fetch';
 import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
 
 import { Networks } from './Enum';
-import { IBlock, IServices, ITxRequest } from './Types';
+import { IBlock, ITxRequest, GasPriceEstimation } from './Types';
+import { BlockScaleGasPriceFetchingService } from './Utils/BlockScaleGasPriceFetchingService';
 
-function apiCall(url: string): Promise<any> {
-  return fetch(url).then((response: any) => {
-    if (!response.ok) {
-      return new Error(response.statusText);
-    }
-    return response.json();
-  });
-}
-
-const SERVICES: IServices = {
-  //should return GWEI value of the gasPrice
-  [Networks.Mainnet]: [
-    {
-      api: 'https://dev.blockscale.net/api/gasexpress.json',
-      field: 'standard',
-      morph: (val: any): number => {
-        const GWEI = 10e9;
-        return Number(val * GWEI);
-      }
-    },
-    {
-      api: 'https://ethgasstation.info/json/ethgasAPI.json',
-      field: 'average',
-      morph: (val: any): number => {
-        const GWEI = 10e9;
-        return Number(val * GWEI) / 10;
-      }
-    }
-  ]
+const GAS_PRICE_FETCHING_SERVICES = {
+  [Networks.Mainnet]: new BlockScaleGasPriceFetchingService()
 };
 
 export default class W3Util {
@@ -106,7 +79,24 @@ export default class W3Util {
   }
 
   public async networkGasPrice(): Promise<BigNumber> {
-    return (await this.externalApiNetworkPrice()) || this.getGasPrice();
+    const gasPriceEstimation = await this.externalApiNetworkPrice();
+
+    return (gasPriceEstimation && gasPriceEstimation.standard) || (await this.getGasPrice());
+  }
+
+  public async getAdvancedNetworkGasPrice(): Promise<GasPriceEstimation> {
+    try {
+      return await this.externalApiNetworkPrice();
+    } catch (error) {
+      const fallbackGasPrice = await this.getGasPrice();
+
+      return {
+        safeLow: fallbackGasPrice,
+        standard: fallbackGasPrice,
+        fast: fallbackGasPrice,
+        fastest: fallbackGasPrice
+      };
+    }
   }
 
   public getGasPrice(): Promise<BigNumber> {
@@ -184,25 +174,14 @@ export default class W3Util {
     return this.web3.toHex(input);
   }
 
-  private async externalApiNetworkPrice(): Promise<BigNumber> {
+  private async externalApiNetworkPrice(): Promise<GasPriceEstimation> {
     const networkId = await this.getNetworkId();
-    const services = SERVICES[networkId];
+    const service = GAS_PRICE_FETCHING_SERVICES[networkId];
 
-    if (!services) {
+    if (!service) {
       return null;
     }
 
-    let result = null;
-    for (const service of services) {
-      try {
-        const data: any = await apiCall(service.api);
-        result = service.morph ? service.morph(data[service.field]) : data[service.field];
-        break;
-      } catch (e) {
-        continue;
-      }
-    }
-
-    return result;
+    return await service.fetchGasPrice();
   }
 }

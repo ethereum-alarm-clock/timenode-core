@@ -55,7 +55,7 @@ export class EconomicStrategyManager {
       return EconomicStrategyStatus.CLAIM;
     }
 
-    const profitable = await this.isProfitable(txRequest);
+    const profitable = await this.isClaimingProfitable(txRequest);
     if (!profitable) {
       return EconomicStrategyStatus.NOT_PROFITABLE;
     }
@@ -215,16 +215,11 @@ export class EconomicStrategyManager {
     return true;
   }
 
-  private async isProfitable(txRequest: ITxRequest): Promise<boolean> {
+  private async isClaimingProfitable(txRequest: ITxRequest): Promise<boolean> {
     const paymentModifier = await txRequest.claimPaymentModifier();
     const claimingGas = new BigNumber(CLAIMING_GAS_ESTIMATE);
-    // NOTE - Here we use the legacy (web3 version) of getGasPrice instead of the
-    // networkGasPrice() call. This is to ensure backwards compatibility with older
-    // versions of the TimeNode. If TimeNodes disagree about the current gasPrice,
-    // we notice disambiguous behavior between client versions which make both versions suck more.
-    // Instead we opt for maintaining the sucky version for now, to keep the levels of
-    // suck constant instead of increasing them.
-    const claimingGasPrice = await this.util.getGasPrice();
+
+    const claimingGasPrice = (await this.util.getAdvancedNetworkGasPrice()).fastest;
     const claimingGasCost = claimingGasPrice.times(claimingGas);
 
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
