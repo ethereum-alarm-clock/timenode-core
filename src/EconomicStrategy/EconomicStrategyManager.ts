@@ -219,19 +219,11 @@ export class EconomicStrategyManager {
 
   private async isClaimingProfitable(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean> {
     const paymentModifier = await txRequest.claimPaymentModifier();
-    const claimingGas = new BigNumber(CLAIMING_GAS_ESTIMATE);
-
-    const claimingGasCost = gasPrice.times(claimingGas);
-
+    const claimingGasCost = gasPrice.times(CLAIMING_GAS_ESTIMATE);
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
+    const minProfitability = this.strategy.minProfitability || new BigNumber(0);
 
-    const minProfitability = this.strategy.minProfitability;
-
-    if (minProfitability && minProfitability.gt(0)) {
-      return reward.gt(minProfitability);
-    }
-
-    return true;
+    return reward.gte(minProfitability);
   }
 
   // tslint:disable-next-line:cognitive-complexity
