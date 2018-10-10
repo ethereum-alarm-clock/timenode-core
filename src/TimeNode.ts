@@ -65,13 +65,13 @@ export default class TimeNode {
   public async startScanning(): Promise<boolean> {
     // If already scanning, hard-reset the Scanner module.
     if (this.scanner.scanning) {
-      this.scanner.stop();
+      await this.scanner.stop();
     }
 
     return this.scanner.start();
   }
 
-  public stopScanning(): boolean {
+  public stopScanning(): Promise<boolean> {
     return this.scanner.stop();
   }
 

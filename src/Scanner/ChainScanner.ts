@@ -8,7 +8,12 @@ import { TxStatus } from '../Enum';
 
 export default class ChainScanner extends CacheScanner {
   public bucketCalc: IBucketCalc;
-  public buckets: IBuckets = {
+
+  public chainInterval: IntervalId;
+  public eventWatchers: {} = {};
+  public requestFactory: Promise<any>;
+
+  private buckets: IBuckets = {
     currentBuckets: {
       blockBucket: -1,
       timestampBucket: -1
@@ -18,9 +23,6 @@ export default class ChainScanner extends CacheScanner {
       timestampBucket: -1
     }
   };
-  public chainInterval: IntervalId;
-  public eventWatchers: {} = {};
-  public requestFactory: Promise<any>;
 
   constructor(config: Config, router: IRouter) {
     super(config, router);
@@ -34,7 +36,7 @@ export default class ChainScanner extends CacheScanner {
     const buckets = await this.bucketCalc.getBuckets();
 
     if (this.buckets.nextBuckets.blockBucket === buckets.currentBuckets.blockBucket) {
-      this.stopWatcher(this.buckets.currentBuckets.blockBucket);
+      await this.stopWatcher(this.buckets.currentBuckets.blockBucket);
 
       // If we are only doing one bucket step up we only need to start one watcher.
       this.buckets.currentBuckets.blockBucket = buckets.currentBuckets.blockBucket;
@@ -55,7 +57,7 @@ export default class ChainScanner extends CacheScanner {
     }
 
     if (this.buckets.nextBuckets.timestampBucket === buckets.currentBuckets.timestampBucket) {
-      this.stopWatcher(this.buckets.currentBuckets.timestampBucket);
+      await this.stopWatcher(this.buckets.currentBuckets.timestampBucket);
 
       this.buckets.currentBuckets.timestampBucket = buckets.currentBuckets.timestampBucket;
       this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
@@ -81,6 +83,16 @@ export default class ChainScanner extends CacheScanner {
     }
 
     return previousBucket;
+  }
+
+  protected async stopAllWatchers(): Promise<void> {
+    for (const type of Object.keys(this.buckets)) {
+      for (const key of Object.keys(this.buckets[type])) {
+        await this.stopWatcher(this.buckets[type][key]);
+        // Reset to default value when stopping TimeNode.
+        this.buckets[type][key] = -1;
+      }
+    }
   }
 
   protected async startWatcher(bucket: Bucket): Promise<Bucket> {

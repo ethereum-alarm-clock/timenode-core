@@ -119,23 +119,23 @@ describe('Router Unit Tests', () => {
   describe('isLocalClaim()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns false when different address', async () => {
-        assert.isNotTrue(await router.isLocalClaim(txTimestamp));
+        assert.isNotTrue(router.isLocalClaim(txTimestamp));
       });
 
       it('returns true when same address', async () => {
         txTimestamp.claimedBy = myAccount;
-        assert.isTrue(await router.isLocalClaim(txTimestamp));
+        assert.isTrue(router.isLocalClaim(txTimestamp));
       });
     });
 
     describe(BLOCK_TX, () => {
       it('returns false when different address', async () => {
-        assert.isNotTrue(await router.isLocalClaim(txBlock));
+        assert.isNotTrue(router.isLocalClaim(txBlock));
       });
 
       it('returns true when same address', async () => {
         txBlock.claimedBy = myAccount;
-        assert.isTrue(await router.isLocalClaim(txBlock));
+        assert.isTrue(router.isLocalClaim(txBlock));
       });
     });
   });

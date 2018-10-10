@@ -31,7 +31,7 @@ export class Pending {
    * @memberof Pending
    */
   public async hasPending(txRequest: ITxRequestPending, opts: PendingOpts): Promise<boolean> {
-    return this.txPool.running() ? await this.hasPendingPool(txRequest, opts) : false;
+    return this.txPool.running() ? this.hasPendingPool(txRequest, opts) : false;
   }
 
   private async hasPendingPool(txRequest: ITxRequestPending, opts: PendingOpts): Promise<boolean> {

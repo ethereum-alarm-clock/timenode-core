@@ -55,7 +55,7 @@ export const getHelperMethods = (web3: any) => {
     } catch (error) {
       console.log(`Error ${error} in withSnapshotRevert`);
     }
-    return await revertSnapshot(snapshot);
+    return revertSnapshot(snapshot);
   }
 
   return { waitUntilBlock, withSnapshotRevert };
