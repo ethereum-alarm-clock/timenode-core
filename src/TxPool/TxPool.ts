@@ -76,9 +76,12 @@ export default class TxPool implements ITxPool {
 
   private async stopTopic(topic: string) {
     if (this.subs[topic]) {
-      await this.util.stopFilter(this.subs[topic]).catch(e => {
-        this.logger.error(e);
-      });
+      try {
+        await this.util.stopFilter(this.subs[topic]);
+        delete this.subs[topic];
+      } catch (err) {
+        this.logger.error(err);
+      }
     }
   }
 

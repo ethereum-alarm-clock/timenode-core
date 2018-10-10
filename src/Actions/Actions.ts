@@ -61,7 +61,8 @@ export default class Actions implements IActions {
     try {
       const opts = this.getClaimingOpts(txRequest, gasPrice);
       const { receipt, from, status } = await this.wallet.sendFromAccount(nextAccount, opts);
-      await this.ledger.accountClaiming(receipt, txRequest, opts, from);
+
+      this.ledger.accountClaiming(receipt, txRequest, opts, from);
 
       switch (status) {
         case TxSendErrors.OK:
@@ -85,7 +86,7 @@ export default class Actions implements IActions {
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.EXECUTE)) {
       return ExecuteStatus.IN_PROGRESS;
     }
-    if (!(await this.wallet.isNextAccountFree())) {
+    if (!this.wallet.isNextAccountFree()) {
       return ExecuteStatus.WALLET_BUSY;
     }
 
