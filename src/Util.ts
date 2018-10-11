@@ -6,18 +6,11 @@ import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
 
 import { Networks } from './Enum';
-import {
-  BlockScaleFetchingService,
-  EthGasStationFetchingService,
-  EthGasStationInfo
-} from './GasEstimation';
-import { IBlock, ITxRequest, GasPriceEstimation } from './Types';
+import { BlockScaleFetchingService, EthGasStationFetchingService } from './GasEstimation';
+import { IBlock, ITxRequest, GasPriceEstimation, EthGasStationInfo } from './Types';
 
 const GAS_PRICE_FETCHING_SERVICES = {
-  [Networks.Mainnet]: {
-    blockScale: new BlockScaleFetchingService(),
-    ethGasStation: new EthGasStationFetchingService()
-  }
+  [Networks.Mainnet]: [new BlockScaleFetchingService(), new EthGasStationFetchingService()]
 };
 
 export default class W3Util {
@@ -105,7 +98,9 @@ export default class W3Util {
         throw new Error('Could not retrieve gas prices from external source.');
       }
       return gasPrices;
-    } catch (error) {
+    } catch (e) {
+      console.error(e);
+
       const fallbackGasPrice = await this.getGasPrice();
 
       return {
@@ -200,10 +195,14 @@ export default class W3Util {
       return null;
     }
 
-    for (const key of Object.keys(services)) {
-      const gasEstimate = await services[key].fetchGasPrice();
-      if (gasEstimate) {
-        return gasEstimate;
+    for (const service of services) {
+      try {
+        const gasEstimate: GasPriceEstimation = await service.fetchGasPrice();
+        if (gasEstimate) {
+          return gasEstimate;
+        }
+      } catch (e) {
+        console.error(e);
       }
     }
 

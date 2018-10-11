@@ -1,4 +1,4 @@
 import { BlockScaleFetchingService } from './BlockScaleFetchingService';
-import { EthGasStationFetchingService, EthGasStationInfo } from './EthGasStationFetchingService';
+import { EthGasStationFetchingService } from './EthGasStationFetchingService';
 
-export { BlockScaleFetchingService, EthGasStationFetchingService, EthGasStationInfo };
+export { BlockScaleFetchingService, EthGasStationFetchingService };

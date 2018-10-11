@@ -4,9 +4,8 @@ import { W3Util } from '..';
 import Cache, { ICachedTxDetails } from '../Cache';
 import { EconomicStrategyStatus } from '../Enum';
 import { ILogger, DefaultLogger } from '../Logger';
-import { Address, ITxRequest } from '../Types';
+import { Address, ITxRequest, EthGasStationInfo } from '../Types';
 import { IEconomicStrategy } from './IEconomicStrategy';
-import { EthGasStationInfo } from '../GasEstimation';
 
 const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
 
@@ -249,7 +248,20 @@ export class EconomicStrategyManager {
     return normalizedTimes;
   };
 
-  // tslint:disable-next-line:cognitive-complexity
+  private returnRightGas = (timeLeft: BigNumber, normTimes: any, gasStats: EthGasStationInfo) => {
+    if (timeLeft > normTimes.safeLow) {
+      return gasStats.safeLow;
+    } else if (timeLeft > normTimes.avg) {
+      return gasStats.average;
+    } else if (timeLeft > normTimes.fast) {
+      return gasStats.fast;
+    } else if (timeLeft > normTimes.fastest) {
+      return gasStats.fastest;
+    } else {
+      return null;
+    }
+  };
+
   private async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
     const gasStats = await W3Util.getEthGasStationStats();
     if (!gasStats) {
@@ -264,34 +276,14 @@ export class EconomicStrategyManager {
       if (temporalUnit === 1) {
         timeLeftInReservedWindow = timeLeftInReservedWindow.mul(gasStats.blockTime);
       }
-      if (timeLeftInReservedWindow > normTimes.safeLow) {
-        return gasStats.safeLow;
-      } else if (timeLeftInReservedWindow > normTimes.avg) {
-        return gasStats.average;
-      } else if (timeLeftInReservedWindow > normTimes.fast) {
-        return gasStats.fast;
-      } else if (timeLeftInReservedWindow > normTimes.fastest) {
-        return gasStats.fastest;
-      } else {
-        return null;
-      }
+      return this.returnRightGas(timeLeftInReservedWindow, normTimes, gasStats);
     } else {
       // No longer reserved, just send it before it times out.
       let timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
       if (temporalUnit === 1) {
         timeLeftInExecutionWindow = timeLeftInExecutionWindow.mul(gasStats.blockTime);
       }
-      if (timeLeftInExecutionWindow > normTimes.safeLow) {
-        return gasStats.safeLow;
-      } else if (timeLeftInExecutionWindow > normTimes.avg) {
-        return gasStats.average;
-      } else if (timeLeftInExecutionWindow > normTimes.fast) {
-        return gasStats.fast;
-      } else if (timeLeftInExecutionWindow > normTimes.fastest) {
-        return gasStats.fastest;
-      } else {
-        return null;
-      }
+      return this.returnRightGas(timeLeftInExecutionWindow, normTimes, gasStats);
     }
   }
 }

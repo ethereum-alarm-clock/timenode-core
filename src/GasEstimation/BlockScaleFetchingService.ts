@@ -1,11 +1,11 @@
 import fetch from 'node-fetch';
-import { IGasPriceFetchingService, GasPriceEstimation } from '../Types';
+import { IGasPriceFetchingService, BlockScaleInfo } from '../Types';
 import BigNumber from 'bignumber.js';
 
 export class BlockScaleFetchingService implements IGasPriceFetchingService {
   private apiAddress = 'https://dev.blockscale.net/api/gasexpress.json';
 
-  public async fetchGasPrice(): Promise<GasPriceEstimation> {
+  public async fetchGasPrice(): Promise<BlockScaleInfo> {
     const response = await fetch(this.apiAddress);
 
     if (!response.ok) {

@@ -1,19 +1,8 @@
 import fetch from 'node-fetch';
 import { BigNumber } from 'bignumber.js';
+import { IGasPriceFetchingService, EthGasStationInfo } from '../Types';
 
-export interface EthGasStationInfo {
-  average: BigNumber;
-  avgWait: BigNumber;
-  blockTime: BigNumber;
-  fast: BigNumber;
-  fastWait: BigNumber;
-  fastest: BigNumber;
-  fastestWait: BigNumber;
-  safeLow: BigNumber;
-  safeLowWait: BigNumber;
-}
-
-export class EthGasStationFetchingService {
+export class EthGasStationFetchingService implements IGasPriceFetchingService {
   private apiAddress = 'https://ethgasstation.info/json/ethgasAPI.json';
 
   public async fetchGasPrice(): Promise<EthGasStationInfo> {
