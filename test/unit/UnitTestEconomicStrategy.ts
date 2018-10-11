@@ -15,12 +15,12 @@ import { ITxRequest, GasPriceEstimation } from '../../src/Types';
 // tslint:disable-next-line:no-big-function
 describe('Economic Strategy Tests', () => {
   let economicStrategyManager: IEconomicStrategyManager;
-  const MWei = new BigNumber(10000000);
+  const MWei = new BigNumber(1000000);
 
   const account = '0x123456';
   const defaultBalance = MWei;
-  const defaultBounty = MWei;
-  const defaultGasPrice = MWei;
+  const defaultBounty = MWei.times(1000);
+  const defaultGasPrice = new BigNumber(1000);
 
   const createTxRequest = (
     gasPrice = defaultGasPrice,
