@@ -102,14 +102,7 @@ export default class W3Util {
     try {
       const gasPrices = await this.externalApiGasPrice();
       if (!gasPrices) {
-        const fallbackGasPrice = await this.getGasPrice();
-
-        return {
-          average: fallbackGasPrice,
-          fast: fallbackGasPrice,
-          fastest: fallbackGasPrice,
-          safeLow: fallbackGasPrice
-        };
+        throw new Error('Could not retrieve gas prices from external source.');
       }
       return gasPrices;
     } catch (error) {

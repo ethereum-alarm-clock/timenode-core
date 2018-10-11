@@ -4,6 +4,7 @@ import { BigNumber } from 'bignumber.js';
 export interface EthGasStationInfo {
   average: BigNumber;
   avgWait: BigNumber;
+  blockTime: BigNumber;
   fast: BigNumber;
   fastWait: BigNumber;
   fastest: BigNumber;
@@ -25,6 +26,7 @@ export class EthGasStationFetchingService {
     const {
       average,
       avgWait,
+      block_time,
       fast,
       fastWait,
       fastest,
@@ -41,6 +43,7 @@ export class EthGasStationFetchingService {
     return {
       average: new BigNumber(toGwei(average)),
       avgWait: new BigNumber(avgWait),
+      blockTime: new BigNumber(block_time),
       fast: new BigNumber(toGwei(fast)),
       fastWait: new BigNumber(fastWait),
       fastest: new BigNumber(toGwei(fastest)),
