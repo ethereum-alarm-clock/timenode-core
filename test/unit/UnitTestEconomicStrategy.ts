@@ -21,11 +21,17 @@ describe('Economic Strategy Tests', () => {
   const defaultBalance = MWei;
   const defaultBounty = MWei.times(1000);
   const defaultGasPrice = new BigNumber(1000);
+  const CLAIMING_GAS_ESTIMATE = 100000;
+
+  const defaultClaimingCost = defaultGasPrice.mul(CLAIMING_GAS_ESTIMATE);
+  const defaultPaymentModifier = new BigNumber(10); //10%
+  const defaultZeroProfitabilityBounty = defaultClaimingCost.times(100).div(defaultPaymentModifier);
 
   const createTxRequest = (
     gasPrice = defaultGasPrice,
     bounty = defaultBounty,
-    claimedBy = account
+    claimedBy = account,
+    paymentModifier = defaultPaymentModifier
   ) => {
     const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
     txRequest.setup(tx => tx.gasPrice).returns(() => gasPrice);
@@ -34,9 +40,7 @@ describe('Economic Strategy Tests', () => {
     txRequest.setup(tx => tx.executionWindowEnd).returns(() => new BigNumber(23423));
     txRequest.setup(tx => tx.bounty).returns(() => bounty);
     txRequest.setup(tx => tx.requiredDeposit).returns(() => MWei);
-    txRequest
-      .setup(tx => tx.claimPaymentModifier())
-      .returns(() => Promise.resolve(new BigNumber(1)));
+    txRequest.setup(tx => tx.claimPaymentModifier()).returns(async () => paymentModifier);
     txRequest.setup(tx => tx.claimedBy).returns(() => claimedBy);
     txRequest.setup(tx => tx.address).returns(() => '0x987654321');
 
@@ -65,6 +69,25 @@ describe('Economic Strategy Tests', () => {
 
   const cache = TypeMoq.Mock.ofType<Cache<ICachedTxDetails>>();
   cache.setup(c => c.stored()).returns(() => []);
+
+  const shouldClaimTx = async (
+    minProfitability: BigNumber,
+    bounty: BigNumber
+  ): Promise<EconomicStrategyStatus> => {
+    const strategy: IEconomicStrategy = {
+      minProfitability
+    };
+
+    economicStrategyManager = new EconomicStrategyManager(
+      strategy,
+      defaultUtil,
+      cache.object,
+      null
+    );
+    const txRequest = createTxRequest(defaultGasPrice, bounty);
+    const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+    return economicStrategyManager.shouldClaimTx(txRequest.object, account, gasPrice.average);
+  };
 
   describe('shouldClaimTx()', () => {
     it('returns CLAIM if economic strategy not set or default', async () => {
@@ -122,24 +145,39 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns NOT_PROFITABLE if reward lower than minProfitability', async () => {
-      const strategy: IEconomicStrategy = {
-        minProfitability: defaultBounty.times(10)
-      };
+      const expectedProfitability = new BigNumber(1000);
+      const bounty = defaultZeroProfitabilityBounty.plus(
+        expectedProfitability.times(defaultPaymentModifier)
+      );
+      const minProfitability = expectedProfitability.plus(1);
 
-      economicStrategyManager = new EconomicStrategyManager(
-        strategy,
-        defaultUtil,
-        cache.object,
-        null
-      );
-      const txRequest = createTxRequest();
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
-      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
-        txRequest.object,
-        account,
-        gasPrice.average
-      );
+      const shouldClaimStatus = await shouldClaimTx(minProfitability, bounty);
+
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.NOT_PROFITABLE);
+    });
+
+    it('returns CLAIM if reward equals minProfitability', async () => {
+      const expectedProfitability = new BigNumber(1000);
+      const bounty = defaultZeroProfitabilityBounty.plus(
+        expectedProfitability.times(defaultPaymentModifier)
+      );
+      const minProfitability = expectedProfitability;
+
+      const shouldClaimStatus = await shouldClaimTx(minProfitability, bounty);
+
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
+    });
+
+    it('returns CLAIM if reward greater than minProfitability', async () => {
+      const expectedProfitability = new BigNumber(1000);
+      const bounty = defaultZeroProfitabilityBounty.plus(
+        expectedProfitability.times(defaultPaymentModifier)
+      );
+      const minProfitability = expectedProfitability.minus(1);
+
+      const shouldClaimStatus = await shouldClaimTx(minProfitability, bounty);
+
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
     });
 
     it('returns WINDOW_TOO_SHORT if reserved window in timestamp is too short', async () => {
