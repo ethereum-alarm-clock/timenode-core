@@ -225,7 +225,7 @@ export default class Router implements IRouter {
     }
 
     this.txRequestStates[txRequest.address] = current;
-    return previous;
+    return current;
   }
 
   private handleWalletTransactionResult(
