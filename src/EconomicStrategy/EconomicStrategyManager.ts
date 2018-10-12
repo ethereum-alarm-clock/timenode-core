@@ -65,7 +65,7 @@ export class EconomicStrategyManager {
       return EconomicStrategyStatus.NOT_PROFITABLE;
     }
 
-    const enoughBalance = await this.isAboveMinBalanceLimit(nextAccount);
+    const enoughBalance = await this.isAboveMinBalanceLimit(nextAccount, txRequest);
     if (!enoughBalance) {
       return EconomicStrategyStatus.INSUFFICIENT_BALANCE;
     }
@@ -137,7 +137,7 @@ export class EconomicStrategyManager {
     const reimbursement = txRequest.gasPrice.times(gasAmount);
     const deposit = txRequest.requiredDeposit;
 
-    const paymentModifier = await txRequest.claimPaymentModifier();
+    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
     const reward = txRequest.bounty.times(paymentModifier);
 
     const gasCost = gasPrice.times(gasAmount);
@@ -145,7 +145,7 @@ export class EconomicStrategyManager {
     const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
 
     this.logger.debug(
-      `shouldExecuteTx ret ${shouldExecute} gasCost=${gasCost.toNumber()} expectedReward=${expectedReward.toNumber()}`,
+      `shouldExecuteTx: gasCost=${gasCost} <= expectedReward=${expectedReward} returns ${shouldExecute}`,
       txRequest.address
     );
 
@@ -182,48 +182,60 @@ export class EconomicStrategyManager {
     });
   }
 
-  private async isAboveMinBalanceLimit(nextAccount: Address): Promise<boolean> {
+  private async isAboveMinBalanceLimit(
+    nextAccount: Address,
+    txRequest: ITxRequest
+  ): Promise<boolean> {
     let minBalance = this.strategy.minBalance || new BigNumber(0);
 
-    // Determine the next batter up to claim.
     const currentBalance = await this.util.balanceOf(nextAccount);
-
-    // Subtract the maximum gas costs of executing all currently claimed
-    // transactions. This is to ensure that a TimeNode does not fail to execute
-    // because it ran out of funds.
     const txRequestsClaimed: string[] = this.getTxRequestsClaimedBy(nextAccount);
-
-    this.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
-
     const gasPrices: BigNumber[] = await Promise.all(
       txRequestsClaimed.map(async (address: string) => {
-        const txRequest = await this.eac.transactionRequest(address);
-        await txRequest.refreshData();
+        const tx = await this.eac.transactionRequest(address);
+        await tx.refreshData();
 
-        return txRequest.gasPrice;
+        return tx.gasPrice;
       })
     );
+    let costOfExecutingFutureTransactions = new BigNumber(0);
 
     if (gasPrices.length) {
       const maxGasSubsidy = (this.strategy.maxGasSubsidy || 0) / 100;
       const subsidyFactor = maxGasSubsidy + 1;
-      const costOfExecutingFutureTransactions = gasPrices.reduce(
-        (sum: BigNumber, current: BigNumber) => sum.add(current.times(subsidyFactor))
+      costOfExecutingFutureTransactions = gasPrices.reduce((sum: BigNumber, current: BigNumber) =>
+        sum.add(current.times(subsidyFactor))
       );
 
       minBalance = minBalance.add(costOfExecutingFutureTransactions);
     }
 
-    return currentBalance.gt(minBalance);
+    const isAboveMinBalanceLimit = currentBalance.gt(minBalance);
+
+    this.logger.debug(
+      `isAboveMinBalanceLimit: currentBalance=${currentBalance} > minBalance=${minBalance} + costOfExecutingFutureTransactions=${costOfExecutingFutureTransactions} returns ${isAboveMinBalanceLimit}`,
+      txRequest.address
+    );
+
+    return isAboveMinBalanceLimit;
   }
 
   private async isClaimingProfitable(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean> {
-    const paymentModifier = await txRequest.claimPaymentModifier();
+    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
     const claimingGasCost = gasPrice.times(CLAIMING_GAS_ESTIMATE);
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
     const minProfitability = this.strategy.minProfitability || new BigNumber(0);
 
-    return reward.gte(minProfitability);
+    const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
+
+    this.logger.debug(
+      `isClaimingProfitable: paymentModifier=${paymentModifier} gasPrice=${gasPrice} bounty=${
+        txRequest.bounty
+      } reward=${reward} >= minProfitability=${minProfitability} returns ${isProfitable}`,
+      txRequest.address
+    );
+
+    return isProfitable;
   }
 
   private normalizeWaitTimes = (temporalUnit: number, stats: EthGasStationInfo) => {
