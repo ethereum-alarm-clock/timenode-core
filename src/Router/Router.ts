@@ -8,6 +8,8 @@ import { Wallet } from '../Wallet';
 import { Operation } from '../Types/Operation';
 import { W3Util } from '..';
 
+type Transition = (txRequest: ITxRequest) => Promise<TxStatus>;
+
 export default interface IRouter {
   route(txRequest: ITxRequest): Promise<TxStatus>;
 }
@@ -17,7 +19,7 @@ export default class Router implements IRouter {
   private cache: Cache<ICachedTxDetails>;
   private logger: ILogger;
   private txRequestStates: object = {};
-  private transitions: object = {};
+  private transitions: Map<TxStatus, Transition> = new Map<TxStatus, Transition>();
   private economicStrategyManager: IEconomicStrategyManager;
   private wallet: Wallet;
   private isClaimingEnabled: boolean;
@@ -40,17 +42,14 @@ export default class Router implements IRouter {
     this.isClaimingEnabled = isClaimingEnabled;
     this.util = util;
 
-    this.transitions[TxStatus.BeforeClaimWindow] = this.beforeClaimWindow.bind(this);
-    this.transitions[TxStatus.ClaimWindow] = this.claimWindow.bind(this);
-    this.transitions[TxStatus.FreezePeriod] = this.freezePeriod.bind(this);
-    this.transitions[TxStatus.ExecutionWindow] = this.executionWindow.bind(this);
-    this.transitions[TxStatus.Executed] = this.executed.bind(this);
-    this.transitions[TxStatus.Missed] = this.missed.bind(this);
-    this.transitions[TxStatus.Done] = (txRequest: ITxRequest) => {
-      this.logger.info('Finished. Deleting from cache...', txRequest.address);
-      this.cache.del(txRequest.address);
-      return TxStatus.Done;
-    };
+    this.transitions
+      .set(TxStatus.BeforeClaimWindow, this.beforeClaimWindow.bind(this))
+      .set(TxStatus.ClaimWindow, this.claimWindow.bind(this))
+      .set(TxStatus.FreezePeriod, this.freezePeriod.bind(this))
+      .set(TxStatus.ExecutionWindow, this.executionWindow.bind(this))
+      .set(TxStatus.Executed, this.executed.bind(this))
+      .set(TxStatus.Missed, this.missed.bind(this))
+      .set(TxStatus.Done, this.done.bind(this));
   }
 
   public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
@@ -207,22 +206,35 @@ export default class Router implements IRouter {
   }
 
   public async route(txRequest: ITxRequest): Promise<TxStatus> {
-    let status: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
+    let current: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
+    let previous;
 
-    const statusFunction = this.transitions[status];
-    let nextStatus: TxStatus = await statusFunction(txRequest);
+    try {
+      while (current !== previous) {
+        const transition = this.transitions.get(current);
+        const next = await transition(txRequest);
+        if (current !== next) {
+          this.logger.debug(
+            `Transition from ${TxStatus[current]} to ${TxStatus[next]} completed`,
+            txRequest.address
+          );
+        }
 
-    while (nextStatus !== status) {
-      this.logger.debug(
-        `Transitioning from ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`,
-        txRequest.address
-      );
-      status = nextStatus;
-      nextStatus = await this.transitions[status](txRequest);
+        previous = current;
+        current = next;
+      }
+    } catch (err) {
+      this.logger.error(`Transition from ${current} failed: ${err}`);
     }
 
-    this.txRequestStates[txRequest.address] = nextStatus;
-    return nextStatus;
+    this.txRequestStates[txRequest.address] = current;
+    return current;
+  }
+
+  private async done(txRequest: ITxRequest): Promise<TxStatus> {
+    this.logger.info('Finished. Deleting from cache...', txRequest.address);
+    this.cache.del(txRequest.address);
+    return TxStatus.Done;
   }
 
   private handleWalletTransactionResult(
