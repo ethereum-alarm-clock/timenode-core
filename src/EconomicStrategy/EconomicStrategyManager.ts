@@ -282,20 +282,21 @@ export class EconomicStrategyManager {
 
     const { temporalUnit } = txRequest;
     const normTimes = this.normalizeWaitTimes(temporalUnit, gasStats);
-    // Reserved, need to send transaction before it goes to general window.
-    if (await txRequest.inReservedWindow()) {
-      let timeLeftInReservedWindow = (await txRequest.now()).sub(txRequest.reservedWindowEnd);
-      if (temporalUnit === 1) {
-        timeLeftInReservedWindow = timeLeftInReservedWindow.mul(gasStats.blockTime);
-      }
-      return this.returnRightGas(timeLeftInReservedWindow, normTimes, gasStats);
-    } else {
-      // No longer reserved, just send it before it times out.
-      let timeLeftInExecutionWindow = (await txRequest.now()).sub(txRequest.executionWindowEnd);
-      if (temporalUnit === 1) {
-        timeLeftInExecutionWindow = timeLeftInExecutionWindow.mul(gasStats.blockTime);
-      }
-      return this.returnRightGas(timeLeftInExecutionWindow, normTimes, gasStats);
-    }
+    const now = await txRequest.now();
+    const inReservedWindow = await txRequest.inReservedWindow();
+
+    const timeLeft = inReservedWindow
+      ? now.sub(txRequest.reservedWindowEnd)
+      : now.sub(txRequest.executionWindowEnd);
+    const normalizedTimeLeft = temporalUnit === 1 ? timeLeft.mul(gasStats.blockTime) : timeLeft;
+
+    const gasEstimation = this.returnRightGas(normalizedTimeLeft, normTimes, gasStats);
+
+    this.logger.debug(
+      `smartGasEstimation: inReservedWindow=${inReservedWindow} timeLeft=${timeLeft} normalizedTimeLeft=${normalizedTimeLeft} returns ${gasEstimation}`,
+      txRequest.address
+    );
+
+    return gasEstimation;
   }
 }
