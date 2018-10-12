@@ -14,11 +14,16 @@ export class BlockScaleFetchingService implements IGasPriceFetchingService {
 
     const json = await response.json();
 
+    const toGwei = (val: number) => {
+      const gwei = 1000000000;
+      return val * gwei;
+    };
+
     return {
-      average: new BigNumber(json.standard),
-      fast: new BigNumber(json.fast),
-      fastest: new BigNumber(json.fastest),
-      safeLow: new BigNumber(json.safeLow)
+      average: new BigNumber(toGwei(json.standard)),
+      fast: new BigNumber(toGwei(json.fast)),
+      fastest: new BigNumber(toGwei(json.fastest)),
+      safeLow: new BigNumber(toGwei(json.safeLow))
     };
   }
 }
