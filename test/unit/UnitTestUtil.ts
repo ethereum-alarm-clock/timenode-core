@@ -27,7 +27,7 @@ describe('Util Unit Tests', async () => {
       const expectedFields = ['average', 'fast', 'fastest', 'safeLow'];
 
       expectedFields.forEach(field => {
-        assert.isTrue(advNetworkGasPrice[field].greaterThan(0));
+        assert.isTrue(advNetworkGasPrice[field].greaterThan(config.web3.toWei('0.05', 'gwei')));
       });
     });
   });
