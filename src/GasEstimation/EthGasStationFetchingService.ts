@@ -24,20 +24,20 @@ export class EthGasStationFetchingService implements IGasPriceFetchingService {
       safeLowWait
     } = await response.json();
 
-    const toGwei = (val: number): number => {
+    const toWei = (val: number): number => {
       const gwei = 1000000000;
       return (val * gwei) / 10;
     };
 
     return {
-      average: new BigNumber(toGwei(average)),
+      average: new BigNumber(toWei(average)),
       avgWait: new BigNumber(avgWait),
       blockTime: new BigNumber(block_time),
-      fast: new BigNumber(toGwei(fast)),
+      fast: new BigNumber(toWei(fast)),
       fastWait: new BigNumber(fastWait),
-      fastest: new BigNumber(toGwei(fastest)),
+      fastest: new BigNumber(toWei(fastest)),
       fastestWait: new BigNumber(fastestWait),
-      safeLow: new BigNumber(toGwei(safeLow)),
+      safeLow: new BigNumber(toWei(safeLow)),
       safeLowWait: new BigNumber(safeLowWait)
     };
   }
