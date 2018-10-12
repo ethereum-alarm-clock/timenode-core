@@ -99,8 +99,6 @@ export default class W3Util {
       }
       return gasPrices;
     } catch (e) {
-      console.error(e);
-
       const fallbackGasPrice = await this.getGasPrice();
 
       return {
