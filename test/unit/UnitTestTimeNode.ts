@@ -82,7 +82,9 @@ describe('TimeNode Unit Tests', () => {
   });
 
   describe('getClaimedNotExecutedTransactions()', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
+      config = await mockConfig();
+      timenode = new TimeNode(config);
       timenode.config.statsDb.clearAll();
     });
 
