@@ -1,49 +1,22 @@
+// tslint:disable-next-line:no-reference
+/// <reference path="global.d.ts" />
+
 import BigNumber from 'bignumber.js';
-import fetch from 'node-fetch';
 import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
 
 import { Networks } from './Enum';
-import { IBlock, IServices, ITxRequest } from './Types';
+import { BlockScaleFetchingService, EthGasStationFetchingService } from './GasEstimation';
+import { IBlock, ITxRequest, GasPriceEstimation, EthGasStationInfo } from './Types';
 
-function apiCall(url: string): Promise<any> {
-  return fetch(url).then((response: any) => {
-    if (!response.ok) {
-      return new Error(response.statusText);
-    }
-    return response.json();
-  });
-}
-
-const SERVICES: IServices = {
-  //should return GWEI value of the gasPrice
-  [Networks.Mainnet]: [
-    {
-      api: 'https://dev.blockscale.net/api/gasexpress.json',
-      field: 'standard',
-      morph: (val: any): number => {
-        const GWEI = 10e9;
-        return Number(val * GWEI);
-      }
-    },
-    {
-      api: 'https://ethgasstation.info/json/ethgasAPI.json',
-      field: 'average',
-      morph: (val: any): number => {
-        const GWEI = 10e9;
-        return Number(val * GWEI) / 10;
-      }
-    }
-  ]
+const GAS_PRICE_FETCHING_SERVICES = {
+  [Networks.Mainnet]: [new BlockScaleFetchingService(), new EthGasStationFetchingService()]
 };
 
 export default class W3Util {
-  public static isHTTPConnection(url: string): boolean {
-    return url.includes('http://') || url.includes('https://');
-  }
-
-  public static isWSConnection(url: string): boolean {
-    return url.includes('ws://') || url.includes('wss://');
+  public static async getEthGasStationStats(): Promise<EthGasStationInfo> {
+    const ethGasStation = new EthGasStationFetchingService();
+    return ethGasStation.fetchGasPrice();
   }
 
   public static getWeb3FromProviderUrl(providerUrl: string) {
@@ -57,6 +30,9 @@ export default class W3Util {
     }
 
     return new Web3(provider);
+  }
+  public static isHTTPConnection(url: string): boolean {
+    return url.includes('http://') || url.includes('https://');
   }
 
   public static isWatchingEnabled(web3: any): Promise<boolean> {
@@ -73,6 +49,10 @@ export default class W3Util {
         }
       );
     });
+  }
+
+  public static isWSConnection(url: string): boolean {
+    return url.includes('ws://') || url.includes('wss://');
   }
 
   public static testProvider(providerUrl: string): Promise<boolean> {
@@ -106,7 +86,30 @@ export default class W3Util {
   }
 
   public async networkGasPrice(): Promise<BigNumber> {
-    return (await this.externalApiNetworkPrice()) || this.getGasPrice();
+    const gasPriceEstimation = await this.externalApiGasPrice();
+
+    return (gasPriceEstimation && gasPriceEstimation.average) || this.getGasPrice();
+  }
+
+  public async getAdvancedNetworkGasPrice(): Promise<GasPriceEstimation> {
+    try {
+      const gasPrices = await this.externalApiGasPrice();
+      if (!gasPrices) {
+        throw new Error('Could not retrieve gas prices from external source.');
+      }
+      return gasPrices;
+    } catch (e) {
+      console.error(e);
+
+      const fallbackGasPrice = await this.getGasPrice();
+
+      return {
+        average: fallbackGasPrice,
+        fast: fallbackGasPrice,
+        fastest: fallbackGasPrice,
+        safeLow: fallbackGasPrice
+      };
+    }
   }
 
   public getGasPrice(): Promise<BigNumber> {
@@ -184,25 +187,25 @@ export default class W3Util {
     return this.web3.toHex(input);
   }
 
-  private async externalApiNetworkPrice(): Promise<BigNumber> {
+  private async externalApiGasPrice(): Promise<GasPriceEstimation> {
     const networkId = await this.getNetworkId();
-    const services = SERVICES[networkId];
+    const services = GAS_PRICE_FETCHING_SERVICES[networkId];
 
     if (!services) {
       return null;
     }
 
-    let result = null;
     for (const service of services) {
       try {
-        const data: any = await apiCall(service.api);
-        result = service.morph ? service.morph(data[service.field]) : data[service.field];
-        break;
+        const gasEstimate: GasPriceEstimation = await service.fetchGasPrice();
+        if (gasEstimate) {
+          return gasEstimate;
+        }
       } catch (e) {
-        continue;
+        console.error(e);
       }
     }
 
-    return result;
+    return null;
   }
 }
