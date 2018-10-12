@@ -23,7 +23,7 @@ export const scheduleTestTx = async () => {
   const callGas = new BigNumber(1000000);
   const gasPrice = new BigNumber(web3.toWei(20, 'gwei'));
   const fee = new BigNumber(0);
-  const bounty = new BigNumber(0);
+  const bounty = web3.toWei('0.1', 'ether');
 
   const endowment = calcEndowment(eac, callGas, callValue, gasPrice, fee, bounty);
 
