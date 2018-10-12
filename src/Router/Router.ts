@@ -207,22 +207,25 @@ export default class Router implements IRouter {
   }
 
   public async route(txRequest: ITxRequest): Promise<TxStatus> {
-    let status: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
+    let current: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
+    let previous;
 
-    const statusFunction = this.transitions[status];
-    let nextStatus: TxStatus = await statusFunction(txRequest);
+    while (current !== previous) {
+      const next: TxStatus = this.transitions[current](txRequest);
 
-    while (nextStatus !== status) {
-      this.logger.debug(
-        `Transitioning from ${TxStatus[status]} to ${TxStatus[nextStatus]} (${nextStatus})`,
-        txRequest.address
-      );
-      status = nextStatus;
-      nextStatus = await this.transitions[status](txRequest);
+      if (current !== next) {
+        this.logger.debug(
+          `Transition from ${TxStatus[current]} to ${TxStatus[next]} completed`,
+          txRequest.address
+        );
+      }
+
+      previous = current;
+      current = next;
     }
 
-    this.txRequestStates[txRequest.address] = nextStatus;
-    return nextStatus;
+    this.txRequestStates[txRequest.address] = current;
+    return previous;
   }
 
   private handleWalletTransactionResult(
