@@ -3,7 +3,6 @@ import { TimeNode, Config } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { scheduleTestTx } from './TestScheduleTx';
 import { getHelperMethods } from '../helpers/Helpers';
-import { reject } from 'bluebird';
 
 const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
 
@@ -152,7 +151,7 @@ describe('TimeNode', () => {
           console.log(txRequest, msg);
         };
 
-        await new Promise(resolve => {
+        await new Promise((resolve, reject) => {
           const claimedLoggedInterval = setInterval(async () => {
             if (!claimedLogged) {
               return;
