@@ -108,7 +108,7 @@ describe('TimeNode', () => {
       );
 
       console.log('FINAL STATUS OF MASS TX EXECUTION:', scheduledTransactionsMap);
-    }).timeout(400000);
+    }).timeout(800000);
   } else {
     it('claims and executes transaction', async () => {
       await withSnapshotRevert(async () => {
