@@ -44,7 +44,7 @@ describe('TimeNode', () => {
       const scheduledTransactionsMap = {};
 
       for (let i = 0; i < TRANSACTIONS_TO_SCHEDULE; i++) {
-        const transactionAddress: string = await scheduleTestTx(270 + 10 * i);
+        const transactionAddress: string = await scheduleTestTx(270 + 5 * i);
 
         scheduledTransactionsMap[transactionAddress] = {
           executionLogged: false
@@ -108,7 +108,7 @@ describe('TimeNode', () => {
       );
 
       console.log('FINAL STATUS OF MASS TX EXECUTION:', scheduledTransactionsMap);
-    }).timeout(800000);
+    }).timeout(600000);
   } else {
     it('claims and executes transaction', async () => {
       await withSnapshotRevert(async () => {
