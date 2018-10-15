@@ -2,19 +2,15 @@ import BigNumber from 'bignumber.js';
 import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
 
-import { W3Util } from '../../src';
+import { W3Util, Config } from '../../src';
 import Cache, { ICachedTxDetails } from '../../src/Cache';
 import { IEconomicStrategy } from '../../src/EconomicStrategy';
-import {
-  EconomicStrategyManager,
-  IEconomicStrategyManager
-} from '../../src/EconomicStrategy/EconomicStrategyManager';
+import { EconomicStrategyManager } from '../../src/EconomicStrategy/EconomicStrategyManager';
 import { EconomicStrategyStatus } from '../../src/Enum';
 import { ITxRequest, GasPriceEstimation } from '../../src/Types';
 
 // tslint:disable-next-line:no-big-function
 describe('Economic Strategy Tests', () => {
-  let economicStrategyManager: IEconomicStrategyManager;
   const MWei = new BigNumber(1000000);
 
   const account = '0x123456';
@@ -31,18 +27,22 @@ describe('Economic Strategy Tests', () => {
     gasPrice = defaultGasPrice,
     bounty = defaultBounty,
     claimedBy = account,
-    paymentModifier = defaultPaymentModifier
+    paymentModifier = defaultPaymentModifier,
+    temporalUnit = 1,
+    reservedWindowSize = new BigNumber(3600)
   ) => {
     const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
     txRequest.setup(tx => tx.gasPrice).returns(() => gasPrice);
     txRequest.setup(tx => tx.now()).returns(() => Promise.resolve(new BigNumber(123123)));
     txRequest.setup(tx => tx.reservedWindowEnd).returns(() => new BigNumber(23423));
+    txRequest.setup(tx => tx.reservedWindowSize).returns(() => reservedWindowSize);
     txRequest.setup(tx => tx.executionWindowEnd).returns(() => new BigNumber(23423));
     txRequest.setup(tx => tx.bounty).returns(() => bounty);
     txRequest.setup(tx => tx.requiredDeposit).returns(() => MWei);
     txRequest.setup(tx => tx.claimPaymentModifier()).returns(async () => paymentModifier);
     txRequest.setup(tx => tx.claimedBy).returns(() => claimedBy);
     txRequest.setup(tx => tx.address).returns(() => '0x987654321');
+    txRequest.setup(tx => tx.temporalUnit).returns(() => temporalUnit);
 
     return txRequest;
   };
@@ -74,11 +74,10 @@ describe('Economic Strategy Tests', () => {
     minProfitability: BigNumber,
     bounty: BigNumber
   ): Promise<EconomicStrategyStatus> => {
-    const strategy: IEconomicStrategy = {
-      minProfitability
-    };
+    const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
+    strategy.minProfitability = minProfitability;
 
-    economicStrategyManager = new EconomicStrategyManager(
+    const economicStrategyManager = new EconomicStrategyManager(
       strategy,
       defaultUtil,
       cache.object,
@@ -90,24 +89,10 @@ describe('Economic Strategy Tests', () => {
   };
 
   describe('shouldClaimTx()', () => {
-    it('returns CLAIM if economic strategy not set or default', async () => {
-      economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
-      const txRequest = createTxRequest();
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
-      const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
-        txRequest.object,
-        account,
-        gasPrice.average
-      );
-      assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
-    });
+    it('returns CLAIM when using default strategy', async () => {
+      const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
 
-    it('returns DEPOSIT_TOO_HIGH if transaction exceeds maxDeposit', async () => {
-      const strategy: IEconomicStrategy = {
-        maxDeposit: new BigNumber(1)
-      };
-
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
@@ -120,15 +105,14 @@ describe('Economic Strategy Tests', () => {
         account,
         gasPrice.average
       );
-      assert.equal(shouldClaimStatus, EconomicStrategyStatus.DEPOSIT_TOO_HIGH);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
     });
 
     it('returns INSUFFICIENT_BALANCE if balance below minBalance', async () => {
-      const strategy: IEconomicStrategy = {
-        minBalance: defaultBalance.plus(1)
-      };
+      const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
+      strategy.minBalance = defaultBalance.plus(1);
 
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
@@ -181,22 +165,26 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns WINDOW_TOO_SHORT if reserved window in timestamp is too short', async () => {
-      const strategy: IEconomicStrategy = {
-        minExecutionWindow: 600
-      };
+      const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
+      strategy.minExecutionWindow = 600;
 
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
         null
       );
 
-      const txRequest = createTxRequest();
-      txRequest.setup(t => t.temporalUnit).returns(() => 2);
-      txRequest.setup(t => t.reservedWindowSize).returns(() => new BigNumber(100));
-
+      const txRequest = createTxRequest(
+        defaultGasPrice,
+        defaultBounty,
+        account,
+        defaultPaymentModifier,
+        2,
+        new BigNumber(100)
+      );
       const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
         txRequest.object,
         account,
@@ -206,20 +194,24 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns WINDOW_TOO_SHORT if reserved window in block is too short', async () => {
-      const strategy: IEconomicStrategy = {
-        minExecutionWindowBlock: 600
-      };
+      const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
+      strategy.minExecutionWindowBlock = 600;
 
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
         null
       );
 
-      const txRequest = createTxRequest();
-      txRequest.setup(t => t.temporalUnit).returns(() => 1);
-      txRequest.setup(t => t.reservedWindowSize).returns(() => new BigNumber(100));
+      const txRequest = createTxRequest(
+        defaultGasPrice,
+        defaultBounty,
+        account,
+        defaultPaymentModifier,
+        1,
+        new BigNumber(100)
+      );
       const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
 
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
@@ -232,25 +224,13 @@ describe('Economic Strategy Tests', () => {
   });
 
   describe('getExecutionGasPrice()', () => {
-    it('returns current network price if economic strategy not set', async () => {
-      const currentNetworkPrice = await defaultUtil.networkGasPrice();
-
-      economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
-      const gasPrice = await economicStrategyManager.getExecutionGasPrice(createTxRequest().object);
-      assert.equal(
-        gasPrice.toNumber(),
-        currentNetworkPrice.toNumber(),
-        'Execution gas price is not equal to current network price!'
-      );
-    });
-
     it('returns current network price if maxGasSubsidy not set', async () => {
       const strategy: IEconomicStrategy = {
         maxGasSubsidy: null
       };
       const currentNetworkPrice = await defaultUtil.networkGasPrice();
 
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
@@ -265,7 +245,7 @@ describe('Economic Strategy Tests', () => {
       const strategy: IEconomicStrategy = {
         maxGasSubsidy: 100
       };
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
@@ -285,7 +265,7 @@ describe('Economic Strategy Tests', () => {
       const txRequest = createTxRequest(lowerGasPrice);
       const currentNetworkPrice = await defaultUtil.networkGasPrice();
 
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
@@ -307,7 +287,7 @@ describe('Economic Strategy Tests', () => {
       const expectedResult = txRequest.gasPrice.plus(
         txRequest.gasPrice.times(strategy.maxGasSubsidy / 100)
       );
-      economicStrategyManager = new EconomicStrategyManager(
+      const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
         cache.object,
@@ -324,7 +304,12 @@ describe('Economic Strategy Tests', () => {
     it('returns true if CurrentGasCost < (Deposit + Reward + Reimbursement)', async () => {
       const txRequest = createTxRequest();
 
-      economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
+      const economicStrategyManager = new EconomicStrategyManager(
+        Config.DEFAULT_ECONOMIC_STRATEGY,
+        defaultUtil,
+        cache.object,
+        null
+      );
       const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
       const shouldExecute = await economicStrategyManager.shouldExecuteTx(
         txRequest.object,
@@ -337,7 +322,12 @@ describe('Economic Strategy Tests', () => {
       const txRequest = createTxRequest();
       const util = createUtil(defaultGasPrice.times(1000));
 
-      economicStrategyManager = new EconomicStrategyManager(null, util, cache.object, null);
+      const economicStrategyManager = new EconomicStrategyManager(
+        Config.DEFAULT_ECONOMIC_STRATEGY,
+        util,
+        cache.object,
+        null
+      );
       const gasPrice = await util.getAdvancedNetworkGasPrice();
       const shouldExecute = await economicStrategyManager.shouldExecuteTx(
         txRequest.object,
@@ -350,7 +340,12 @@ describe('Economic Strategy Tests', () => {
     it('returns true if CurrentGasCost < (Reward + Reimbursement) and not claimed by me', async () => {
       const txRequest = createTxRequest(defaultGasPrice, defaultBounty, '0x1');
 
-      economicStrategyManager = new EconomicStrategyManager(null, defaultUtil, cache.object, null);
+      const economicStrategyManager = new EconomicStrategyManager(
+        Config.DEFAULT_ECONOMIC_STRATEGY,
+        defaultUtil,
+        cache.object,
+        null
+      );
 
       const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
       const shouldExecute = await economicStrategyManager.shouldExecuteTx(

@@ -41,6 +41,12 @@ export class EconomicStrategyManager {
     this.logger = logger;
     this.cache = cache;
     this.eac = eac;
+
+    if (!this.strategy) {
+      throw new Error('Unable to initialize EconomicStrategyManager, strategy is null');
+    }
+
+    this.logger.debug(`EconomicStrategyManager initialized with ${JSON.stringify(strategy)}`);
   }
 
   /**
@@ -56,10 +62,6 @@ export class EconomicStrategyManager {
     nextAccount: Address,
     fastestGas: BigNumber
   ): Promise<EconomicStrategyStatus> {
-    if (!this.strategy) {
-      return EconomicStrategyStatus.CLAIM;
-    }
-
     const profitable = await this.isClaimingProfitable(txRequest, fastestGas);
     if (!profitable) {
       return EconomicStrategyStatus.NOT_PROFITABLE;
@@ -91,39 +93,18 @@ export class EconomicStrategyManager {
    */
   public async getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber> {
     const { average } = await this.util.getAdvancedNetworkGasPrice();
+    const currentNetworkPrice = this.strategy.usingSmartGasEstimation
+      ? (await this.smartGasEstimation(txRequest)) || average
+      : average;
 
-    let currentNetworkPrice = average;
+    const minGasPrice = txRequest.gasPrice;
+    const maxGasPrice = minGasPrice.times(this.maxSubsidyFactor);
 
-    if (!this.strategy) {
-      return currentNetworkPrice;
-    }
-
-    if (this.strategy.usingSmartGasEstimation) {
-      const smartGasEstimate = await this.smartGasEstimation(txRequest);
-      if (smartGasEstimate) {
-        currentNetworkPrice = smartGasEstimate;
-      }
-    }
-
-    const { maxGasSubsidy } = this.strategy;
-
-    if (typeof maxGasSubsidy !== 'undefined' && maxGasSubsidy !== null) {
-      const minGasPrice = txRequest.gasPrice;
-      const maxGasPrice = minGasPrice.plus(minGasPrice.times(maxGasSubsidy / 100));
-
-      if (currentNetworkPrice.lessThan(minGasPrice)) {
-        return minGasPrice;
-      } else if (
-        currentNetworkPrice.greaterThanOrEqualTo(minGasPrice) &&
-        currentNetworkPrice.lessThan(maxGasPrice)
-      ) {
-        return currentNetworkPrice;
-      } else if (currentNetworkPrice.greaterThanOrEqualTo(maxGasPrice)) {
-        return maxGasPrice;
-      }
-    }
-
-    return currentNetworkPrice;
+    return currentNetworkPrice.greaterThan(maxGasPrice)
+      ? maxGasPrice
+      : currentNetworkPrice.lessThan(minGasPrice)
+        ? minGasPrice
+        : currentNetworkPrice;
   }
 
   /**
@@ -168,11 +149,7 @@ export class EconomicStrategyManager {
     const requiredDeposit = txRequest.requiredDeposit;
     const maxDeposit = this.strategy.maxDeposit;
 
-    if (maxDeposit && maxDeposit.gt(0)) {
-      return requiredDeposit.gt(maxDeposit);
-    }
-
-    return false;
+    return requiredDeposit.gt(maxDeposit);
   }
 
   private getTxRequestsClaimedBy(address: string): string[] {
@@ -186,8 +163,7 @@ export class EconomicStrategyManager {
     nextAccount: Address,
     txRequest: ITxRequest
   ): Promise<boolean> {
-    let minBalance = this.strategy.minBalance || new BigNumber(0);
-
+    const minBalance = this.strategy.minBalance;
     const currentBalance = await this.util.balanceOf(nextAccount);
     const txRequestsClaimed: string[] = this.getTxRequestsClaimedBy(nextAccount);
     const gasPrices: BigNumber[] = await Promise.all(
@@ -198,19 +174,18 @@ export class EconomicStrategyManager {
         return tx.gasPrice;
       })
     );
+
     let costOfExecutingFutureTransactions = new BigNumber(0);
 
     if (gasPrices.length) {
-      const maxGasSubsidy = (this.strategy.maxGasSubsidy || 0) / 100;
-      const subsidyFactor = maxGasSubsidy + 1;
+      const subsidyFactor = this.maxSubsidyFactor;
       costOfExecutingFutureTransactions = gasPrices.reduce((sum: BigNumber, current: BigNumber) =>
         sum.add(current.times(subsidyFactor))
       );
-
-      minBalance = minBalance.add(costOfExecutingFutureTransactions);
     }
 
-    const isAboveMinBalanceLimit = currentBalance.gt(minBalance);
+    const requiredBalance = minBalance.add(costOfExecutingFutureTransactions);
+    const isAboveMinBalanceLimit = currentBalance.gt(requiredBalance);
 
     this.logger.debug(
       `isAboveMinBalanceLimit: currentBalance=${currentBalance} > minBalance=${minBalance} + costOfExecutingFutureTransactions=${costOfExecutingFutureTransactions} returns ${isAboveMinBalanceLimit}`,
@@ -224,7 +199,7 @@ export class EconomicStrategyManager {
     const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
     const claimingGasCost = gasPrice.times(CLAIMING_GAS_ESTIMATE);
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
-    const minProfitability = this.strategy.minProfitability || new BigNumber(0);
+    const minProfitability = this.strategy.minProfitability;
 
     const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
 
@@ -236,6 +211,11 @@ export class EconomicStrategyManager {
     );
 
     return isProfitable;
+  }
+
+  private get maxSubsidyFactor(): number {
+    const maxGasSubsidy = this.strategy.maxGasSubsidy / 100;
+    return maxGasSubsidy + 1;
   }
 
   private normalizeWaitTimes = (temporalUnit: number, stats: EthGasStationInfo) => {
