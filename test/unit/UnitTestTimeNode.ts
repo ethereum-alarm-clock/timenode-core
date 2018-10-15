@@ -82,6 +82,12 @@ describe('TimeNode Unit Tests', () => {
   });
 
   describe('getClaimedNotExecutedTransactions()', () => {
+    beforeEach(async () => {
+      config = await mockConfig();
+      timenode = new TimeNode(config);
+      timenode.config.statsDb.clearAll();
+    });
+
     it('returns 0 when no transactions', () => {
       const txs = timenode.getClaimedNotExecutedTransactions()[myAccount];
       assert.equal(txs.length, 0);

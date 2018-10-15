@@ -12,7 +12,6 @@ describe('TimeNode', () => {
   let myAccount: string;
   let eac: any;
   let web3: any;
-  let waitUntilBlock: any;
   let withSnapshotRevert: any;
   let timeNode: TimeNode;
 
@@ -23,7 +22,6 @@ describe('TimeNode', () => {
     web3 = config.web3;
 
     const helpers = getHelperMethods(web3);
-    waitUntilBlock = helpers.waitUntilBlock;
     withSnapshotRevert = helpers.withSnapshotRevert;
 
     timeNode = new TimeNode(config);
@@ -46,30 +44,16 @@ describe('TimeNode', () => {
       const scheduledTransactionsMap = {};
 
       for (let i = 0; i < TRANSACTIONS_TO_SCHEDULE; i++) {
-        const transactionAddress: string = await scheduleTestTx();
+        const transactionAddress: string = await scheduleTestTx(270 + 5 * i);
 
         scheduledTransactionsMap[transactionAddress] = {
           executionLogged: false
         };
       }
 
-      const firstScheduledTransactionAddress = Object.keys(scheduledTransactionsMap)[0];
-      const firstScheduledTransaction = await eac.transactionRequest(
-        firstScheduledTransactionAddress
-      );
-
-      await firstScheduledTransaction.fillData();
-
-      const firstExecutionBlock =
-        firstScheduledTransaction.windowStart.toNumber() +
-        firstScheduledTransaction.freezePeriod.toNumber() +
-        100;
-
-      await waitUntilBlock(0, firstExecutionBlock);
+      await timeNode.startScanning();
 
       console.log('SCHEDULED TX ADDRESSES TO EXECUTE', scheduledTransactionsMap);
-
-      await timeNode.startScanning();
 
       timeNode.config.logger.info = (msg: any, txRequest: string) => {
         if (msg.includes && msg.includes('EXECUTED') && scheduledTransactionsMap[txRequest]) {
@@ -124,7 +108,7 @@ describe('TimeNode', () => {
       );
 
       console.log('FINAL STATUS OF MASS TX EXECUTION:', scheduledTransactionsMap);
-    }).timeout(400000);
+    }).timeout(600000);
   } else {
     it('claims and executes transaction', async () => {
       await withSnapshotRevert(async () => {
