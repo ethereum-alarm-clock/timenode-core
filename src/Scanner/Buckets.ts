@@ -1,17 +1,14 @@
 import { WatchableBucket } from './WatchableBucket';
 import { IBuckets, IBucketPair } from '../Buckets';
 import { BucketWatchCallback } from './BucketWatchCallback';
-import { ILogger } from '../Logger';
-import { IBucketWatcher } from './IBucketWatcher';
+import { WatchableBucketFactory } from './WatchableBucketFactory';
 
 export class Buckets {
   private buckets: WatchableBucket[] = [];
-  private requestFactory: Promise<IBucketWatcher>;
-  private logger: ILogger;
+  private watchableBucketFactory: WatchableBucketFactory;
 
-  constructor(requestFactory: Promise<IBucketWatcher>, logger: ILogger) {
-    this.requestFactory = requestFactory;
-    this.logger = logger;
+  constructor(watchableBucketFactory: WatchableBucketFactory) {
+    this.watchableBucketFactory = watchableBucketFactory;
   }
 
   public async update(newBuckets: IBuckets, callback: BucketWatchCallback) {
@@ -30,7 +27,7 @@ export class Buckets {
   }
 
   public async stop() {
-    while (this.stopped) {
+    while (!this.stopped) {
       await this.shift();
     }
   }
@@ -48,12 +45,7 @@ export class Buckets {
   }
 
   private async addBucket(bucketPair: IBucketPair, callback: BucketWatchCallback) {
-    const bucket = new WatchableBucket(
-      bucketPair,
-      await this.requestFactory,
-      callback,
-      this.logger
-    );
+    const bucket = await this.watchableBucketFactory.create(bucketPair, callback);
     await this.push(bucket);
   }
 

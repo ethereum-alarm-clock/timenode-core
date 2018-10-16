@@ -6,6 +6,7 @@ import { BucketCalc, IBucketCalc } from '../Buckets';
 import { ITxRequestRaw } from '../Types/ITxRequest';
 import { TxStatus } from '../Enum';
 import { Buckets } from './Buckets';
+import { WatchableBucketFactory } from './WatchableBucketFactory';
 
 export default class ChainScanner extends CacheScanner {
   public bucketCalc: IBucketCalc;
@@ -20,7 +21,7 @@ export default class ChainScanner extends CacheScanner {
     super(config, router);
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config.util, this.requestFactory);
-    this.buckets = new Buckets(this.requestFactory, this.config.logger);
+    this.buckets = new Buckets(new WatchableBucketFactory(this.requestFactory, this.config.logger));
 
     this.handleRequest = this.handleRequest.bind(this);
   }
