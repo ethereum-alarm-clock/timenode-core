@@ -67,13 +67,7 @@ export default class Config implements IConfigParams {
       throw new Error('Must pass at least 1 providerUrl to the config object.');
     }
 
-    this.economicStrategy = params.economicStrategy || {
-      maxDeposit: Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit,
-      minBalance: Config.DEFAULT_ECONOMIC_STRATEGY.minBalance,
-      minProfitability: Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability,
-      maxGasSubsidy: Config.DEFAULT_ECONOMIC_STRATEGY.maxGasSubsidy,
-      usingSmartGasEstimation: Config.DEFAULT_ECONOMIC_STRATEGY.usingSmartGasEstimation
-    };
+    this.economicStrategy = params.economicStrategy || Config.DEFAULT_ECONOMIC_STRATEGY;
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
