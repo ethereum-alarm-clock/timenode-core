@@ -21,6 +21,10 @@ export default class ChainScanner extends CacheScanner {
     nextBuckets: {
       blockBucket: -1,
       timestampBucket: -1
+    },
+    afterNextBuckets: {
+      blockBucket: -1,
+      timestampBucket: -1
     }
   };
 
@@ -35,45 +39,53 @@ export default class ChainScanner extends CacheScanner {
   public async watchBlockchain(): Promise<void> {
     const buckets = await this.bucketCalc.getBuckets();
 
-    if (this.buckets.nextBuckets.blockBucket === buckets.currentBuckets.blockBucket) {
+    if (
+      this.buckets.nextBuckets.blockBucket === buckets.currentBuckets.blockBucket ||
+      this.buckets.afterNextBuckets.blockBucket === buckets.currentBuckets.blockBucket
+    ) {
       await this.stopWatcher(this.buckets.currentBuckets.blockBucket);
 
       // If we are only doing one bucket step up we only need to start one watcher.
       this.buckets.currentBuckets.blockBucket = buckets.currentBuckets.blockBucket;
-      this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
-        buckets.nextBuckets.blockBucket,
-        this.buckets.nextBuckets.blockBucket
-      );
     } else {
       // Start watching the current buckets right away.
       this.buckets.currentBuckets.blockBucket = await this.watchRequestsByBucket(
         buckets.currentBuckets.blockBucket,
         this.buckets.currentBuckets.blockBucket
       );
-      this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
-        buckets.nextBuckets.blockBucket,
-        this.buckets.nextBuckets.blockBucket
-      );
     }
 
-    if (this.buckets.nextBuckets.timestampBucket === buckets.currentBuckets.timestampBucket) {
+    this.buckets.nextBuckets.blockBucket = await this.watchRequestsByBucket(
+      buckets.nextBuckets.blockBucket,
+      this.buckets.nextBuckets.blockBucket
+    );
+    this.buckets.afterNextBuckets.blockBucket = await this.watchRequestsByBucket(
+      buckets.afterNextBuckets.blockBucket,
+      this.buckets.afterNextBuckets.blockBucket
+    );
+
+    if (
+      this.buckets.nextBuckets.timestampBucket === buckets.currentBuckets.timestampBucket ||
+      this.buckets.afterNextBuckets.timestampBucket === buckets.currentBuckets.timestampBucket
+    ) {
       await this.stopWatcher(this.buckets.currentBuckets.timestampBucket);
 
       this.buckets.currentBuckets.timestampBucket = buckets.currentBuckets.timestampBucket;
-      this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
-        buckets.nextBuckets.timestampBucket,
-        this.buckets.nextBuckets.timestampBucket
-      );
     } else {
       this.buckets.currentBuckets.timestampBucket = await this.watchRequestsByBucket(
         buckets.currentBuckets.timestampBucket,
         this.buckets.currentBuckets.timestampBucket
       );
-      this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
-        buckets.nextBuckets.timestampBucket,
-        this.buckets.nextBuckets.timestampBucket
-      );
     }
+
+    this.buckets.nextBuckets.timestampBucket = await this.watchRequestsByBucket(
+      buckets.nextBuckets.timestampBucket,
+      this.buckets.nextBuckets.timestampBucket
+    );
+    this.buckets.afterNextBuckets.timestampBucket = await this.watchRequestsByBucket(
+      buckets.afterNextBuckets.timestampBucket,
+      this.buckets.afterNextBuckets.timestampBucket
+    );
   }
 
   public async watchRequestsByBucket(bucket: Bucket, previousBucket: Bucket): Promise<Bucket> {

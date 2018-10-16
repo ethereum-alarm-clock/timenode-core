@@ -19,7 +19,8 @@ export class BucketCalc {
     const latest: IBlock = await this.util.getBlock('latest');
     return {
       currentBuckets: await this.getCurrentBuckets(latest),
-      nextBuckets: await this.getNextBuckets(latest)
+      nextBuckets: await this.getNextBuckets(latest),
+      afterNextBuckets: await this.getAfterNextBuckets(latest)
     };
   }
 
@@ -33,6 +34,16 @@ export class BucketCalc {
   private async getNextBuckets(latest: IBlock): Promise<IBucketPair> {
     const nextBlockInterval = latest.number + BucketSize.block;
     const nextTsInterval = latest.timestamp + BucketSize.timestamp;
+
+    return {
+      blockBucket: (await this.requestFactory).calcBucket(nextBlockInterval, 1),
+      timestampBucket: (await this.requestFactory).calcBucket(nextTsInterval, 2)
+    };
+  }
+
+  private async getAfterNextBuckets(latest: IBlock): Promise<IBucketPair> {
+    const nextBlockInterval = latest.number + 2 * BucketSize.block;
+    const nextTsInterval = latest.timestamp + 2 * BucketSize.timestamp;
 
     return {
       blockBucket: (await this.requestFactory).calcBucket(nextBlockInterval, 1),
