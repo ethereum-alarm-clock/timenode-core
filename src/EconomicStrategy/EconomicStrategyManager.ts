@@ -4,8 +4,9 @@ import { W3Util } from '..';
 import Cache, { ICachedTxDetails } from '../Cache';
 import { EconomicStrategyStatus } from '../Enum';
 import { ILogger, DefaultLogger } from '../Logger';
-import { Address, ITxRequest, EthGasStationInfo } from '../Types';
+import { Address, ITxRequest } from '../Types';
 import { IEconomicStrategy } from './IEconomicStrategy';
+import { NormalizedTimes } from './NormalizedTimes';
 
 const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
 
@@ -85,12 +86,6 @@ export class EconomicStrategyManager {
     return EconomicStrategyStatus.CLAIM;
   }
 
-  /**
-   * Calculates the correct gas price to use for execution, taking into consideration
-   * the economicStrategy `maxGasSubsidy` and the current network conditions.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {Config} config Configuration object.
-   */
   public async getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber> {
     const { average } = await this.util.getAdvancedNetworkGasPrice();
     const currentNetworkPrice = this.strategy.usingSmartGasEstimation
@@ -107,22 +102,16 @@ export class EconomicStrategyManager {
         : currentNetworkPrice;
   }
 
-  /**
-   * Checks if the transaction is profitable to be executed when considering the
-   * current network gas prices.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {Config} config Configuration object.
-   */
-  public async shouldExecuteTx(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean> {
+  public async shouldExecuteTx(txRequest: ITxRequest, targetGasPrice: BigNumber): Promise<boolean> {
+    const { gasPrice, requiredDeposit, bounty } = txRequest;
     const gasAmount = this.util.calculateGasAmount(txRequest);
-    const reimbursement = txRequest.gasPrice.times(gasAmount);
-    const deposit = txRequest.requiredDeposit;
+    const reimbursement = gasPrice.times(gasAmount);
 
     const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
-    const reward = txRequest.bounty.times(paymentModifier);
+    const reward = bounty.times(paymentModifier);
 
-    const gasCost = gasPrice.times(gasAmount);
-    const expectedReward = deposit.plus(reward).plus(reimbursement);
+    const gasCost = targetGasPrice.times(gasAmount);
+    const expectedReward = requiredDeposit.plus(reward).plus(reimbursement);
     const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
 
     this.logger.debug(
@@ -195,16 +184,19 @@ export class EconomicStrategyManager {
     return isAboveMinBalanceLimit;
   }
 
-  private async isClaimingProfitable(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean> {
+  private async isClaimingProfitable(
+    txRequest: ITxRequest,
+    targetGasPrice: BigNumber
+  ): Promise<boolean> {
     const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
-    const claimingGasCost = gasPrice.times(CLAIMING_GAS_ESTIMATE);
+    const claimingGasCost = targetGasPrice.times(CLAIMING_GAS_ESTIMATE);
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
     const minProfitability = this.strategy.minProfitability;
 
     const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
 
     this.logger.debug(
-      `isClaimingProfitable: paymentModifier=${paymentModifier} gasPrice=${gasPrice} bounty=${
+      `isClaimingProfitable: paymentModifier=${paymentModifier} targetGasPrice=${targetGasPrice} bounty=${
         txRequest.bounty
       } reward=${reward} >= minProfitability=${minProfitability} returns ${isProfitable}`,
       txRequest.address
@@ -218,42 +210,6 @@ export class EconomicStrategyManager {
     return maxGasSubsidy + 1;
   }
 
-  private normalizeWaitTimes = (temporalUnit: number, stats: EthGasStationInfo) => {
-    let normalizedTimes = {
-      safeLow: stats.safeLowWait.mul(10),
-      avg: stats.avgWait.mul(10),
-      fast: stats.fastWait.mul(10),
-      fastest: stats.fastestWait.mul(10)
-    };
-
-    if (temporalUnit === 1) {
-      // Normalize the estimate
-      const { blockTime } = stats;
-      normalizedTimes = {
-        safeLow: normalizedTimes.safeLow.div(blockTime).round(),
-        avg: normalizedTimes.avg.div(blockTime).round(),
-        fast: normalizedTimes.fast.div(blockTime).round(),
-        fastest: normalizedTimes.fastest.div(blockTime).round()
-      };
-    }
-
-    return normalizedTimes;
-  };
-
-  private returnRightGas = (timeLeft: BigNumber, normTimes: any, gasStats: EthGasStationInfo) => {
-    if (timeLeft > normTimes.safeLow) {
-      return gasStats.safeLow;
-    } else if (timeLeft > normTimes.avg) {
-      return gasStats.average;
-    } else if (timeLeft > normTimes.fast) {
-      return gasStats.fast;
-    } else if (timeLeft > normTimes.fastest) {
-      return gasStats.fastest;
-    } else {
-      return null;
-    }
-  };
-
   private async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
     const gasStats = await W3Util.getEthGasStationStats();
     if (!gasStats) {
@@ -261,7 +217,6 @@ export class EconomicStrategyManager {
     }
 
     const { temporalUnit } = txRequest;
-    const normTimes = this.normalizeWaitTimes(temporalUnit, gasStats);
     const now = await txRequest.now();
     const inReservedWindow = await txRequest.inReservedWindow();
 
@@ -270,7 +225,9 @@ export class EconomicStrategyManager {
       : now.sub(txRequest.executionWindowEnd);
     const normalizedTimeLeft = temporalUnit === 1 ? timeLeft.mul(gasStats.blockTime) : timeLeft;
 
-    const gasEstimation = this.returnRightGas(normalizedTimeLeft, normTimes, gasStats);
+    const gasEstimation = new NormalizedTimes(gasStats, temporalUnit).pickGasPrice(
+      normalizedTimeLeft
+    );
 
     this.logger.debug(
       `smartGasEstimation: inReservedWindow=${inReservedWindow} timeLeft=${timeLeft} normalizedTimeLeft=${normalizedTimeLeft} returns ${gasEstimation}`,

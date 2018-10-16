@@ -4,7 +4,7 @@ import * as TypeMoq from 'typemoq';
 
 import { W3Util, Config } from '../../src';
 import Cache, { ICachedTxDetails } from '../../src/Cache';
-import { IEconomicStrategy } from '../../src/EconomicStrategy';
+
 import { EconomicStrategyManager } from '../../src/EconomicStrategy/EconomicStrategyManager';
 import { EconomicStrategyStatus } from '../../src/Enum';
 import { ITxRequest, GasPriceEstimation } from '../../src/Types';
@@ -74,9 +74,7 @@ describe('Economic Strategy Tests', () => {
     minProfitability: BigNumber,
     bounty: BigNumber
   ): Promise<EconomicStrategyStatus> => {
-    const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
-    strategy.minProfitability = minProfitability;
-
+    const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, { minProfitability });
     const economicStrategyManager = new EconomicStrategyManager(
       strategy,
       defaultUtil,
@@ -91,7 +89,6 @@ describe('Economic Strategy Tests', () => {
   describe('shouldClaimTx()', () => {
     it('returns CLAIM when using default strategy', async () => {
       const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
-
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
@@ -109,9 +106,9 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns INSUFFICIENT_BALANCE if balance below minBalance', async () => {
-      const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
-      strategy.minBalance = defaultBalance.plus(1);
-
+      const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, {
+        minBalance: defaultBalance.plus(1)
+      });
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
@@ -165,9 +162,9 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns WINDOW_TOO_SHORT if reserved window in timestamp is too short', async () => {
-      const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
-      strategy.minExecutionWindow = 600;
-
+      const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, {
+        minExecutionWindow: 600
+      });
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
@@ -194,9 +191,9 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns WINDOW_TOO_SHORT if reserved window in block is too short', async () => {
-      const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
-      strategy.minExecutionWindowBlock = 600;
-
+      const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, {
+        minExecutionWindowBlock: 600
+      });
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
         defaultUtil,
@@ -225,13 +222,9 @@ describe('Economic Strategy Tests', () => {
 
   describe('getExecutionGasPrice()', () => {
     it('returns current network price if maxGasSubsidy not set', async () => {
-      const strategy: IEconomicStrategy = {
-        maxGasSubsidy: null
-      };
       const currentNetworkPrice = await defaultUtil.networkGasPrice();
-
       const economicStrategyManager = new EconomicStrategyManager(
-        strategy,
+        Config.DEFAULT_ECONOMIC_STRATEGY,
         defaultUtil,
         cache.object,
         null
@@ -242,11 +235,8 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns tx gas price if current network price lower than tx gas price', async () => {
-      const strategy: IEconomicStrategy = {
-        maxGasSubsidy: 100
-      };
       const economicStrategyManager = new EconomicStrategyManager(
-        strategy,
+        Config.DEFAULT_ECONOMIC_STRATEGY,
         defaultUtil,
         cache.object,
         null
@@ -258,15 +248,12 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns current network price if (tx gas price + subsidy) higher than current network price', async () => {
-      const strategy: IEconomicStrategy = {
-        maxGasSubsidy: 100
-      };
       const lowerGasPrice = defaultGasPrice.minus(100);
       const txRequest = createTxRequest(lowerGasPrice);
       const currentNetworkPrice = await defaultUtil.networkGasPrice();
 
       const economicStrategyManager = new EconomicStrategyManager(
-        strategy,
+        Config.DEFAULT_ECONOMIC_STRATEGY,
         defaultUtil,
         cache.object,
         null
@@ -277,9 +264,9 @@ describe('Economic Strategy Tests', () => {
     });
 
     it('returns (tx gas price + subsidy) if (tx gas price + subsidy) lower than current network price', async () => {
-      const strategy: IEconomicStrategy = {
-        maxGasSubsidy: 1
-      };
+      const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, {
+        maxSubsidy: 1
+      });
 
       const lowerGasPrice = defaultGasPrice.div(2);
       const txRequest = createTxRequest(lowerGasPrice).object;
