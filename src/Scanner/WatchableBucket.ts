@@ -1,20 +1,20 @@
-import { ILogger } from '../Logger';
-import { ITxRequestRaw } from '../Types/ITxRequest';
+import { ILogger, DefaultLogger } from '../Logger';
 import { IBucketPair, Bucket } from '../Buckets';
 import { BucketWatchCallback } from './BucketWatchCallback';
+import { IBucketWatcher } from './IBucketWatcher';
 
 export class WatchableBucket {
   private bucket: IBucketPair;
-  private requestFactory: any;
+  private requestFactory: IBucketWatcher;
   private logger: ILogger;
   private callBack: BucketWatchCallback;
   private eventWatchers: {} = {};
 
   constructor(
     bucket: IBucketPair,
-    requestFactory: any,
-    callBack: (request: ITxRequestRaw) => void,
-    logger: ILogger
+    requestFactory: IBucketWatcher,
+    callBack: BucketWatchCallback,
+    logger: ILogger = new DefaultLogger()
   ) {
     this.bucket = bucket;
     this.requestFactory = requestFactory;
@@ -42,9 +42,8 @@ export class WatchableBucket {
   }
 
   private async startWatcher(bucket: Bucket): Promise<number> {
-    const reqFactory = await this.requestFactory;
     try {
-      const watcher = await reqFactory.watchRequestsByBucket(bucket, this.callBack);
+      const watcher = await this.requestFactory.watchRequestsByBucket(bucket, this.callBack);
       this.eventWatchers[bucket] = watcher;
 
       this.logger.debug(`Buckets: Watcher for bucket=${bucket} has been started`);
@@ -56,11 +55,10 @@ export class WatchableBucket {
   }
 
   private async stopWatcher(bucket: Bucket) {
-    const reqFactory = await this.requestFactory;
     try {
       const watcher = this.eventWatchers[bucket];
       if (watcher !== undefined) {
-        await reqFactory.stopWatch(watcher);
+        await this.requestFactory.stopWatch(watcher);
         delete this.eventWatchers[bucket];
 
         this.logger.debug(`Buckets: Watcher for bucket=${bucket} has been stopped`);
