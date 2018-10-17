@@ -78,9 +78,14 @@ export class EconomicStrategyManager {
       return EconomicStrategyStatus.DEPOSIT_TOO_HIGH;
     }
 
-    const windowTooShort = this.windowTooShort(txRequest);
-    if (windowTooShort) {
-      return EconomicStrategyStatus.WINDOW_TOO_SHORT;
+    const tooShortReserved = this.tooShortReserved(txRequest);
+    if (tooShortReserved) {
+      return EconomicStrategyStatus.TOO_SHORT_RESERVED;
+    }
+
+    const tooShortClaimWindow = await this.tooShortClaimWindow(txRequest);
+    if (tooShortClaimWindow) {
+      return EconomicStrategyStatus.TOO_SHORT_CLAIM_WINDOW;
     }
 
     return EconomicStrategyStatus.CLAIM;
@@ -124,19 +129,24 @@ export class EconomicStrategyManager {
     return shouldExecute;
   }
 
-  // Checks the length of the *claim* window.
-  private windowTooShort(txRequest: ITxRequest): boolean {
-    const minimumWindow =
-      txRequest.temporalUnit === 1
-        ? this.strategy.minExecutionWindowBlock
-        : this.strategy.minExecutionWindow;
-    if (!minimumWindow) {
-      return false;
-    }
+  private async tooShortClaimWindow(txRequest: ITxRequest): Promise<boolean> {
+    const { claimWindowEnd, now, temporalUnit } = txRequest;
 
-    const claimWindowSize = txRequest.claimWindowEnd.sub(txRequest.claimWindowStart);
+    const minWindow =
+      temporalUnit === 1
+        ? 2 // Use 2 blocks as minimum amount of time for a claim window.
+        : 30;
 
-    return claimWindowSize.lessThan(minimumWindow);
+    return claimWindowEnd.sub(await now()).lt(minWindow);
+  }
+
+  private tooShortReserved(txRequest: ITxRequest): boolean {
+    const { minExecutionWindowBlock, minExecutionWindow } = this.strategy;
+    const { reservedWindowSize, temporalUnit } = txRequest;
+
+    const minWindow = temporalUnit === 1 ? minExecutionWindowBlock : minExecutionWindow;
+
+    return minWindow && reservedWindowSize.lt(minWindow);
   }
 
   private exceedsMaxDeposit(txRequest: ITxRequest): boolean {
