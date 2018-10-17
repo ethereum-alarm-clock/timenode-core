@@ -124,6 +124,7 @@ export class EconomicStrategyManager {
     return shouldExecute;
   }
 
+  // Checks the length of the *claim* window.
   private windowTooShort(txRequest: ITxRequest): boolean {
     const minimumWindow =
       txRequest.temporalUnit === 1
@@ -133,7 +134,9 @@ export class EconomicStrategyManager {
       return false;
     }
 
-    return txRequest.reservedWindowSize.lessThan(minimumWindow);
+    const claimWindowSize = txRequest.claimWindowEnd.sub(txRequest.claimWindowStart);
+
+    return claimWindowSize.lessThan(minimumWindow);
   }
 
   private exceedsMaxDeposit(txRequest: ITxRequest): boolean {
