@@ -130,12 +130,10 @@ export class EconomicStrategyManager {
   }
 
   private async tooShortClaimWindow(txRequest: ITxRequest): Promise<boolean> {
+    const { minClaimWindowBlock, minClaimWindow } = this.strategy;
     const { claimWindowEnd, now, temporalUnit } = txRequest;
 
-    const minWindow =
-      temporalUnit === 1
-        ? 2 // Use 2 blocks as minimum amount of time for a claim window.
-        : 30;
+    const minWindow = temporalUnit === 1 ? minClaimWindowBlock : minClaimWindow;
 
     return claimWindowEnd.sub(await now()).lt(minWindow);
   }

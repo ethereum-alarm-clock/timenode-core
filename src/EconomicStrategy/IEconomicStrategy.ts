@@ -34,6 +34,10 @@ export interface IEconomicStrategy {
 
   minExecutionWindowBlock?: number;
 
+  minClaimWindow?: number;
+
+  minClaimWindowBlock?: number;
+
   /**
    * Smart gas estimation will use the Eth Gas Station API to
    * retrieve information about the speed of gas prices and pick
