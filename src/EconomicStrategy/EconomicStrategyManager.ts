@@ -221,8 +221,8 @@ export class EconomicStrategyManager {
     const inReservedWindow = await txRequest.inReservedWindow();
 
     const timeLeft = inReservedWindow
-      ? now.sub(txRequest.reservedWindowEnd)
-      : now.sub(txRequest.executionWindowEnd);
+      ? txRequest.reservedWindowEnd.sub(now)
+      : txRequest.executionWindowEnd.sub(now);
     const normalizedTimeLeft = temporalUnit === 1 ? timeLeft.mul(gasStats.blockTime) : timeLeft;
 
     const gasEstimation = new NormalizedTimes(gasStats, temporalUnit).pickGasPrice(
