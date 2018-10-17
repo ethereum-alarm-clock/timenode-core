@@ -32,7 +32,7 @@ export class EthGasStationFetchingService implements IGasPriceFetchingService {
     return {
       average: new BigNumber(toWei(average)),
       avgWait: new BigNumber(avgWait),
-      blockTime: new BigNumber(block_time),
+      blockTime: new BigNumber(Math.floor(block_time)),
       fast: new BigNumber(toWei(fast)),
       fastWait: new BigNumber(fastWait),
       fastest: new BigNumber(toWei(fastest)),
@@ -41,15 +41,4 @@ export class EthGasStationFetchingService implements IGasPriceFetchingService {
       safeLowWait: new BigNumber(safeLowWait)
     };
   }
-}
-
-const test = async () => {
-  const e = new EthGasStationFetchingService();
-  console.log(await e.fetchGasPrice());
-};
-
-try {
-  test();
-} catch (e) {
-  console.error(e);
 }
