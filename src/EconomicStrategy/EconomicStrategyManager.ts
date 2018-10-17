@@ -111,7 +111,9 @@ export class EconomicStrategyManager {
     const reward = bounty.times(paymentModifier);
 
     const gasCost = targetGasPrice.times(gasAmount);
-    const expectedReward = requiredDeposit.plus(reward).plus(reimbursement);
+    const expectedReward = reward
+      .plus(reimbursement)
+      .plus(txRequest.isClaimed ? requiredDeposit : 0);
     const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
 
     this.logger.debug(
