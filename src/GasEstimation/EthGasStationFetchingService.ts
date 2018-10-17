@@ -42,3 +42,14 @@ export class EthGasStationFetchingService implements IGasPriceFetchingService {
     };
   }
 }
+
+const test = async () => {
+  const e = new EthGasStationFetchingService();
+  console.log(await e.fetchGasPrice());
+};
+
+try {
+  test();
+} catch (e) {
+  console.error(e);
+}
