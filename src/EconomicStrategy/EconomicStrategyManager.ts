@@ -137,7 +137,7 @@ export class EconomicStrategyManager {
         ? 2 // Use 2 blocks as minimum amount of time for a claim window.
         : 30;
 
-    return claimWindowEnd.sub(await now()).lt(minWindow);
+    return new BigNumber(claimWindowEnd).sub(await now()).lt(minWindow);
   }
 
   private tooShortReserved(txRequest: ITxRequest): boolean {
