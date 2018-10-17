@@ -27,6 +27,8 @@ export default class Config implements IConfigParams {
     minBalance: new BigNumber(0),
     minProfitability: new BigNumber(0),
     maxGasSubsidy: 100,
+    minClaimWindow: 30,
+    minClaimWindowBlock: 2,
     minExecutionWindow: 150,
     minExecutionWindowBlock: 10,
     usingSmartGasEstimation: false

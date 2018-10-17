@@ -29,7 +29,8 @@ describe('Economic Strategy Tests', () => {
     claimedBy = account,
     paymentModifier = defaultPaymentModifier,
     temporalUnit = 1,
-    reservedWindowSize = new BigNumber(3600)
+    reservedWindowSize = new BigNumber(3600),
+    claimWindowEnd = new BigNumber(123155)
   ) => {
     const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
     txRequest.setup(tx => tx.gasPrice).returns(() => gasPrice);
@@ -43,6 +44,7 @@ describe('Economic Strategy Tests', () => {
     txRequest.setup(tx => tx.claimedBy).returns(() => claimedBy);
     txRequest.setup(tx => tx.address).returns(() => '0x987654321');
     txRequest.setup(tx => tx.temporalUnit).returns(() => temporalUnit);
+    txRequest.setup(tx => tx.claimWindowEnd).returns(() => claimWindowEnd);
 
     return txRequest;
   };
@@ -161,7 +163,7 @@ describe('Economic Strategy Tests', () => {
       assert.equal(shouldClaimStatus, EconomicStrategyStatus.CLAIM);
     });
 
-    it('returns WINDOW_TOO_SHORT if reserved window in timestamp is too short', async () => {
+    it('returns TOO_SHORT_RESERVED if reserved window in timestamp is too short', async () => {
       const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, {
         minExecutionWindow: 600
       });
@@ -187,10 +189,10 @@ describe('Economic Strategy Tests', () => {
         account,
         gasPrice.average
       );
-      assert.equal(shouldClaimStatus, EconomicStrategyStatus.WINDOW_TOO_SHORT);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.TOO_SHORT_RESERVED);
     });
 
-    it('returns WINDOW_TOO_SHORT if reserved window in block is too short', async () => {
+    it('returns TOO_SHORT_RESERVED if reserved window in block is too short', async () => {
       const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, {
         minExecutionWindowBlock: 600
       });
@@ -216,7 +218,7 @@ describe('Economic Strategy Tests', () => {
         account,
         gasPrice.average
       );
-      assert.equal(shouldClaimStatus, EconomicStrategyStatus.WINDOW_TOO_SHORT);
+      assert.equal(shouldClaimStatus, EconomicStrategyStatus.TOO_SHORT_RESERVED);
     });
   });
 
