@@ -32,7 +32,7 @@ export class EthGasStationFetchingService implements IGasPriceFetchingService {
     return {
       average: new BigNumber(toWei(average)),
       avgWait: new BigNumber(avgWait),
-      blockTime: new BigNumber(block_time),
+      blockTime: new BigNumber(Math.floor(block_time)),
       fast: new BigNumber(toWei(fast)),
       fastWait: new BigNumber(fastWait),
       fastest: new BigNumber(toWei(fastest)),
