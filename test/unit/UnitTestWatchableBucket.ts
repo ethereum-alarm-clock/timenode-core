@@ -1,6 +1,7 @@
 import * as TypeMoq from 'typemoq';
 import { IBucketWatcher } from '../../src/Scanner/IBucketWatcher';
 import { WatchableBucket } from '../../src/Scanner/WatchableBucket';
+import { assert } from 'chai';
 
 describe('WatchableBucket', () => {
   it('should not stop previous watch when there was not any started', async () => {
@@ -64,5 +65,28 @@ describe('WatchableBucket', () => {
     await watchableBucket.stop();
 
     requestFactoryMock.verifyAll();
+  });
+
+  it('should compare', async () => {
+    const bucketPair = {
+      timestampBucket: 100,
+      blockBucket: 102
+    };
+
+    const differentBucket = {
+      timestampBucket: 101,
+      blockBucket: 102
+    };
+
+    const differentBucket2 = {
+      timestampBucket: 100,
+      blockBucket: 101
+    };
+
+    const watchableBucket = new WatchableBucket(bucketPair, null, null);
+
+    assert.isTrue(watchableBucket.equals(bucketPair));
+    assert.isFalse(watchableBucket.equals(differentBucket));
+    assert.isFalse(watchableBucket.equals(differentBucket2));
   });
 });

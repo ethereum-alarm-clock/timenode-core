@@ -21,7 +21,10 @@ export default class ChainScanner extends CacheScanner {
     super(config, router);
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config.util, this.requestFactory);
-    this.buckets = new Buckets(new WatchableBucketFactory(this.requestFactory, this.config.logger));
+    this.buckets = new Buckets(
+      new WatchableBucketFactory(this.requestFactory, this.config.logger),
+      this.config.logger
+    );
 
     this.handleRequest = this.handleRequest.bind(this);
   }
