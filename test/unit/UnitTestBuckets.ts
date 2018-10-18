@@ -3,15 +3,44 @@ import * as TypeMoq from 'typemoq';
 import { WatchableBucketFactory } from '../../src/Scanner/WatchableBucketFactory';
 import { WatchableBucket } from '../../src/Scanner/WatchableBucket';
 import { Buckets } from '../../src/Scanner/Buckets';
-import { IBuckets } from '../../src/Buckets';
+import { IBuckets, IBucketPair } from '../../src/Buckets';
 
+// tslint:disable-next-line:no-big-function
 describe('WatchableBucket', () => {
+  const createWatchableBucket = (
+    timesWatch: TypeMoq.Times,
+    timesStop: TypeMoq.Times,
+    equals: boolean
+  ) => {
+    const watchableBucket = TypeMoq.Mock.ofType<WatchableBucket>();
+    watchableBucket.setup(w => w.watch()).verifiable(timesWatch);
+    watchableBucket.setup(w => w.stop()).verifiable(timesStop);
+    watchableBucket.setup(w => w.equals(TypeMoq.It.isAny())).returns(() => equals);
+    watchableBucket.setup((x: any) => x.then).returns(() => undefined);
+
+    return watchableBucket;
+  };
+
+  const registerInFactory = (
+    watchableBucketFactoryMock: TypeMoq.IMock<WatchableBucketFactory>,
+    bucketPair: IBucketPair,
+    watchableBucketMock: TypeMoq.IMock<WatchableBucket>,
+    times: TypeMoq.Times = TypeMoq.Times.once()
+  ) => {
+    watchableBucketFactoryMock
+      .setup(r => r.create(bucketPair, TypeMoq.It.isAny()))
+      .returns(async () => watchableBucketMock.object)
+      .verifiable(times);
+  };
+
   it('should watch all buckets when used for the first time', async () => {
     const bucketsPairs = TypeMoq.Mock.ofType<IBuckets>();
 
-    const watchableBucket = TypeMoq.Mock.ofType<WatchableBucket>();
-    watchableBucket.setup(w => w.watch()).verifiable(TypeMoq.Times.exactly(3));
-    watchableBucket.setup((x: any) => x.then).returns(() => undefined);
+    const watchableBucket = createWatchableBucket(
+      TypeMoq.Times.exactly(3),
+      TypeMoq.Times.never(),
+      false
+    );
 
     const watchableBucketFactory = TypeMoq.Mock.ofType<WatchableBucketFactory>();
     watchableBucketFactory
@@ -30,10 +59,11 @@ describe('WatchableBucket', () => {
   it('should not watch same buckets when already watched', async () => {
     const bucketsPairs = TypeMoq.Mock.ofType<IBuckets>();
 
-    const watchableBucket = TypeMoq.Mock.ofType<WatchableBucket>();
-    watchableBucket.setup(w => w.watch()).verifiable(TypeMoq.Times.exactly(3));
-    watchableBucket.setup(w => w.equals(TypeMoq.It.isAny())).returns(() => true);
-    watchableBucket.setup((x: any) => x.then).returns(() => undefined);
+    const watchableBucket = createWatchableBucket(
+      TypeMoq.Times.exactly(3),
+      TypeMoq.Times.never(),
+      true
+    );
 
     const watchableBucketFactory = TypeMoq.Mock.ofType<WatchableBucketFactory>();
     watchableBucketFactory
@@ -52,50 +82,50 @@ describe('WatchableBucket', () => {
 
   it('should shift buckets', async () => {
     const currentBuckets = { timestampBucket: 0, blockBucket: 10000 };
-    const currentBuckets2 = { timestampBucket: 2, blockBucket: 10001 };
+    const nextBuckets = { timestampBucket: 2, blockBucket: 10001 };
     const afterNextBuckets = { timestampBucket: 3, blockBucket: 10002 };
 
-    const bucketsPairs = TypeMoq.Mock.ofType<IBuckets>();
-    bucketsPairs.setup(b => b.currentBuckets).returns(() => currentBuckets);
+    const currentBuckets2 = nextBuckets;
+    const afterNextBuckets2 = { timestampBucket: 4, blockBucket: 10003 };
 
-    const bucketsPairs2 = TypeMoq.Mock.ofType<IBuckets>();
-    bucketsPairs.setup(b => b.currentBuckets).returns(() => currentBuckets2);
-    bucketsPairs2.setup(b => b.afterNextBuckets).returns(() => afterNextBuckets);
+    const bucketsPairs = {
+      currentBuckets,
+      nextBuckets,
+      afterNextBuckets
+    };
+    const bucketsPairs2 = {
+      currentBuckets: currentBuckets2,
+      nextBuckets: afterNextBuckets,
+      afterNextBuckets: afterNextBuckets2
+    };
 
-    const watchableBucketForCurrentBuckets = TypeMoq.Mock.ofType<WatchableBucket>();
-    watchableBucketForCurrentBuckets.setup(w => w.watch()).verifiable(TypeMoq.Times.once());
-    watchableBucketForCurrentBuckets.setup(w => w.stop()).verifiable(TypeMoq.Times.once());
-    watchableBucketForCurrentBuckets.setup(w => w.equals(TypeMoq.It.isAny())).returns(() => false);
-    watchableBucketForCurrentBuckets.setup((x: any) => x.then).returns(() => undefined);
-
-    const watchableBucketForCurrentBuckets2 = TypeMoq.Mock.ofType<WatchableBucket>();
-    watchableBucketForCurrentBuckets2.setup(w => w.watch()).verifiable(TypeMoq.Times.never());
-    watchableBucketForCurrentBuckets2.setup(w => w.stop()).verifiable(TypeMoq.Times.never());
-    watchableBucketForCurrentBuckets2.setup((x: any) => x.then).returns(() => undefined);
-
-    const watchableBucketForAfterNextBuckets = TypeMoq.Mock.ofType<WatchableBucket>();
-    watchableBucketForAfterNextBuckets.setup(w => w.watch()).verifiable(TypeMoq.Times.once());
-    watchableBucketForAfterNextBuckets.setup(w => w.stop()).verifiable(TypeMoq.Times.never());
-    watchableBucketForAfterNextBuckets.setup((x: any) => x.then).returns(() => undefined);
+    const watchableBucketForCurrentBuckets = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.once(),
+      false
+    );
+    const watchableBucketForCurrentBuckets2 = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.never(),
+      true
+    );
+    const watchableBucketForAfterNextBuckets = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.never(),
+      false
+    );
 
     const watchableBucketDefault = TypeMoq.Mock.ofType<WatchableBucket>();
     watchableBucketDefault.setup((x: any) => x.then).returns(() => undefined);
 
     const watchableBucketFactory = TypeMoq.Mock.ofType<WatchableBucketFactory>();
-    watchableBucketFactory
-      .setup(r => r.create(currentBuckets, TypeMoq.It.isAny()))
-      .returns(async () => watchableBucketForCurrentBuckets.object)
-      .verifiable(TypeMoq.Times.once());
-
-    watchableBucketFactory
-      .setup(r => r.create(currentBuckets2, TypeMoq.It.isAny()))
-      .returns(async () => watchableBucketForCurrentBuckets2.object)
-      .verifiable(TypeMoq.Times.never());
-
-    watchableBucketFactory
-      .setup(r => r.create(afterNextBuckets, TypeMoq.It.isAny()))
-      .returns(async () => watchableBucketForAfterNextBuckets.object)
-      .verifiable(TypeMoq.Times.once());
+    registerInFactory(watchableBucketFactory, currentBuckets, watchableBucketForCurrentBuckets);
+    registerInFactory(watchableBucketFactory, nextBuckets, watchableBucketForCurrentBuckets2);
+    registerInFactory(
+      watchableBucketFactory,
+      afterNextBuckets2,
+      watchableBucketForAfterNextBuckets
+    );
 
     watchableBucketFactory
       .setup(r => r.create(TypeMoq.It.isAny(), TypeMoq.It.isAny()))
@@ -103,10 +133,13 @@ describe('WatchableBucket', () => {
 
     const buckets = new Buckets(watchableBucketFactory.object);
 
-    await buckets.update(bucketsPairs.object, null);
-    await buckets.update(bucketsPairs2.object, null);
+    await buckets.update(bucketsPairs, null);
+    await buckets.update(bucketsPairs2, null);
 
     watchableBucketForCurrentBuckets.verifyAll();
+    watchableBucketForCurrentBuckets2.verifyAll();
+    watchableBucketForAfterNextBuckets.verifyAll();
+
     watchableBucketFactory.verifyAll();
   });
 
@@ -128,5 +161,86 @@ describe('WatchableBucket', () => {
     await buckets.stop();
 
     watchableBucket.verifyAll();
+  });
+
+  it('should restart all buckets when one of the buckets has changed', async () => {
+    const currentBuckets = { timestampBucket: 0, blockBucket: 10000 };
+    const nextBuckets = { timestampBucket: 2, blockBucket: 10001 };
+    const afterNextBuckets = { timestampBucket: 3, blockBucket: 10002 };
+
+    const currentBuckets2 = { timestampBucket: 2, blockBucket: 10006 };
+    const nextBuckets2 = { timestampBucket: 3, blockBucket: 10007 };
+    const afterNextBuckets2 = { timestampBucket: 4, blockBucket: 10008 };
+
+    const bucketsPairs = {
+      currentBuckets,
+      nextBuckets,
+      afterNextBuckets
+    };
+    const bucketsPairs2 = {
+      currentBuckets: currentBuckets2,
+      nextBuckets: nextBuckets2,
+      afterNextBuckets: afterNextBuckets2
+    };
+
+    const watchableBucketForCurrentBuckets = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.once(),
+      false
+    );
+    const watchableBucketForNextBuckets = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.once(),
+      false
+    );
+    const watchableBucketForAfterNextBuckets = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.once(),
+      false
+    );
+
+    const watchableBucketForCurrentBuckets2 = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.never(),
+      false
+    );
+    const watchableBucketForNextBuckets2 = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.never(),
+      false
+    );
+    const watchableBucketForAfterNextBuckets2 = createWatchableBucket(
+      TypeMoq.Times.once(),
+      TypeMoq.Times.never(),
+      false
+    );
+
+    const watchableBucketFactory = TypeMoq.Mock.ofType<WatchableBucketFactory>();
+    registerInFactory(watchableBucketFactory, currentBuckets, watchableBucketForCurrentBuckets);
+    registerInFactory(watchableBucketFactory, nextBuckets, watchableBucketForNextBuckets);
+    registerInFactory(watchableBucketFactory, afterNextBuckets, watchableBucketForAfterNextBuckets);
+
+    registerInFactory(watchableBucketFactory, currentBuckets2, watchableBucketForCurrentBuckets2);
+    registerInFactory(watchableBucketFactory, nextBuckets2, watchableBucketForNextBuckets2);
+    registerInFactory(
+      watchableBucketFactory,
+      afterNextBuckets2,
+      watchableBucketForAfterNextBuckets2
+    );
+
+    const buckets = new Buckets(watchableBucketFactory.object);
+
+    await buckets.update(bucketsPairs, null);
+    await buckets.update(bucketsPairs2, null);
+
+    watchableBucketForCurrentBuckets.verifyAll();
+    watchableBucketForNextBuckets.verifyAll();
+    watchableBucketForAfterNextBuckets.verifyAll();
+
+    watchableBucketForCurrentBuckets2.verifyAll();
+    watchableBucketForNextBuckets2.verifyAll();
+    watchableBucketForAfterNextBuckets2.verifyAll();
+
+    watchableBucketFactory.verifyAll();
   });
 });

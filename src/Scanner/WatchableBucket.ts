@@ -35,6 +35,9 @@ export class WatchableBucket {
   }
 
   public equals(newBucket: IBucketPair): boolean {
+    this.logger.debug(
+      `Buckets: comparing ${JSON.stringify(this.bucket)} to ${JSON.stringify(newBucket)}`
+    );
     return (
       newBucket.blockBucket === this.bucket.blockBucket &&
       newBucket.timestampBucket === this.bucket.timestampBucket

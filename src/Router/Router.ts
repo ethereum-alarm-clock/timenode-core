@@ -103,9 +103,6 @@ export default class Router implements IRouter {
         }
       } else {
         this.logger.info(`Claiming: Skipped - ${shouldClaimStatus}`, txRequest.address);
-        this.logger.debug(
-          `ECONOMIC STRATEGY: ${JSON.stringify(this.economicStrategyManager.strategy)}`
-        );
       }
     }
 
