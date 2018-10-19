@@ -19,6 +19,7 @@ export class BucketsManager {
 
   public async stop() {
     await Promise.all(this.buckets.map(b => b.stop()));
+    this.buckets = [];
     return;
   }
 

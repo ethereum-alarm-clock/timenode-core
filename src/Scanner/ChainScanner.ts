@@ -31,7 +31,7 @@ export default class ChainScanner extends CacheScanner {
 
   public async watchBlockchain(): Promise<void> {
     const newBuckets = await this.bucketCalc.getBuckets();
-    await this.bucketsManager.update(newBuckets, this.handleRequest);
+    return this.bucketsManager.update(newBuckets, this.handleRequest);
   }
 
   protected async stopAllWatchers(): Promise<void> {
