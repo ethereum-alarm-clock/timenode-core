@@ -19,9 +19,7 @@ describe('WatchableBucket', () => {
 
   it('should stop previous watch if there was any started', async () => {
     const requestFactoryMock = TypeMoq.Mock.ofType<IBucketWatcher>();
-    requestFactoryMock
-      .setup(r => r.stopWatch(TypeMoq.It.isAny()))
-      .verifiable(TypeMoq.Times.exactly(2));
+    requestFactoryMock.setup(r => r.stopWatch(TypeMoq.It.isAny())).verifiable(TypeMoq.Times.once());
     requestFactoryMock
       .setup(r => r.watchRequestsByBucket(TypeMoq.It.isAny(), TypeMoq.It.isAny()))
       .returns(value => value);
@@ -38,9 +36,7 @@ describe('WatchableBucket', () => {
 
   it('should not stop previous more than once', async () => {
     const requestFactoryMock = TypeMoq.Mock.ofType<IBucketWatcher>();
-    requestFactoryMock
-      .setup(r => r.stopWatch(TypeMoq.It.isAny()))
-      .verifiable(TypeMoq.Times.exactly(2));
+    requestFactoryMock.setup(r => r.stopWatch(TypeMoq.It.isAny())).verifiable(TypeMoq.Times.once());
     requestFactoryMock
       .setup(r => r.watchRequestsByBucket(TypeMoq.It.isAny(), TypeMoq.It.isAny()))
       .returns(value => value);
