@@ -5,7 +5,7 @@ import CacheScanner from './CacheScanner';
 import { BucketCalc, IBucketCalc } from '../Buckets';
 import { ITxRequestRaw } from '../Types/ITxRequest';
 import { TxStatus } from '../Enum';
-import { Buckets } from './Buckets';
+import { BucketsManager } from './BucketsManager';
 import { WatchableBucketFactory } from './WatchableBucketFactory';
 
 export default class ChainScanner extends CacheScanner {
@@ -15,13 +15,13 @@ export default class ChainScanner extends CacheScanner {
   public eventWatchers: {} = {};
   public requestFactory: Promise<any>;
 
-  private buckets: Buckets;
+  private bucketsManager: BucketsManager;
 
   constructor(config: Config, router: IRouter) {
     super(config, router);
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config.util, this.requestFactory);
-    this.buckets = new Buckets(
+    this.bucketsManager = new BucketsManager(
       new WatchableBucketFactory(this.requestFactory, this.config.logger),
       this.config.logger
     );
@@ -31,11 +31,11 @@ export default class ChainScanner extends CacheScanner {
 
   public async watchBlockchain(): Promise<void> {
     const newBuckets = await this.bucketCalc.getBuckets();
-    await this.buckets.update(newBuckets, this.handleRequest);
+    return this.bucketsManager.update(newBuckets, this.handleRequest);
   }
 
   protected async stopAllWatchers(): Promise<void> {
-    return this.buckets.stop();
+    return this.bucketsManager.stop();
   }
 
   private handleRequest(request: ITxRequestRaw): void {

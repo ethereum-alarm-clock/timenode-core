@@ -221,7 +221,7 @@ export default class Router implements IRouter {
         current = next;
       }
     } catch (err) {
-      this.logger.error(`Transition from ${current} failed: ${err}`);
+      this.logger.error(`Transition from ${TxStatus[current]} failed: ${err}`);
     }
 
     this.txRequestStates[txRequest.address] = current;
