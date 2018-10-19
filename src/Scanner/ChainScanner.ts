@@ -5,7 +5,7 @@ import CacheScanner from './CacheScanner';
 import { BucketCalc, IBucketCalc } from '../Buckets';
 import { ITxRequestRaw } from '../Types/ITxRequest';
 import { TxStatus } from '../Enum';
-import { Buckets } from './Buckets';
+import { BucketsManager } from './BucketsManager';
 import { WatchableBucketFactory } from './WatchableBucketFactory';
 
 export default class ChainScanner extends CacheScanner {
@@ -15,13 +15,13 @@ export default class ChainScanner extends CacheScanner {
   public eventWatchers: {} = {};
   public requestFactory: Promise<any>;
 
-  private buckets: Buckets;
+  private buckets: BucketsManager;
 
   constructor(config: Config, router: IRouter) {
     super(config, router);
     this.requestFactory = config.eac.requestFactory();
     this.bucketCalc = new BucketCalc(config.util, this.requestFactory);
-    this.buckets = new Buckets(
+    this.buckets = new BucketsManager(
       new WatchableBucketFactory(this.requestFactory, this.config.logger),
       this.config.logger
     );

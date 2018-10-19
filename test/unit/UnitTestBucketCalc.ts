@@ -1,4 +1,4 @@
-import { assert, expect } from 'chai';
+import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
 
 import { W3Util } from '../../src';
@@ -18,43 +18,39 @@ describe('ButcketCalc', () => {
 
       const bucketCalc = new BucketCalc(util.object, requestFactory);
 
-      const { currentBuckets, nextBuckets, afterNextBuckets } = await bucketCalc.getBuckets();
+      const buckets = await bucketCalc.getBuckets();
 
-      expect(currentBuckets).to.haveOwnProperty('blockBucket');
-      expect(currentBuckets).to.haveOwnProperty('timestampBucket');
-      expect(nextBuckets).to.haveOwnProperty('blockBucket');
-      expect(nextBuckets).to.haveOwnProperty('timestampBucket');
-      expect(afterNextBuckets).to.haveOwnProperty('blockBucket');
-      expect(afterNextBuckets).to.haveOwnProperty('timestampBucket');
+      assert.equal(buckets.length, 6);
 
-      assert.equal(
-        currentBuckets.blockBucket,
+      assert.include(
+        buckets,
         -1 * (defaultBlock.number - (defaultBlock.number % BucketSize.block))
       );
-      assert.equal(
-        currentBuckets.timestampBucket,
+
+      assert.include(
+        buckets,
         defaultBlock.timestamp - (defaultBlock.timestamp % BucketSize.timestamp)
       );
 
       const expectedNextBlockInterval = defaultBlock.number + BucketSize.block;
       const expectedNextTimestampInterval = defaultBlock.timestamp + BucketSize.timestamp;
-      assert.equal(
-        nextBuckets.blockBucket,
+      assert.include(
+        buckets,
         -1 * (expectedNextBlockInterval - (expectedNextBlockInterval % BucketSize.block))
       );
-      assert.equal(
-        nextBuckets.timestampBucket,
+      assert.include(
+        buckets,
         expectedNextTimestampInterval - (expectedNextTimestampInterval % BucketSize.timestamp)
       );
 
       const expectedAfterNextBlockInterval = defaultBlock.number + 2 * BucketSize.block;
       const expectedAfterNextTimestampInterval = defaultBlock.timestamp + 2 * BucketSize.timestamp;
-      assert.equal(
-        afterNextBuckets.blockBucket,
+      assert.include(
+        buckets,
         -1 * (expectedAfterNextBlockInterval - (expectedAfterNextBlockInterval % BucketSize.block))
       );
-      assert.equal(
-        afterNextBuckets.timestampBucket,
+      assert.include(
+        buckets,
         expectedAfterNextTimestampInterval -
           (expectedAfterNextTimestampInterval % BucketSize.timestamp)
       );

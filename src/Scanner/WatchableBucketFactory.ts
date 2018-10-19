@@ -1,6 +1,6 @@
 import { WatchableBucket } from './WatchableBucket';
 import { IBucketWatcher } from './IBucketWatcher';
-import { IBucketPair } from '../Buckets';
+import { Bucket } from '../Buckets';
 import { BucketWatchCallback } from './BucketWatchCallback';
 import { ILogger } from '../Logger';
 
@@ -13,10 +13,7 @@ export class WatchableBucketFactory {
     this.logger = logger;
   }
 
-  public async create(
-    bucketPair: IBucketPair,
-    callback: BucketWatchCallback
-  ): Promise<WatchableBucket> {
-    return new WatchableBucket(bucketPair, await this.requestFactory, callback, this.logger);
+  public async create(bucket: Bucket, callback: BucketWatchCallback): Promise<WatchableBucket> {
+    return new WatchableBucket(bucket, await this.requestFactory, callback, this.logger);
   }
 }
