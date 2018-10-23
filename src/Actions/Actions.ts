@@ -1,8 +1,6 @@
 import BigNumber from 'bignumber.js';
 
 import Cache, { ICachedTxDetails } from '../Cache';
-import { ClaimStatus, ExecuteStatus } from '../Enum';
-import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ILogger } from '../Logger';
 import { Address, ITxRequest } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
@@ -12,10 +10,11 @@ import { getAbortedExecuteStatus, isAborted, isExecuted } from './Helpers';
 import { ILedger } from './Ledger';
 import { Pending } from './Pending';
 import { Operation } from '../Types/Operation';
+import { TxSendStatus } from '../Enum/TxSendStatus';
 
 export default interface IActions {
-  claim(txRequest: ITxRequest, nextAccount: Address, gasPrice: BigNumber): Promise<ClaimStatus>;
-  execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<ExecuteStatus>;
+  claim(txRequest: ITxRequest, nextAccount: Address, gasPrice: BigNumber): Promise<TxSendStatus>;
+  execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<TxSendStatus>;
 }
 
 export default class Actions implements IActions {
@@ -46,16 +45,17 @@ export default class Actions implements IActions {
     txRequest: ITxRequest,
     nextAccount: Address,
     gasPrice: BigNumber
-  ): Promise<ClaimStatus> {
+  ): Promise<TxSendStatus> {
+    const context = TxSendStatus.claim;
     //TODO: merge wallet ifs into 1 getWalletStatus or something
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.CLAIM)) {
-      return ClaimStatus.IN_PROGRESS;
+      return TxSendStatus.STATUS(context, 'PROGRESS');
     }
     if (!this.wallet.isAccountAbleToSendTx(nextAccount)) {
-      return ClaimStatus.ACCOUNT_BUSY;
+      return TxSendStatus.STATUS(context, 'BUSY');
     }
     if (await this.pending.hasPending(txRequest, { type: Operation.CLAIM, checkGasPrice: true })) {
-      return ClaimStatus.PENDING;
+      return TxSendStatus.STATUS(context, 'PENDING');
     }
 
     try {
@@ -65,29 +65,30 @@ export default class Actions implements IActions {
       this.ledger.accountClaiming(receipt, txRequest, opts, from);
 
       switch (status) {
-        case TxSendErrors.OK:
+        case TxSendStatus.OK:
           this.cache.get(txRequest.address).claimedBy = from;
-          return ClaimStatus.SUCCESS;
-        case TxSendErrors.WALLET_BUSY:
-          return ClaimStatus.ACCOUNT_BUSY;
-        case TxSendErrors.IN_PROGRESS:
-          return ClaimStatus.IN_PROGRESS;
-        case TxSendErrors.MINED_IN_UNCLE:
-          return ClaimStatus.MINED_IN_UNCLE;
+          return TxSendStatus.STATUS(context, 'SUCCESS');
+        case TxSendStatus.WALLET_BUSY:
+          return TxSendStatus.STATUS(context, 'BUSY');
+        case TxSendStatus.IN_PROGRESS:
+          return TxSendStatus.STATUS(context, 'PROGRESS');
+        case TxSendStatus.MINED_IN_UNCLE:
+          return TxSendStatus.STATUS(context, 'MINED');
       }
     } catch (err) {
       this.logger.error(err);
     }
 
-    return ClaimStatus.FAILED;
+    return TxSendStatus.STATUS(context, 'FAIL');
   }
 
-  public async execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<ExecuteStatus> {
+  public async execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<TxSendStatus> {
+    const context = TxSendStatus.execute;
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.EXECUTE)) {
-      return ExecuteStatus.IN_PROGRESS;
+      return TxSendStatus.STATUS(context, 'PROGRESS');
     }
     if (!this.wallet.isNextAccountFree()) {
-      return ExecuteStatus.WALLET_BUSY;
+      return TxSendStatus.STATUS(context, 'BUSY');
     }
 
     try {
@@ -105,16 +106,16 @@ export default class Actions implements IActions {
       } else if (!(await this.hasPendingExecuteTransaction(txRequest))) {
         executionResult = await this.wallet.sendFromNext(opts);
       } else {
-        return ExecuteStatus.PENDING;
+        return TxSendStatus.STATUS(context, 'PENDING');
       }
 
       const { receipt, from, status } = executionResult;
 
       switch (status) {
-        case TxSendErrors.OK:
+        case TxSendStatus.OK:
           await txRequest.refreshData();
 
-          let executionStatus = ExecuteStatus.SUCCESS;
+          let executionStatus = TxSendStatus.STATUS(context, 'SUCCESS');
           const success = isExecuted(receipt);
 
           if (success) {
@@ -122,24 +123,25 @@ export default class Actions implements IActions {
           } else if (isAborted(receipt)) {
             executionStatus = getAbortedExecuteStatus(receipt);
           } else {
-            executionStatus = ExecuteStatus.FAILED;
+            executionStatus = TxSendStatus.STATUS(context, 'FAIL');
           }
 
           this.ledger.accountExecution(txRequest, receipt, opts, from, success);
 
           return executionStatus;
-        case TxSendErrors.WALLET_BUSY:
-          return ExecuteStatus.WALLET_BUSY;
-        case TxSendErrors.IN_PROGRESS:
-          return ExecuteStatus.IN_PROGRESS;
-        case TxSendErrors.MINED_IN_UNCLE:
-          return ExecuteStatus.MINED_IN_UNCLE;
+
+        case TxSendStatus.WALLET_BUSY:
+          return TxSendStatus.STATUS(context, 'BUSY');
+        case TxSendStatus.IN_PROGRESS:
+          return TxSendStatus.STATUS(context, 'PROGRESS');
+        case TxSendStatus.MINED_IN_UNCLE:
+          return TxSendStatus.STATUS(context, 'MINED');
       }
     } catch (err) {
       this.logger.error(err, txRequest.address);
     }
 
-    return ExecuteStatus.FAILED;
+    return TxSendStatus.STATUS(context, 'FAIL');
   }
 
   public async cleanup(): Promise<boolean> {

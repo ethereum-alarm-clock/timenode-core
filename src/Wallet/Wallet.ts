@@ -1,6 +1,6 @@
 import * as ethWallet from 'ethereumjs-wallet';
 
-import { TxSendErrors } from '../Enum/TxSendErrors';
+import { TxSendStatus } from '../Enum/TxSendStatus';
 import { DefaultLogger, ILogger } from '../Logger';
 import { Address } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
@@ -149,17 +149,17 @@ export class Wallet {
     if (this.hasPendingTransaction(opts.to, opts.operation)) {
       return {
         from,
-        status: TxSendErrors.IN_PROGRESS
+        status: TxSendStatus.IN_PROGRESS
       };
     }
 
     const balance = await this.util.balanceOf(from);
 
     if (balance.eq(0)) {
-      this.logger.info(`${TxSendErrors.NOT_ENOUGH_FUNDS} ${from}`);
+      this.logger.info(`${TxSendStatus.NOT_ENOUGH_FUNDS} ${from}`);
       return {
         from,
-        status: TxSendErrors.NOT_ENOUGH_FUNDS
+        status: TxSendStatus.NOT_ENOUGH_FUNDS
       };
     }
 
@@ -172,7 +172,7 @@ export class Wallet {
     if (!this.isAccountAbleToSendTx(from)) {
       return {
         from,
-        status: TxSendErrors.WALLET_BUSY
+        status: TxSendStatus.WALLET_BUSY
       };
     }
 
@@ -196,7 +196,7 @@ export class Wallet {
       this.logger.error(error, opts.to);
       return {
         from,
-        status: TxSendErrors.UNKNOWN_ERROR
+        status: TxSendStatus.UNKNOWN_ERROR
       };
     }
 
@@ -214,13 +214,13 @@ export class Wallet {
       this.accountState.set(from, opts.to, opts.operation, TransactionState.ERROR);
       return {
         from,
-        status: TxSendErrors.MINED_IN_UNCLE
+        status: TxSendStatus.MINED_IN_UNCLE
       };
     }
 
     const status = this.isTransactionStatusSuccessful(receipt)
-      ? TxSendErrors.OK
-      : TxSendErrors.FAILED;
+      ? TxSendStatus.OK
+      : TxSendStatus.FAILED;
 
     return { receipt, from, status };
   }

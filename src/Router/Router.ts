@@ -1,5 +1,5 @@
 import IActions from '../Actions';
-import { ClaimStatus, EconomicStrategyStatus, ExecuteStatus, TxStatus } from '../Enum';
+import { TxSendStatus, EconomicStrategyStatus, TxStatus } from '../Enum';
 import { Address, ITxRequest } from '../Types';
 import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
 import Cache, { ICachedTxDetails } from '../Cache';
@@ -66,6 +66,7 @@ export default class Router implements IRouter {
   }
 
   public async claimWindow(txRequest: ITxRequest): Promise<TxStatus> {
+    const context = TxSendStatus.claim;
     if (this.wallet.isWaitingForConfirmation(txRequest.address, Operation.CLAIM)) {
       return TxStatus.ClaimWindow;
     }
@@ -86,7 +87,7 @@ export default class Router implements IRouter {
 
       if (shouldClaimStatus === EconomicStrategyStatus.CLAIM) {
         try {
-          const claimingStatus: ClaimStatus = await this.actions.claim(
+          const claimingStatus: TxSendStatus = await this.actions.claim(
             txRequest,
             nextAccount,
             fastestGas
@@ -94,7 +95,10 @@ export default class Router implements IRouter {
 
           this.handleWalletTransactionResult(claimingStatus, txRequest);
 
-          if (claimingStatus === ClaimStatus.SUCCESS || claimingStatus === ClaimStatus.FAILED) {
+          if (
+            claimingStatus === TxSendStatus.STATUS(context, 'SUCCESS') ||
+            claimingStatus === TxSendStatus.STATUS(context, 'FAIL')
+          ) {
             return TxStatus.FreezePeriod;
           }
         } catch (err) {
@@ -127,6 +131,7 @@ export default class Router implements IRouter {
   }
 
   public async executionWindow(txRequest: ITxRequest): Promise<TxStatus> {
+    const context = TxSendStatus.execute;
     if (this.wallet.isWaitingForConfirmation(txRequest.address, Operation.EXECUTE)) {
       return TxStatus.ExecutionWindow;
     }
@@ -142,7 +147,6 @@ export default class Router implements IRouter {
     }
 
     const executionGas = await this.economicStrategyManager.getExecutionGasPrice(txRequest);
-
     const shouldExecute = await this.economicStrategyManager.shouldExecuteTx(
       txRequest,
       executionGas
@@ -150,11 +154,11 @@ export default class Router implements IRouter {
 
     if (shouldExecute) {
       try {
-        const executionStatus: ExecuteStatus = await this.actions.execute(txRequest, executionGas);
+        const executionStatus: TxSendStatus = await this.actions.execute(txRequest, executionGas);
 
         this.handleWalletTransactionResult(executionStatus, txRequest);
 
-        if (executionStatus === ExecuteStatus.SUCCESS) {
+        if (executionStatus === TxSendStatus.STATUS(context, 'SUCCESS')) {
           return TxStatus.Executed;
         }
       } catch (err) {
@@ -234,39 +238,36 @@ export default class Router implements IRouter {
     return TxStatus.Done;
   }
 
-  private handleWalletTransactionResult(
-    status: ClaimStatus | ExecuteStatus,
-    txRequest: ITxRequest
-  ): void {
+  private handleWalletTransactionResult(status: TxSendStatus, txRequest: ITxRequest): void {
     switch (status) {
-      case ClaimStatus.SUCCESS:
+      case TxSendStatus.STATUS(TxSendStatus.claim, 'SUCCESS'):
         this.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case ExecuteStatus.SUCCESS:
+      case TxSendStatus.STATUS(TxSendStatus.execute, 'SUCCESS'):
         this.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case ClaimStatus.ACCOUNT_BUSY:
-      case ClaimStatus.NOT_ENABLED:
-      case ClaimStatus.PENDING:
-      case ExecuteStatus.WALLET_BUSY:
-      case ExecuteStatus.PENDING:
-      case ExecuteStatus.MINED_IN_UNCLE:
-      case ClaimStatus.MINED_IN_UNCLE:
+      case TxSendStatus.STATUS(TxSendStatus.claim, 'BUSY'):
+      case TxSendStatus.NOT_ENABLED:
+      case TxSendStatus.STATUS(TxSendStatus.claim, 'PENDING'):
+      case TxSendStatus.STATUS(TxSendStatus.execute, 'BUSY'):
+      case TxSendStatus.STATUS(TxSendStatus.execute, 'PENDING'):
+      case TxSendStatus.STATUS(TxSendStatus.execute, 'MINED'):
+      case TxSendStatus.STATUS(TxSendStatus.claim, 'MINED'):
         this.logger.info(status, txRequest.address);
         break;
-      case ClaimStatus.FAILED:
-      case ExecuteStatus.FAILED:
-      case ExecuteStatus.ABORTED_AFTER_CALL_WINDOW:
-      case ExecuteStatus.ABORTED_BEFORE_CALL_WINDOW:
-      case ExecuteStatus.ABORTED_ALREADY_CALLED:
-      case ExecuteStatus.ABORTED_INSUFFICIENT_GAS:
-      case ExecuteStatus.ABORTED_RESERVED_FOR_CLAIMER:
-      case ExecuteStatus.ABORTED_TOO_LOW_GAS_PRICE:
-      case ExecuteStatus.ABORTED_WAS_CANCELLED:
+      case TxSendStatus.STATUS(TxSendStatus.claim, 'FAIL'):
+      case TxSendStatus.STATUS(TxSendStatus.execute, 'FAIL'):
+      case TxSendStatus.ABORTED_AFTER_CALL_WINDOW:
+      case TxSendStatus.ABORTED_BEFORE_CALL_WINDOW:
+      case TxSendStatus.ABORTED_ALREADY_CALLED:
+      case TxSendStatus.ABORTED_INSUFFICIENT_GAS:
+      case TxSendStatus.ABORTED_RESERVED_FOR_CLAIMER:
+      case TxSendStatus.ABORTED_TOO_LOW_GAS_PRICE:
+      case TxSendStatus.ABORTED_WAS_CANCELLED:
         this.logger.error(status, txRequest.address);
         break;
-      case ClaimStatus.IN_PROGRESS:
-      case ExecuteStatus.IN_PROGRESS:
+      case TxSendStatus.STATUS(TxSendStatus.claim, 'PROGRESS'):
+      case TxSendStatus.STATUS(TxSendStatus.execute, 'PROGRESS'):
         // skip logging this status
         break;
     }
