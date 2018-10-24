@@ -8,6 +8,12 @@ export enum TxSendStatus {
   claim = 'Claiming',
   execute = 'Execution',
   FAILED = 'FAILED',
+  SUCCESS = 'SUCCESS',
+  BUSY = 'BUSY',
+  PROGRESS = 'PROGRESS',
+  MINED = 'MINED',
+  FAIL = 'FAIL',
+  PENDING = 'PENDING',
   TYPE_VARIABLE = 'Unknown context',
   NOT_ENABLED = 'Claiming: Skipped - Claiming disabled',
   ABORTED_WAS_CANCELLED = 'Execution: Aborted with reason WasCancelled',
@@ -22,7 +28,7 @@ export enum TxSendStatus {
 
 // tslint:disable-next-line:no-namespace
 export namespace TxSendStatus {
-  export function STATUS(context: TxSendStatus, msg: string) {
+  export function STATUS(context: TxSendStatus, msg: TxSendStatus) {
     switch (msg) {
       case 'SUCCESS':
         switch (context) {

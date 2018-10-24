@@ -49,13 +49,13 @@ export default class Actions implements IActions {
     const context = TxSendStatus.claim;
     //TODO: merge wallet ifs into 1 getWalletStatus or something
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.CLAIM)) {
-      return TxSendStatus.STATUS(context, 'PROGRESS');
+      return TxSendStatus.STATUS(context, TxSendStatus.PROGRESS);
     }
     if (!this.wallet.isAccountAbleToSendTx(nextAccount)) {
-      return TxSendStatus.STATUS(context, 'BUSY');
+      return TxSendStatus.STATUS(context, TxSendStatus.BUSY);
     }
     if (await this.pending.hasPending(txRequest, { type: Operation.CLAIM, checkGasPrice: true })) {
-      return TxSendStatus.STATUS(context, 'PENDING');
+      return TxSendStatus.STATUS(context, TxSendStatus.PENDING);
     }
 
     try {
@@ -67,28 +67,28 @@ export default class Actions implements IActions {
       switch (status) {
         case TxSendStatus.OK:
           this.cache.get(txRequest.address).claimedBy = from;
-          return TxSendStatus.STATUS(context, 'SUCCESS');
+          return TxSendStatus.STATUS(context, TxSendStatus.SUCCESS);
         case TxSendStatus.WALLET_BUSY:
-          return TxSendStatus.STATUS(context, 'BUSY');
+          return TxSendStatus.STATUS(context, TxSendStatus.BUSY);
         case TxSendStatus.IN_PROGRESS:
-          return TxSendStatus.STATUS(context, 'PROGRESS');
+          return TxSendStatus.STATUS(context, TxSendStatus.PROGRESS);
         case TxSendStatus.MINED_IN_UNCLE:
-          return TxSendStatus.STATUS(context, 'MINED');
+          return TxSendStatus.STATUS(context, TxSendStatus.MINED);
       }
     } catch (err) {
       this.logger.error(err);
     }
 
-    return TxSendStatus.STATUS(context, 'FAIL');
+    return TxSendStatus.STATUS(context, TxSendStatus.FAIL);
   }
 
   public async execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<TxSendStatus> {
     const context = TxSendStatus.execute;
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.EXECUTE)) {
-      return TxSendStatus.STATUS(context, 'PROGRESS');
+      return TxSendStatus.STATUS(context, TxSendStatus.PROGRESS);
     }
     if (!this.wallet.isNextAccountFree()) {
-      return TxSendStatus.STATUS(context, 'BUSY');
+      return TxSendStatus.STATUS(context, TxSendStatus.BUSY);
     }
 
     try {
@@ -106,7 +106,7 @@ export default class Actions implements IActions {
       } else if (!(await this.hasPendingExecuteTransaction(txRequest))) {
         executionResult = await this.wallet.sendFromNext(opts);
       } else {
-        return TxSendStatus.STATUS(context, 'PENDING');
+        return TxSendStatus.STATUS(context, TxSendStatus.PENDING);
       }
 
       const { receipt, from, status } = executionResult;
@@ -115,7 +115,7 @@ export default class Actions implements IActions {
         case TxSendStatus.OK:
           await txRequest.refreshData();
 
-          let executionStatus = TxSendStatus.STATUS(context, 'SUCCESS');
+          let executionStatus = TxSendStatus.STATUS(context, TxSendStatus.SUCCESS);
           const success = isExecuted(receipt);
 
           if (success) {
@@ -123,7 +123,7 @@ export default class Actions implements IActions {
           } else if (isAborted(receipt)) {
             executionStatus = getAbortedExecuteStatus(receipt);
           } else {
-            executionStatus = TxSendStatus.STATUS(context, 'FAIL');
+            executionStatus = TxSendStatus.STATUS(context, TxSendStatus.FAIL);
           }
 
           this.ledger.accountExecution(txRequest, receipt, opts, from, success);
@@ -131,17 +131,17 @@ export default class Actions implements IActions {
           return executionStatus;
 
         case TxSendStatus.WALLET_BUSY:
-          return TxSendStatus.STATUS(context, 'BUSY');
+          return TxSendStatus.STATUS(context, TxSendStatus.BUSY);
         case TxSendStatus.IN_PROGRESS:
-          return TxSendStatus.STATUS(context, 'PROGRESS');
+          return TxSendStatus.STATUS(context, TxSendStatus.PROGRESS);
         case TxSendStatus.MINED_IN_UNCLE:
-          return TxSendStatus.STATUS(context, 'MINED');
+          return TxSendStatus.STATUS(context, TxSendStatus.MINED);
       }
     } catch (err) {
       this.logger.error(err, txRequest.address);
     }
 
-    return TxSendStatus.STATUS(context, 'FAIL');
+    return TxSendStatus.STATUS(context, TxSendStatus.FAIL);
   }
 
   public async cleanup(): Promise<boolean> {

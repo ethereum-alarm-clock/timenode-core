@@ -96,8 +96,8 @@ export default class Router implements IRouter {
           this.handleWalletTransactionResult(claimingStatus, txRequest);
 
           if (
-            claimingStatus === TxSendStatus.STATUS(context, 'SUCCESS') ||
-            claimingStatus === TxSendStatus.STATUS(context, 'FAIL')
+            claimingStatus === TxSendStatus.STATUS(context, TxSendStatus.SUCCESS) ||
+            claimingStatus === TxSendStatus.STATUS(context, TxSendStatus.FAIL)
           ) {
             return TxStatus.FreezePeriod;
           }
@@ -158,7 +158,7 @@ export default class Router implements IRouter {
 
         this.handleWalletTransactionResult(executionStatus, txRequest);
 
-        if (executionStatus === TxSendStatus.STATUS(context, 'SUCCESS')) {
+        if (executionStatus === TxSendStatus.STATUS(context, TxSendStatus.SUCCESS)) {
           return TxStatus.Executed;
         }
       } catch (err) {
@@ -240,23 +240,23 @@ export default class Router implements IRouter {
 
   private handleWalletTransactionResult(status: TxSendStatus, txRequest: ITxRequest): void {
     switch (status) {
-      case TxSendStatus.STATUS(TxSendStatus.claim, 'SUCCESS'):
+      case TxSendStatus.STATUS(TxSendStatus.claim, TxSendStatus.SUCCESS):
         this.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case TxSendStatus.STATUS(TxSendStatus.execute, 'SUCCESS'):
+      case TxSendStatus.STATUS(TxSendStatus.execute, TxSendStatus.SUCCESS):
         this.logger.info('EXECUTED.', txRequest.address); //TODO: replace with SUCCESS string
         break;
-      case TxSendStatus.STATUS(TxSendStatus.claim, 'BUSY'):
+      case TxSendStatus.STATUS(TxSendStatus.claim, TxSendStatus.BUSY):
       case TxSendStatus.NOT_ENABLED:
-      case TxSendStatus.STATUS(TxSendStatus.claim, 'PENDING'):
-      case TxSendStatus.STATUS(TxSendStatus.execute, 'BUSY'):
-      case TxSendStatus.STATUS(TxSendStatus.execute, 'PENDING'):
-      case TxSendStatus.STATUS(TxSendStatus.execute, 'MINED'):
-      case TxSendStatus.STATUS(TxSendStatus.claim, 'MINED'):
+      case TxSendStatus.STATUS(TxSendStatus.claim, TxSendStatus.PENDING):
+      case TxSendStatus.STATUS(TxSendStatus.execute, TxSendStatus.BUSY):
+      case TxSendStatus.STATUS(TxSendStatus.execute, TxSendStatus.PENDING):
+      case TxSendStatus.STATUS(TxSendStatus.execute, TxSendStatus.MINED):
+      case TxSendStatus.STATUS(TxSendStatus.claim, TxSendStatus.MINED):
         this.logger.info(status, txRequest.address);
         break;
-      case TxSendStatus.STATUS(TxSendStatus.claim, 'FAIL'):
-      case TxSendStatus.STATUS(TxSendStatus.execute, 'FAIL'):
+      case TxSendStatus.STATUS(TxSendStatus.claim, TxSendStatus.FAIL):
+      case TxSendStatus.STATUS(TxSendStatus.execute, TxSendStatus.FAIL):
       case TxSendStatus.ABORTED_AFTER_CALL_WINDOW:
       case TxSendStatus.ABORTED_BEFORE_CALL_WINDOW:
       case TxSendStatus.ABORTED_ALREADY_CALLED:
@@ -266,8 +266,8 @@ export default class Router implements IRouter {
       case TxSendStatus.ABORTED_WAS_CANCELLED:
         this.logger.error(status, txRequest.address);
         break;
-      case TxSendStatus.STATUS(TxSendStatus.claim, 'PROGRESS'):
-      case TxSendStatus.STATUS(TxSendStatus.execute, 'PROGRESS'):
+      case TxSendStatus.STATUS(TxSendStatus.claim, TxSendStatus.PROGRESS):
+      case TxSendStatus.STATUS(TxSendStatus.execute, TxSendStatus.PROGRESS):
         // skip logging this status
         break;
     }
