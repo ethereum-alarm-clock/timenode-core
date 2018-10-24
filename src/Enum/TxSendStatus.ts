@@ -6,12 +6,14 @@ export enum TxSendStatus {
   execute = 'Execution',
   default = 'Default',
   SUCCESS = 'SUCCESS',
-  BUSY = 'BUSY',
-  PROGRESS = 'PROGRESS',
-  MINED = 'MINED',
-  FAIL = 'FAIL',
+
+  BUSY = 'Sending transaction is already in progress. Please wait for account to complete tx.',
+  PROGRESS = 'Transaction in progress',
+  MINED = 'Transaction minded in uncle block',
+  FAIL = 'FAILED',
   PENDING = 'PENDING',
-  TYPE_VARIABLE = 'Unknown context',
+
+  TYPE_VARIABLE = 'Unknown message or context',
   NOT_ENABLED = 'Claiming: Skipped - Claiming disabled',
   ABORTED_WAS_CANCELLED = 'Execution: Aborted with reason WasCancelled',
   ABORTED_ALREADY_CALLED = 'Execution: Aborted with reason AlreadyCalled',
@@ -25,7 +27,7 @@ export enum TxSendStatus {
 
 // tslint:disable-next-line:no-namespace
 export namespace TxSendStatus {
-  export function STATUS(msg: TxSendStatus, context: TxSendStatus = TxSendStatus.default) {
+  export function STATUS(msg: TxSendStatus, context: TxSendStatus) {
     switch (msg) {
       case 'SUCCESS':
         switch (context) {
@@ -37,7 +39,7 @@ export namespace TxSendStatus {
             break;
         }
         break;
-      case 'BUSY':
+      case 'Sending transaction is already in progress. Please wait for account to complete tx.':
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Skipped - Account is busy';
@@ -45,22 +47,15 @@ export namespace TxSendStatus {
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Skipped - Wallet is busy';
             break;
-          case TxSendStatus.default:
-            this.TYPE_VARIABLE =
-              'Sending transaction is already in progress. Please wait for account to complete tx.';
-            break;
         }
         break;
-      case 'PROGRESS':
+      case 'Transaction in progress':
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Skipped - In progress';
             break;
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Skipped - In progress';
-            break;
-          case TxSendStatus.default:
-            this.TYPE_VARIABLE = 'Transaction in progress';
             break;
         }
         break;
@@ -74,7 +69,7 @@ export namespace TxSendStatus {
             break;
         }
         break;
-      case 'FAIL':
+      case 'FAILED':
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Transaction already claimed';
@@ -82,21 +77,15 @@ export namespace TxSendStatus {
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Unable to send the execute action';
             break;
-          case TxSendStatus.default:
-            this.TYPE_VARIABLE = 'FAILED';
-            break;
         }
         break;
-      case 'MINED':
+      case 'Transaction minded in uncle block':
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Transaction mined in uncle block';
             break;
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Transaction mined in uncle block';
-            break;
-          case TxSendStatus.default:
-            this.TYPE_VARIABLE = 'Transaction minded in uncle block';
             break;
         }
     }

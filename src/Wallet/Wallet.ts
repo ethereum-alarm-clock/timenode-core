@@ -149,7 +149,7 @@ export class Wallet {
     if (this.hasPendingTransaction(opts.to, opts.operation)) {
       return {
         from,
-        status: TxSendStatus.STATUS(TxSendStatus.PROGRESS)
+        status: TxSendStatus.PROGRESS
       };
     }
 
@@ -172,7 +172,7 @@ export class Wallet {
     if (!this.isAccountAbleToSendTx(from)) {
       return {
         from,
-        status: TxSendStatus.STATUS(TxSendStatus.BUSY)
+        status: TxSendStatus.BUSY
       };
     }
 
@@ -214,13 +214,13 @@ export class Wallet {
       this.accountState.set(from, opts.to, opts.operation, TransactionState.ERROR);
       return {
         from,
-        status: TxSendStatus.STATUS(TxSendStatus.MINED)
+        status: TxSendStatus.MINED
       };
     }
 
     const status = this.isTransactionStatusSuccessful(receipt)
       ? TxSendStatus.OK
-      : TxSendStatus.STATUS(TxSendStatus.FAIL);
+      : TxSendStatus.FAIL;
 
     return { receipt, from, status };
   }

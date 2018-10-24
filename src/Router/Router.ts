@@ -266,8 +266,8 @@ export default class Router implements IRouter {
       case TxSendStatus.ABORTED_WAS_CANCELLED:
         this.logger.error(status, txRequest.address);
         break;
-      case TxSendStatus.STATUS(TxSendStatus.claim, TxSendStatus.PROGRESS):
-      case TxSendStatus.STATUS(TxSendStatus.execute, TxSendStatus.PROGRESS):
+      case TxSendStatus.STATUS(TxSendStatus.PROGRESS, TxSendStatus.claim):
+      case TxSendStatus.STATUS(TxSendStatus.PROGRESS, TxSendStatus.execute):
         // skip logging this status
         break;
     }
