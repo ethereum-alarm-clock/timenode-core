@@ -1,13 +1,10 @@
 export enum TxSendStatus {
   NOT_ENOUGH_FUNDS = "Account doesn't have enough funds to send transaction.",
-  WALLET_BUSY = 'Sending transaction is already in progress. Please wait for account to complete tx.',
-  IN_PROGRESS = 'Transaction in progress',
   UNKNOWN_ERROR = 'An error happened',
   OK = 'OK',
-  MINED_IN_UNCLE = 'Transaction minded in uncle block',
   claim = 'Claiming',
   execute = 'Execution',
-  FAILED = 'FAILED',
+  default = 'Default',
   SUCCESS = 'SUCCESS',
   BUSY = 'BUSY',
   PROGRESS = 'PROGRESS',
@@ -28,7 +25,7 @@ export enum TxSendStatus {
 
 // tslint:disable-next-line:no-namespace
 export namespace TxSendStatus {
-  export function STATUS(context: TxSendStatus, msg: TxSendStatus) {
+  export function STATUS(msg: TxSendStatus, context: TxSendStatus = TxSendStatus.default) {
     switch (msg) {
       case 'SUCCESS':
         switch (context) {
@@ -48,6 +45,10 @@ export namespace TxSendStatus {
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Skipped - Wallet is busy';
             break;
+          case TxSendStatus.default:
+            this.TYPE_VARIABLE =
+              'Sending transaction is already in progress. Please wait for account to complete tx.';
+            break;
         }
         break;
       case 'PROGRESS':
@@ -57,6 +58,9 @@ export namespace TxSendStatus {
             break;
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Skipped - In progress';
+            break;
+          case TxSendStatus.default:
+            this.TYPE_VARIABLE = 'Transaction in progress';
             break;
         }
         break;
@@ -78,6 +82,9 @@ export namespace TxSendStatus {
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Unable to send the execute action';
             break;
+          case TxSendStatus.default:
+            this.TYPE_VARIABLE = 'FAILED';
+            break;
         }
         break;
       case 'MINED':
@@ -87,6 +94,9 @@ export namespace TxSendStatus {
             break;
           case TxSendStatus.execute:
             this.TYPE_VARIABLE = 'Execution: Transaction mined in uncle block';
+            break;
+          case TxSendStatus.default:
+            this.TYPE_VARIABLE = 'Transaction minded in uncle block';
             break;
         }
     }

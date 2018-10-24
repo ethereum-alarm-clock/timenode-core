@@ -229,7 +229,7 @@ describe('Wallet Unit Tests', () => {
       await fundWallet(address);
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      assert.equal(receipt.status, TxSendStatus.WALLET_BUSY);
+      assert.equal(receipt.status, TxSendStatus.STATUS(TxSendStatus.BUSY));
     });
 
     it('allows to send another transaction when previous one reverted', async () => {
