@@ -1,8 +1,6 @@
 import BigNumber from 'bignumber.js';
 
 import Cache, { ICachedTxDetails } from '../Cache';
-import { ClaimStatus, ExecuteStatus } from '../Enum';
-import { TxSendErrors } from '../Enum/TxSendErrors';
 import { ILogger } from '../Logger';
 import { Address, ITxRequest } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
@@ -12,10 +10,11 @@ import { getAbortedExecuteStatus, isAborted, isExecuted } from './Helpers';
 import { ILedger } from './Ledger';
 import { Pending } from './Pending';
 import { Operation } from '../Types/Operation';
+import { TxSendStatus } from '../Enum/TxSendStatus';
 
 export default interface IActions {
-  claim(txRequest: ITxRequest, nextAccount: Address, gasPrice: BigNumber): Promise<ClaimStatus>;
-  execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<ExecuteStatus>;
+  claim(txRequest: ITxRequest, nextAccount: Address, gasPrice: BigNumber): Promise<TxSendStatus>;
+  execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<TxSendStatus>;
 }
 
 export default class Actions implements IActions {
@@ -46,100 +45,86 @@ export default class Actions implements IActions {
     txRequest: ITxRequest,
     nextAccount: Address,
     gasPrice: BigNumber
-  ): Promise<ClaimStatus> {
+  ): Promise<TxSendStatus> {
+    const context = TxSendStatus.claim;
     //TODO: merge wallet ifs into 1 getWalletStatus or something
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.CLAIM)) {
-      return ClaimStatus.IN_PROGRESS;
+      return TxSendStatus.STATUS(TxSendStatus.PROGRESS, context);
     }
     if (!this.wallet.isAccountAbleToSendTx(nextAccount)) {
-      return ClaimStatus.ACCOUNT_BUSY;
+      return TxSendStatus.STATUS(TxSendStatus.BUSY, context);
     }
     if (await this.pending.hasPending(txRequest, { type: Operation.CLAIM, checkGasPrice: true })) {
-      return ClaimStatus.PENDING;
+      return TxSendStatus.STATUS(TxSendStatus.PENDING, context);
     }
 
-    try {
-      const opts = this.getClaimingOpts(txRequest, gasPrice);
-      const { receipt, from, status } = await this.wallet.sendFromAccount(nextAccount, opts);
+    const opts = this.getClaimingOpts(txRequest, gasPrice);
+    const { receipt, from, status } = await this.wallet.sendFromAccount(nextAccount, opts);
 
-      this.ledger.accountClaiming(receipt, txRequest, opts, from);
+    this.ledger.accountClaiming(receipt, txRequest, opts, from);
 
-      switch (status) {
-        case TxSendErrors.OK:
-          this.cache.get(txRequest.address).claimedBy = from;
-          return ClaimStatus.SUCCESS;
-        case TxSendErrors.WALLET_BUSY:
-          return ClaimStatus.ACCOUNT_BUSY;
-        case TxSendErrors.IN_PROGRESS:
-          return ClaimStatus.IN_PROGRESS;
-        case TxSendErrors.MINED_IN_UNCLE:
-          return ClaimStatus.MINED_IN_UNCLE;
-      }
-    } catch (err) {
-      this.logger.error(err);
+    if (status === TxSendStatus.OK) {
+      this.cache.get(txRequest.address).claimedBy = from;
+      return TxSendStatus.STATUS(TxSendStatus.SUCCESS, context);
+    } else if (status === TxSendStatus.UNKNOWN_ERROR) {
+      this.logger.error(status);
+    } else {
+      return TxSendStatus.STATUS(status, context);
     }
-
-    return ClaimStatus.FAILED;
+    return TxSendStatus.STATUS(TxSendStatus.FAIL, context);
   }
 
-  public async execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<ExecuteStatus> {
+  public async execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<TxSendStatus> {
+    const context = TxSendStatus.execute;
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.EXECUTE)) {
-      return ExecuteStatus.IN_PROGRESS;
+      return TxSendStatus.STATUS(TxSendStatus.PROGRESS, context);
     }
     if (!this.wallet.isNextAccountFree()) {
-      return ExecuteStatus.WALLET_BUSY;
+      return TxSendStatus.STATUS(TxSendStatus.BUSY, context);
     }
 
-    try {
-      const opts = this.getExecutionOpts(txRequest, gasPrice);
-      const claimIndex = this.wallet.getAddresses().indexOf(txRequest.claimedBy);
-      const wasClaimedByOurNode = claimIndex > -1;
-      let executionResult: IWalletReceipt;
+    const opts = this.getExecutionOpts(txRequest, gasPrice);
+    const claimIndex = this.wallet.getAddresses().indexOf(txRequest.claimedBy);
+    const wasClaimedByOurNode = claimIndex > -1;
+    let executionResult: IWalletReceipt;
 
-      if (wasClaimedByOurNode && txRequest.inReservedWindow()) {
-        this.logger.debug(
-          `Claimed by our node ${claimIndex} and inReservedWindow`,
-          txRequest.address
-        );
-        executionResult = await this.wallet.sendFromIndex(claimIndex, opts);
-      } else if (!(await this.hasPendingExecuteTransaction(txRequest))) {
-        executionResult = await this.wallet.sendFromNext(opts);
+    if (wasClaimedByOurNode && txRequest.inReservedWindow()) {
+      this.logger.debug(
+        `Claimed by our node ${claimIndex} and inReservedWindow`,
+        txRequest.address
+      );
+      executionResult = await this.wallet.sendFromIndex(claimIndex, opts);
+    } else if (!(await this.hasPendingExecuteTransaction(txRequest))) {
+      executionResult = await this.wallet.sendFromNext(opts);
+    } else {
+      return TxSendStatus.STATUS(TxSendStatus.PENDING, context);
+    }
+
+    const { receipt, from, status } = executionResult;
+
+    if (status === TxSendStatus.OK) {
+      await txRequest.refreshData();
+      let executionStatus = TxSendStatus.STATUS(TxSendStatus.SUCCESS, context);
+      const success = isExecuted(receipt);
+
+      if (success) {
+        this.cache.get(txRequest.address).wasCalled = true;
+      } else if (isAborted(receipt)) {
+        executionStatus = getAbortedExecuteStatus(receipt);
       } else {
-        return ExecuteStatus.PENDING;
+        executionStatus = TxSendStatus.STATUS(TxSendStatus.FAIL, context);
       }
 
-      const { receipt, from, status } = executionResult;
+      this.ledger.accountExecution(txRequest, receipt, opts, from, success);
 
-      switch (status) {
-        case TxSendErrors.OK:
-          await txRequest.refreshData();
-
-          let executionStatus = ExecuteStatus.SUCCESS;
-          const success = isExecuted(receipt);
-
-          if (success) {
-            this.cache.get(txRequest.address).wasCalled = true;
-          } else if (isAborted(receipt)) {
-            executionStatus = getAbortedExecuteStatus(receipt);
-          } else {
-            executionStatus = ExecuteStatus.FAILED;
-          }
-
-          this.ledger.accountExecution(txRequest, receipt, opts, from, success);
-
-          return executionStatus;
-        case TxSendErrors.WALLET_BUSY:
-          return ExecuteStatus.WALLET_BUSY;
-        case TxSendErrors.IN_PROGRESS:
-          return ExecuteStatus.IN_PROGRESS;
-        case TxSendErrors.MINED_IN_UNCLE:
-          return ExecuteStatus.MINED_IN_UNCLE;
-      }
-    } catch (err) {
-      this.logger.error(err, txRequest.address);
+      return executionStatus;
+    } else if (status === TxSendStatus.UNKNOWN_ERROR) {
+      this.logger.error(status, txRequest.address);
+    } else {
+      return TxSendStatus.STATUS(status, context);
     }
 
-    return ExecuteStatus.FAILED;
+    return TxSendStatus.STATUS(TxSendStatus.FAIL, context);
   }
 
   public async cleanup(): Promise<boolean> {
