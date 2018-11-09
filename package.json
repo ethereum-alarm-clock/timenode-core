@@ -48,7 +48,7 @@
     "ethereumjs-tx": "1.3.7",
     "ethereumjs-wallet": "0.6.2",
     "lokijs": "1.5.5",
-    "node-fetch": "2.2.0",
+    "node-fetch": "2.2.1",
     "web3-providers-ws": "1.0.0-beta.36"
   },
   "devDependencies": {
@@ -58,7 +58,7 @@
     "@types/lokijs": "1.5.2",
     "@types/node": "10.12.2",
     "@types/node-fetch": "2.1.2",
-    "bluebird": "3.5.2",
+    "bluebird": "3.5.3",
     "chai": "4.2.0",
     "coveralls": "3.0.2",
     "ganache-cli": "6.1.8",
