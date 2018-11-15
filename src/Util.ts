@@ -102,6 +102,35 @@ export default class W3Util {
     });
   }
 
+  /*
+   * Takes an average of the last 100 blocks and estimates the
+   * blocktime.
+   */
+  public async getAverageBlockTime(): Promise<number> {
+    const numLookbackBlocks: number = 100;
+    const times: number[] = [];
+    
+    const blockPromises: Promise<IBlock>[] = [];
+    const currentBlockNumber: number = await this.getBlockNumber();
+    const firstBlock: IBlock = await this.getBlock(currentBlockNumber - numLookbackBlocks);
+    
+    for (let i = currentBlockNumber - numLookbackBlocks; i < currentBlockNumber; i++) {
+      blockPromises.push(this.getBlock(i));
+    }
+
+    const resolvedBlocks: IBlock[] = await Promise.all(blockPromises);
+
+    let prevTimestamp = firstBlock.timestamp;
+    resolvedBlocks.forEach((block: IBlock) => {
+      const time = block.timestamp - prevTimestamp;
+      console.log(prevTimestamp);
+      prevTimestamp = block.timestamp;
+      times.push(time);
+    });
+    
+    return Math.round(times.reduce((a, b) => a + b) / times.length);
+  }
+
   public isWatchingEnabled(): Promise<boolean> {
     return W3Util.isWatchingEnabled(this.web3);
   }

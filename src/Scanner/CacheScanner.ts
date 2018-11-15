@@ -1,7 +1,10 @@
+import BigNumber from 'bignumber.js';
+
 import { IntervalId, Address, ITxRequest } from '../Types';
 import BaseScanner from './BaseScanner';
 import IRouter from '../Router';
 import Config from '../Config';
+import W3Util from '../Util';
 
 export default class CacheScanner extends BaseScanner {
   public cacheInterval: IntervalId;
@@ -16,12 +19,58 @@ export default class CacheScanner extends BaseScanner {
       return;
     }
 
-    this.config.cache
-      .stored()
-      .filter((address: Address) => this.config.cache.get(address))
-      .map((address: Address) => this.config.eac.transactionRequest(address))
-      .forEach((txRequest: ITxRequest) => this.route(txRequest));
+    let txRequests = this.getCacheTxRequests();
+    const blockTransactions = txRequests.filter((tx: ITxRequest) => tx.temporalUnit === 1);
+    const timestampTransactions = txRequests.filter((tx: ITxRequest) => tx.temporalUnit === 2);
+
+    blockTransactions.sort(this.windowStartSort);
+    blockTransactions.sort(this.higherBountySortIfInSameBlock);
+
+    timestampTransactions.sort(this.windowStartSort);
+    timestampTransactions.sort(this.higherBountySortIfInSameBlock);
+    
+    txRequests = blockTransactions.concat(timestampTransactions);
+
+    txRequests.forEach((txRequest: ITxRequest) => this.route(txRequest));
   }
+
+  private getCacheTxRequests(): ITxRequest[] {
+    return this.config.cache.stored()
+      .filter((address: Address) => this.config.cache.get(address))
+      .map((address: Address) => this.config.eac.transactionRequest(address));
+  }
+
+  private windowStartSort(currentTx: ITxRequest, nextTx: ITxRequest): number {
+    if (currentTx.windowStart < nextTx.windowStart) {
+      return -1;
+    } else if (currentTx.windowStart > nextTx.windowStart) {
+      return 1;
+    }
+    return 0;
+  }
+
+  private async higherBountySortIfInSameBlock(currentTx: ITxRequest, nextTx: ITxRequest): Promise<number> {
+
+    let blockTime = 1;
+
+    if (currentTx.temporalUnit === 2) {
+      const util = new W3Util();
+      blockTime = await util.getAverageBlockTime();
+    }
+
+    const blockDifference = currentTx.windowStart.minus(nextTx.windowStart).abs();
+    const isInSameBlock = blockDifference.lessThanOrEqualTo(blockTime);
+
+    if (isInSameBlock) {
+      if (currentTx.bounty < nextTx.bounty) {
+        return -1;
+      } else if (currentTx.bounty > nextTx.bounty) {
+        return 1;
+      }
+    }
+
+    return 0;
+  } 
 
   private async route(txRequest: ITxRequest): Promise<void> {
     const address = txRequest.address;
