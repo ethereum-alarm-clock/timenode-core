@@ -1,17 +1,22 @@
+// tslint:disable-next-line:no-reference
+/// <reference path="global.d.ts" />
+
 import BigNumber from 'bignumber.js';
 import * as Web3 from 'web3';
 import * as Web3WsProvider from 'web3-providers-ws';
 
-import { IBlock, ITxRequest } from './Types';
+import { Networks } from './Enum';
+import { BlockScaleFetchingService, EthGasStationFetchingService } from './GasEstimation';
+import { IBlock, ITxRequest, GasPriceEstimation, EthGasStationInfo } from './Types';
+
+const GAS_PRICE_FETCHING_SERVICES = {
+  [Networks.Mainnet]: [new BlockScaleFetchingService(), new EthGasStationFetchingService()]
+};
 
 export default class W3Util {
-
-  public static isHTTPConnection(url: string) : boolean {
-    return url.includes('http://') || url.includes('https://');
-  }
-
-  public static isWSConnection(url: string) : boolean {
-    return url.includes('ws://') || url.includes('wss://');
+  public static async getEthGasStationStats(): Promise<EthGasStationInfo> {
+    const ethGasStation = new EthGasStationFetchingService();
+    return ethGasStation.fetchGasPrice();
   }
 
   public static getWeb3FromProviderUrl(providerUrl: string) {
@@ -25,6 +30,9 @@ export default class W3Util {
     }
 
     return new Web3(provider);
+  }
+  public static isHTTPConnection(url: string): boolean {
+    return url.includes('http://') || url.includes('https://');
   }
 
   public static isWatchingEnabled(web3: any): Promise<boolean> {
@@ -43,13 +51,16 @@ export default class W3Util {
     });
   }
 
+  public static isWSConnection(url: string): boolean {
+    return url.includes('ws://') || url.includes('wss://');
+  }
+
   public static testProvider(providerUrl: string): Promise<boolean> {
     const web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
     return W3Util.isWatchingEnabled(web3);
   }
 
   public web3: any;
-
   constructor(web3?: any) {
     this.web3 = web3;
   }
@@ -68,7 +79,38 @@ export default class W3Util {
     });
   }
 
-  public networkGasPrice(): Promise<BigNumber> {
+  public getNetworkId(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.web3.version.getNetwork((e: any, r: any) => (e ? reject(e) : resolve(r)));
+    });
+  }
+
+  public async networkGasPrice(): Promise<BigNumber> {
+    const gasPriceEstimation = await this.externalApiGasPrice();
+
+    return (gasPriceEstimation && gasPriceEstimation.average) || this.getGasPrice();
+  }
+
+  public async getAdvancedNetworkGasPrice(): Promise<GasPriceEstimation> {
+    try {
+      const gasPrices = await this.externalApiGasPrice();
+      if (!gasPrices) {
+        throw new Error('Could not retrieve gas prices from external source.');
+      }
+      return gasPrices;
+    } catch (e) {
+      const fallbackGasPrice = await this.getGasPrice();
+
+      return {
+        average: fallbackGasPrice,
+        fast: fallbackGasPrice,
+        fastest: fallbackGasPrice,
+        safeLow: fallbackGasPrice
+      };
+    }
+  }
+
+  public getGasPrice(): Promise<BigNumber> {
     return new Promise((resolve, reject) => {
       this.web3.eth.getGasPrice((e: any, r: any) => (e ? reject(e) : resolve(r)));
     });
@@ -109,11 +151,11 @@ export default class W3Util {
   public async getAverageBlockTime(): Promise<number> {
     const numLookbackBlocks: number = 100;
     const times: number[] = [];
-    
+
     const blockPromises: Promise<IBlock>[] = [];
     const currentBlockNumber: number = await this.getBlockNumber();
     const firstBlock: IBlock = await this.getBlock(currentBlockNumber - numLookbackBlocks);
-    
+
     for (let i = currentBlockNumber - numLookbackBlocks; i < currentBlockNumber; i++) {
       blockPromises.push(this.getBlock(i));
     }
@@ -127,7 +169,7 @@ export default class W3Util {
       prevTimestamp = block.timestamp;
       times.push(time);
     });
-    
+
     return Math.round(times.reduce((a, b) => a + b) / times.length);
   }
 
@@ -161,14 +203,35 @@ export default class W3Util {
 
   public sendRawTransaction(transaction: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this.web3.eth.sendRawTransaction(
-        transaction,
-        (e: any, r: any) => (e ? reject(e) : resolve(r))
+      this.web3.eth.sendRawTransaction(transaction, (e: any, r: any) =>
+        e ? reject(e) : resolve(r)
       );
     });
   }
 
   public toHex(input: any): string {
     return this.web3.toHex(input);
+  }
+
+  private async externalApiGasPrice(): Promise<GasPriceEstimation> {
+    const networkId = await this.getNetworkId();
+    const services = GAS_PRICE_FETCHING_SERVICES[networkId];
+
+    if (!services) {
+      return null;
+    }
+
+    for (const service of services) {
+      try {
+        const gasEstimate: GasPriceEstimation = await service.fetchGasPrice();
+        if (gasEstimate) {
+          return gasEstimate;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    return null;
   }
 }

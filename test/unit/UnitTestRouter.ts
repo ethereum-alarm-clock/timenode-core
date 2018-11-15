@@ -2,13 +2,16 @@
 import { expect, assert } from 'chai';
 import * as TypeMoq from 'typemoq';
 
-import { Config, Wallet } from '../../src/index';
+import { Config, Wallet, W3Util } from '../../src/index';
 import { mockConfig, mockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
-import { TxStatus } from '../../src/Enum';
-import { ITxRequest } from '../../src/Types';
+import { TxStatus, EconomicStrategyStatus } from '../../src/Enum';
+import { ITxRequest, GasPriceEstimation } from '../../src/Types';
 import { V3Wallet } from '../../src/Wallet/Wallet';
+import { BigNumber } from 'bignumber.js';
+import { IEconomicStrategyManager } from '../../src/EconomicStrategy/EconomicStrategyManager';
+import { ICachedTxDetails } from '../../src/Cache';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
@@ -22,7 +25,14 @@ describe('Router Unit Tests', () => {
   let router: Router;
   let myAccount: string;
 
-  const createRouter = (claimingEnabled = true) => {
+  const createRouter = async (claimingEnabled = true) => {
+    const web3 = {
+      eth: {
+        getBlockNumber: (callback: any) => callback(null, 1000)
+      },
+      toWei: config.web3.toWei
+    };
+
     const v3wallet = TypeMoq.Mock.ofType<V3Wallet>();
     v3wallet.setup(w => w.getAddressString()).returns(() => myAccount);
 
@@ -34,32 +44,50 @@ describe('Router Unit Tests', () => {
     wallet.setup(w => w.isKnownAddress(myAccount)).returns(() => true);
     wallet.setup(w => w.isKnownAddress(TypeMoq.It.isAnyString())).returns(() => false);
 
+    const util = TypeMoq.Mock.ofType<W3Util>();
+    util.setup(u => u.networkGasPrice()).returns(async () => new BigNumber(20000));
+    util
+      .setup(u => u.getAdvancedNetworkGasPrice())
+      .returns(() =>
+        Promise.resolve({
+          fastest: new BigNumber(20000)
+        } as GasPriceEstimation)
+      );
+
+    const economicStrategyManager = TypeMoq.Mock.ofType<IEconomicStrategyManager>();
+    economicStrategyManager
+      .setup(e => e.shouldClaimTx(TypeMoq.It.isAny(), TypeMoq.It.isAny(), TypeMoq.It.isAny()))
+      .returns(async () => EconomicStrategyStatus.CLAIM);
+
+    txTimestamp = await mockTxRequest(web3);
+    txBlock = await mockTxRequest(web3, true);
+
+    config.cache.set(txTimestamp.address, {} as ICachedTxDetails);
+    config.cache.set(txBlock.address, {} as ICachedTxDetails);
+
     const actions = new Actions(
       config.wallet,
       config.ledger,
       config.logger,
       config.cache,
-      config.util,
-      config.pending,
-      config.economicStrategyManager
+      util.object,
+      config.pending
     );
+
     return new Router(
       claimingEnabled,
       config.cache,
       config.logger,
       actions,
-      config.economicStrategyManager,
+      economicStrategyManager.object,
+      util.object,
       wallet.object
     );
   };
 
   const reset = async () => {
     config = await mockConfig();
-
-    txTimestamp = await mockTxRequest(config.web3);
-    txBlock = await mockTxRequest(config.web3, true);
-
-    router = createRouter();
+    router = await createRouter();
     myAccount = config.wallet.getAddresses()[0];
   };
 
@@ -98,23 +126,23 @@ describe('Router Unit Tests', () => {
   describe('isLocalClaim()', () => {
     describe(TIMESTAMP_TX, () => {
       it('returns false when different address', async () => {
-        assert.isNotTrue(await router.isLocalClaim(txTimestamp));
+        assert.isNotTrue(router.isLocalClaim(txTimestamp));
       });
 
       it('returns true when same address', async () => {
         txTimestamp.claimedBy = myAccount;
-        assert.isTrue(await router.isLocalClaim(txTimestamp));
+        assert.isTrue(router.isLocalClaim(txTimestamp));
       });
     });
 
     describe(BLOCK_TX, () => {
       it('returns false when different address', async () => {
-        assert.isNotTrue(await router.isLocalClaim(txBlock));
+        assert.isNotTrue(router.isLocalClaim(txBlock));
       });
 
       it('returns true when same address', async () => {
         txBlock.claimedBy = myAccount;
-        assert.isTrue(await router.isLocalClaim(txBlock));
+        assert.isTrue(router.isLocalClaim(txBlock));
       });
     });
   });
@@ -176,7 +204,7 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow when claim window started and claiming disabled', async () => {
         const tx = await mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
-        const routerLocal = createRouter(false);
+        const routerLocal = await createRouter(false);
         assert.equal(await routerLocal.claimWindow(tx), TxStatus.ClaimWindow);
       });
 
@@ -201,7 +229,7 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow when claim window started and claiming disabled', async () => {
         const tx = await mockTxStatus(txBlock, TxStatus.ClaimWindow);
-        const routerLocal = createRouter(false);
+        const routerLocal = await createRouter(false);
         const status = await routerLocal.claimWindow(tx);
 
         assert.equal(status, TxStatus.ClaimWindow);
@@ -372,7 +400,7 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow status when claiming disabled', async () => {
         const tx = await mockTxStatus(txTimestamp, TxStatus.ClaimWindow);
-        const routerLocal = createRouter(false);
+        const routerLocal = await createRouter(false);
         assert.equal(await routerLocal.route(tx), TxStatus.ClaimWindow);
       });
 
@@ -406,7 +434,7 @@ describe('Router Unit Tests', () => {
 
       it('returns ClaimWindow status when claiming disabled', async () => {
         const tx = await mockTxStatus(txBlock, TxStatus.ClaimWindow);
-        const routerLocal = createRouter(false);
+        const routerLocal = await createRouter(false);
         assert.equal(await routerLocal.route(tx), TxStatus.ClaimWindow);
       });
 

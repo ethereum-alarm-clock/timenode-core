@@ -1,7 +1,6 @@
 export { AbortReason } from './AbortReason';
-export { ClaimStatus } from './ClaimStatus';
+export { TxSendStatus } from './TxSendStatus';
 export { EconomicStrategyStatus } from './EconomicStrategyStatus';
-export { ExecuteStatus } from './ExecuteStatus';
 export { FnSignatures } from './FnSignatures';
 export { Networks } from './Networks';
 export { ReconnectMsg } from './ReconnectMsg';

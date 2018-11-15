@@ -12,7 +12,6 @@ describe('TimeNode', () => {
   let myAccount: string;
   let eac: any;
   let web3: any;
-  let waitUntilBlock: any;
   let withSnapshotRevert: any;
   let timeNode: TimeNode;
 
@@ -23,7 +22,6 @@ describe('TimeNode', () => {
     web3 = config.web3;
 
     const helpers = getHelperMethods(web3);
-    waitUntilBlock = helpers.waitUntilBlock;
     withSnapshotRevert = helpers.withSnapshotRevert;
 
     timeNode = new TimeNode(config);
@@ -36,39 +34,26 @@ describe('TimeNode', () => {
   it('starts scanning', async () => {
     await timeNode.startScanning();
     expect(timeNode.scanner.scanning).to.equal(true);
-    timeNode.stopScanning();
+
+    await timeNode.stopScanning();
   });
 
   if (process.env.RUN_ONLY_OPTIONAL_TESTS === 'true') {
-    it('executes 20 transactions', async () => {
+    it('executes 30 transactions', async () => {
       const TRANSACTIONS_TO_SCHEDULE = 30;
       const scheduledTransactionsMap = {};
 
       for (let i = 0; i < TRANSACTIONS_TO_SCHEDULE; i++) {
-        const transactionAddress: string = await scheduleTestTx();
+        const transactionAddress: string = await scheduleTestTx(270 + 5 * i);
 
         scheduledTransactionsMap[transactionAddress] = {
           executionLogged: false
         };
       }
 
-      const firstScheduledTransactionAddress = Object.keys(scheduledTransactionsMap)[0];
-      const firstScheduledTransaction = await eac.transactionRequest(
-        firstScheduledTransactionAddress
-      );
-
-      await firstScheduledTransaction.fillData();
-
-      const firstExecutionBlock =
-        firstScheduledTransaction.windowStart.toNumber() +
-        firstScheduledTransaction.freezePeriod.toNumber() +
-        100;
-
-      await waitUntilBlock(0, firstExecutionBlock);
+      await timeNode.startScanning();
 
       console.log('SCHEDULED TX ADDRESSES TO EXECUTE', scheduledTransactionsMap);
-
-      timeNode.startScanning();
 
       timeNode.config.logger.info = (msg: any, txRequest: string) => {
         if (msg.includes && msg.includes('EXECUTED') && scheduledTransactionsMap[txRequest]) {
@@ -92,7 +77,7 @@ describe('TimeNode', () => {
           }
 
           if (allExecutionsLogged) {
-            timeNode.stopScanning();
+            await timeNode.stopScanning();
 
             for (const transactionAddress in scheduledTransactionsMap) {
               if (!scheduledTransactionsMap.hasOwnProperty(transactionAddress)) {
@@ -123,7 +108,7 @@ describe('TimeNode', () => {
       );
 
       console.log('FINAL STATUS OF MASS TX EXECUTION:', scheduledTransactionsMap);
-    }).timeout(400000);
+    }).timeout(600000);
   } else {
     it('claims and executes transaction', async () => {
       await withSnapshotRevert(async () => {
@@ -150,43 +135,52 @@ describe('TimeNode', () => {
           console.log(txRequest, msg);
         };
 
-        await new Promise(resolve => {
-          const logInterval = setInterval(async () => {
-            if (claimedLogged) {
-              claimedLogged = false;
-
-              await TEST_TX_REQUEST.refreshData();
-
-              assert.ok(TEST_TX_REQUEST.isClaimed, `${TEST_TX_ADDRESS} hasn't been claimed!`);
-              expect(TEST_TX_REQUEST.address).to.equal(TEST_TX_ADDRESS);
-              expect(TEST_TX_REQUEST.claimData).to.equal('0x4e71d92d');
-              expect(TEST_TX_REQUEST.claimedBy).to.equal(TIMENODE_ADDRESS);
-              expect(timeNode.getClaimedNotExecutedTransactions()[myAccount]).to.include(
-                TEST_TX_ADDRESS
-              );
+        await new Promise((resolve, reject) => {
+          const claimedLoggedInterval = setInterval(async () => {
+            if (!claimedLogged) {
+              return;
             }
-            if (executionLogged) {
-              timeNode.stopScanning();
 
-              clearInterval(logInterval);
+            clearInterval(claimedLoggedInterval);
 
-              await TEST_TX_REQUEST.refreshData();
+            await TEST_TX_REQUEST.refreshData();
 
-              assert.ok(TEST_TX_REQUEST.wasCalled, `${TEST_TX_ADDRESS} hasn't been called!`);
-              assert.ok(TEST_TX_REQUEST.wasSuccessful, `${TEST_TX_ADDRESS} isn't successful!`);
+            assert.ok(TEST_TX_REQUEST.isClaimed, `${TEST_TX_ADDRESS} hasn't been claimed!`);
+            expect(TEST_TX_REQUEST.address).to.equal(TEST_TX_ADDRESS);
+            expect(TEST_TX_REQUEST.claimData).to.equal('0x4e71d92d');
+            expect(TEST_TX_REQUEST.claimedBy).to.equal(TIMENODE_ADDRESS);
+            expect(timeNode.getClaimedNotExecutedTransactions()[myAccount]).to.include(
+              TEST_TX_ADDRESS
+            );
+          }, 1000);
 
-              expect(timeNode.getClaimedNotExecutedTransactions()[myAccount]).to.not.include(
-                TEST_TX_ADDRESS
-              );
-
-              timeNode.config.logger.info = originalLoggerInfoMethod;
-
-              resolve();
+          const executionLoggedInterval = setInterval(async () => {
+            if (!executionLogged) {
+              return;
             }
+
+            if (!claimedLogged) {
+              reject(`Transaction hasn't been claimed before being executed.`);
+            }
+
+            await timeNode.stopScanning();
+
+            clearInterval(executionLoggedInterval);
+
+            await TEST_TX_REQUEST.refreshData();
+
+            assert.ok(TEST_TX_REQUEST.wasCalled, `${TEST_TX_ADDRESS} hasn't been called!`);
+            assert.ok(TEST_TX_REQUEST.wasSuccessful, `${TEST_TX_ADDRESS} isn't successful!`);
+
+            expect(timeNode.getClaimedNotExecutedTransactions()[myAccount]).to.not.include(
+              TEST_TX_ADDRESS
+            );
+
+            timeNode.config.logger.info = originalLoggerInfoMethod;
+
+            resolve();
           }, 1000);
         });
-
-        assert.ok(claimedLogged, `Claiming of ${TEST_TX_ADDRESS} hasn't been logged.`);
       });
     }).timeout(400000);
   }

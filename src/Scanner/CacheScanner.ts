@@ -1,23 +1,28 @@
-import BigNumber from 'bignumber.js';
-
-import { IntervalId, Address, ITxRequest } from '../Types';
+import { IntervalId, ITxRequest } from '../Types';
 import BaseScanner from './BaseScanner';
 import IRouter from '../Router';
 import Config from '../Config';
 import W3Util from '../Util';
+import { TxStatus } from '../Enum';
 
 export default class CacheScanner extends BaseScanner {
   public cacheInterval: IntervalId;
+  public avgBlockTime: number;
+  public util: W3Util;
+
   private routes: Set<string> = new Set<string>();
 
   constructor(config: Config, router: IRouter) {
     super(config, router);
+    this.util = new W3Util();
   }
 
   public async scanCache(): Promise<void> {
     if (this.config.cache.isEmpty()) {
       return;
     }
+
+    this.avgBlockTime = await this.util.getAverageBlockTime();
 
     let txRequests = this.getCacheTxRequests();
     const blockTransactions = txRequests.filter((tx: ITxRequest) => tx.temporalUnit === 1);
@@ -28,16 +33,17 @@ export default class CacheScanner extends BaseScanner {
 
     timestampTransactions.sort(this.windowStartSort);
     timestampTransactions.sort(this.higherBountySortIfInSameBlock);
-    
+
     txRequests = blockTransactions.concat(timestampTransactions);
 
     txRequests.forEach((txRequest: ITxRequest) => this.route(txRequest));
   }
 
   private getCacheTxRequests(): ITxRequest[] {
-    return this.config.cache.stored()
-      .filter((address: Address) => this.config.cache.get(address))
-      .map((address: Address) => this.config.eac.transactionRequest(address));
+    return this.config.cache
+      .stored()
+      .map(address => this.config.eac.transactionRequest(address))
+      .sort((a, b) => this.prioritize(a, b));
   }
 
   private windowStartSort(currentTx: ITxRequest, nextTx: ITxRequest): number {
@@ -49,14 +55,19 @@ export default class CacheScanner extends BaseScanner {
     return 0;
   }
 
-  private async higherBountySortIfInSameBlock(currentTx: ITxRequest, nextTx: ITxRequest): Promise<number> {
+  private prioritize(a: ITxRequest, b: ITxRequest): number {
+    const statusA = this.config.cache.get(a.address).status;
+    const statusB = this.config.cache.get(b.address).status;
 
-    let blockTime = 1;
-
-    if (currentTx.temporalUnit === 2) {
-      const util = new W3Util();
-      blockTime = await util.getAverageBlockTime();
+    if (statusA === statusB) {
+      return 0;
     }
+
+    return statusA === TxStatus.FreezePeriod && statusB !== TxStatus.FreezePeriod ? -1 : 1;
+  }
+
+  private higherBountySortIfInSameBlock(currentTx: ITxRequest, nextTx: ITxRequest): number {
+    const blockTime = currentTx.temporalUnit === 1 ? 1 : this.avgBlockTime;
 
     const blockDifference = currentTx.windowStart.minus(nextTx.windowStart).abs();
     const isInSameBlock = blockDifference.lessThanOrEqualTo(blockTime);
@@ -70,7 +81,7 @@ export default class CacheScanner extends BaseScanner {
     }
 
     return 0;
-  } 
+  }
 
   private async route(txRequest: ITxRequest): Promise<void> {
     const address = txRequest.address;

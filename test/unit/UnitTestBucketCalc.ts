@@ -1,4 +1,4 @@
-import { assert, expect } from 'chai';
+import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
 
 import { W3Util } from '../../src';
@@ -8,7 +8,7 @@ import { mockConfig } from '../helpers';
 
 describe('ButcketCalc', () => {
   describe('getBuckets()', async () => {
-    it('returns current and next buckets', async () => {
+    it('returns current, next and after next buckets', async () => {
       const defaultBlock: IBlock = { number: 10000, timestamp: 10000000000 };
       const util = TypeMoq.Mock.ofType<W3Util>();
       util.setup(u => u.getBlock('latest')).returns(async () => defaultBlock);
@@ -18,31 +18,41 @@ describe('ButcketCalc', () => {
 
       const bucketCalc = new BucketCalc(util.object, requestFactory);
 
-      const { currentBuckets, nextBuckets } = await bucketCalc.getBuckets();
+      const buckets = await bucketCalc.getBuckets();
 
-      expect(currentBuckets).to.haveOwnProperty('blockBucket');
-      expect(currentBuckets).to.haveOwnProperty('timestampBucket');
-      expect(nextBuckets).to.haveOwnProperty('blockBucket');
-      expect(nextBuckets).to.haveOwnProperty('timestampBucket');
+      assert.equal(buckets.length, 6);
 
-      assert.equal(
-        currentBuckets.blockBucket,
+      assert.include(
+        buckets,
         -1 * (defaultBlock.number - (defaultBlock.number % BucketSize.block))
       );
-      assert.equal(
-        currentBuckets.timestampBucket,
+
+      assert.include(
+        buckets,
         defaultBlock.timestamp - (defaultBlock.timestamp % BucketSize.timestamp)
       );
 
-      const expectedBlockInterval = defaultBlock.number + BucketSize.block;
-      const expectedTimestampInterval = defaultBlock.timestamp + BucketSize.timestamp;
-      assert.equal(
-        nextBuckets.blockBucket,
-        -1 * (expectedBlockInterval - (expectedBlockInterval % BucketSize.block))
+      const expectedNextBlockInterval = defaultBlock.number + BucketSize.block;
+      const expectedNextTimestampInterval = defaultBlock.timestamp + BucketSize.timestamp;
+      assert.include(
+        buckets,
+        -1 * (expectedNextBlockInterval - (expectedNextBlockInterval % BucketSize.block))
       );
-      assert.equal(
-        nextBuckets.timestampBucket,
-        expectedTimestampInterval - (expectedTimestampInterval % BucketSize.timestamp)
+      assert.include(
+        buckets,
+        expectedNextTimestampInterval - (expectedNextTimestampInterval % BucketSize.timestamp)
+      );
+
+      const expectedAfterNextBlockInterval = defaultBlock.number + 2 * BucketSize.block;
+      const expectedAfterNextTimestampInterval = defaultBlock.timestamp + 2 * BucketSize.timestamp;
+      assert.include(
+        buckets,
+        -1 * (expectedAfterNextBlockInterval - (expectedAfterNextBlockInterval % BucketSize.block))
+      );
+      assert.include(
+        buckets,
+        expectedAfterNextTimestampInterval -
+          (expectedAfterNextTimestampInterval % BucketSize.timestamp)
       );
     });
   });

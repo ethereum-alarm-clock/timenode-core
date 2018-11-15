@@ -6,14 +6,19 @@ import { EconomicStrategyStatus } from '../Enum';
 import { ILogger, DefaultLogger } from '../Logger';
 import { Address, ITxRequest } from '../Types';
 import { IEconomicStrategy } from './IEconomicStrategy';
+import { NormalizedTimes } from './NormalizedTimes';
 
 const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
 
 export interface IEconomicStrategyManager {
   strategy: IEconomicStrategy;
 
-  shouldClaimTx(txRequest: ITxRequest, nextAccount: Address): Promise<EconomicStrategyStatus>;
-  shouldExecuteTx(txRequest: ITxRequest): Promise<boolean>;
+  shouldClaimTx(
+    txRequest: ITxRequest,
+    nextAccount: Address,
+    gasPrice: BigNumber
+  ): Promise<EconomicStrategyStatus>;
+  shouldExecuteTx(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean>;
   getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber>;
 }
 
@@ -37,6 +42,12 @@ export class EconomicStrategyManager {
     this.logger = logger;
     this.cache = cache;
     this.eac = eac;
+
+    if (!this.strategy) {
+      throw new Error('Unable to initialize EconomicStrategyManager, strategy is null');
+    }
+
+    this.logger.debug(`EconomicStrategyManager initialized with ${JSON.stringify(strategy)}`);
   }
 
   /**
@@ -49,18 +60,15 @@ export class EconomicStrategyManager {
    */
   public async shouldClaimTx(
     txRequest: ITxRequest,
-    nextAccount: Address
+    nextAccount: Address,
+    fastestGas: BigNumber
   ): Promise<EconomicStrategyStatus> {
-    if (!this.strategy) {
-      return EconomicStrategyStatus.CLAIM;
-    }
-
-    const profitable = await this.isProfitable(txRequest);
+    const profitable = await this.isClaimingProfitable(txRequest, fastestGas);
     if (!profitable) {
       return EconomicStrategyStatus.NOT_PROFITABLE;
     }
 
-    const enoughBalance = await this.isAboveMinBalanceLimit(nextAccount);
+    const enoughBalance = await this.isAboveMinBalanceLimit(nextAccount, txRequest);
     if (!enoughBalance) {
       return EconomicStrategyStatus.INSUFFICIENT_BALANCE;
     }
@@ -70,157 +78,176 @@ export class EconomicStrategyManager {
       return EconomicStrategyStatus.DEPOSIT_TOO_HIGH;
     }
 
+    const tooShortReserved = this.tooShortReserved(txRequest);
+    if (tooShortReserved) {
+      return EconomicStrategyStatus.TOO_SHORT_RESERVED;
+    }
+
+    const tooShortClaimWindow = await this.tooShortClaimWindow(txRequest);
+    if (tooShortClaimWindow) {
+      return EconomicStrategyStatus.TOO_SHORT_CLAIM_WINDOW;
+    }
+
     return EconomicStrategyStatus.CLAIM;
   }
 
-  /**
-   * Calculates the correct gas price to use for execution, taking into consideration
-   * the economicStrategy `maxGasSubsidy` and the current network conditions.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {Config} config Configuration object.
-   */
   public async getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber> {
-    const currentNetworkPrice = await this.util.networkGasPrice();
+    const { average } = await this.util.getAdvancedNetworkGasPrice();
+    const currentNetworkPrice = this.strategy.usingSmartGasEstimation
+      ? (await this.smartGasEstimation(txRequest)) || average
+      : average;
 
-    if (!this.strategy) {
-      return currentNetworkPrice;
-    }
+    const minGasPrice = txRequest.gasPrice;
+    const maxGasPrice = minGasPrice.times(this.maxSubsidyFactor);
 
-    const maxGasSubsidy = this.strategy.maxGasSubsidy;
-
-    if (typeof maxGasSubsidy !== 'undefined' && maxGasSubsidy !== null) {
-      const minGasPrice = txRequest.gasPrice;
-      const maxGasPrice = minGasPrice.plus(minGasPrice.times(maxGasSubsidy / 100));
-
-      if (currentNetworkPrice.lessThan(minGasPrice)) {
-        return minGasPrice;
-      } else if (
-        currentNetworkPrice.greaterThanOrEqualTo(minGasPrice) &&
-        currentNetworkPrice.lessThan(maxGasPrice)
-      ) {
-        return currentNetworkPrice;
-      } else if (currentNetworkPrice.greaterThanOrEqualTo(maxGasPrice)) {
-        return maxGasPrice;
-      }
-    }
-
-    return currentNetworkPrice;
+    return currentNetworkPrice.greaterThan(maxGasPrice)
+      ? maxGasPrice
+      : currentNetworkPrice.lessThan(minGasPrice)
+      ? minGasPrice
+      : currentNetworkPrice;
   }
 
-  /**
-   * Checks if the transaction is profitable to be executed when considering the
-   * current network gas prices.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {Config} config Configuration object.
-   */
-  public async shouldExecuteTx(txRequest: ITxRequest): Promise<boolean> {
-    const gasPrice = await this.getExecutionGasPrice(txRequest);
+  public async shouldExecuteTx(txRequest: ITxRequest, targetGasPrice: BigNumber): Promise<boolean> {
+    const { gasPrice, requiredDeposit, bounty } = txRequest;
     const gasAmount = this.util.calculateGasAmount(txRequest);
-    const reimbursement = txRequest.gasPrice.times(gasAmount);
-    const deposit = txRequest.requiredDeposit;
+    const reimbursement = gasPrice.times(gasAmount);
 
-    const paymentModifier = await txRequest.claimPaymentModifier();
-    const reward = txRequest.bounty.times(paymentModifier);
+    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
+    const reward = bounty.times(paymentModifier);
 
-    const gasCost = gasPrice.times(gasAmount);
-    const expectedReward = deposit.plus(reward).plus(reimbursement);
+    const gasCost = targetGasPrice.times(gasAmount);
+    const expectedReward = reward
+      .plus(reimbursement)
+      .plus(txRequest.isClaimed ? requiredDeposit : 0);
     const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
 
     this.logger.debug(
-      `shouldExecuteTx ret ${shouldExecute} gasCost=${gasCost.toNumber()} expectedReward=${expectedReward.toNumber()}`,
+      `shouldExecuteTx: gasCost=${gasCost} <= expectedReward=${expectedReward} returns ${shouldExecute}`,
       txRequest.address
     );
 
     return shouldExecute;
   }
 
-  /**
-   * Checks whether a transaction requires a deposit that's higher than a
-   * user-set maximum deposit limit.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {IEconomicStrategy} economicStrategy Economic strategy configuration object.
-   */
+  private async tooShortClaimWindow(txRequest: ITxRequest): Promise<boolean> {
+    const { minClaimWindowBlock, minClaimWindow } = this.strategy;
+    const { claimWindowEnd, temporalUnit } = txRequest;
+    const now = await txRequest.now();
+
+    const minWindow = temporalUnit === 1 ? minClaimWindowBlock : minClaimWindow;
+
+    return claimWindowEnd.sub(now).lt(minWindow);
+  }
+
+  private tooShortReserved(txRequest: ITxRequest): boolean {
+    const { minExecutionWindowBlock, minExecutionWindow } = this.strategy;
+    const { reservedWindowSize, temporalUnit } = txRequest;
+
+    const minWindow = temporalUnit === 1 ? minExecutionWindowBlock : minExecutionWindow;
+
+    return minWindow && reservedWindowSize.lt(minWindow);
+  }
+
   private exceedsMaxDeposit(txRequest: ITxRequest): boolean {
     const requiredDeposit = txRequest.requiredDeposit;
     const maxDeposit = this.strategy.maxDeposit;
 
-    if (maxDeposit && maxDeposit.gt(0)) {
-      return requiredDeposit.gt(maxDeposit);
-    }
-
-    return false;
+    return requiredDeposit.gt(maxDeposit);
   }
 
-  /**
-   * Checks if the balance of the TimeNode is above a set limit.
-   * @param {Config} config TimeNode configuration object.
-   */
-  private async isAboveMinBalanceLimit(nextAccount: Address): Promise<boolean> {
-    const minBalance = this.strategy.minBalance;
-
-    // Determine the next batter up to claim.
-    const currentBalance = await this.util.balanceOf(nextAccount);
-
-    // Subtract the maximum gas costs of executing all currently claimed
-    // transactions. This is to ensure that a TimeNode does not fail to execute
-    // because it ran out of funds.
-    const txRequestsClaimed: string[] = this.cache.getTxRequestsClaimedBy(nextAccount);
-
-    this.logger.debug(`txRequestClaimed=${txRequestsClaimed}`);
-
-    const gasPricesPromise = txRequestsClaimed.map(async (address: string) => {
-      const txRequest = await this.eac.transactionRequest(address);
-      await txRequest.refreshData();
-
-      return txRequest.gasPrice;
+  private getTxRequestsClaimedBy(address: string): string[] {
+    return this.cache.stored().filter((txAddress: string) => {
+      const tx = this.cache.get(txAddress);
+      return tx.claimedBy === address && !tx.wasCalled;
     });
+  }
 
-    const gasPrices: BigNumber[] = await Promise.all(gasPricesPromise);
+  private async isAboveMinBalanceLimit(
+    nextAccount: Address,
+    txRequest: ITxRequest
+  ): Promise<boolean> {
+    const minBalance = this.strategy.minBalance;
+    const currentBalance = await this.util.balanceOf(nextAccount);
+    const txRequestsClaimed: string[] = this.getTxRequestsClaimedBy(nextAccount);
+    const gasPrices: BigNumber[] = await Promise.all(
+      txRequestsClaimed.map(async (address: string) => {
+        const tx = await this.eac.transactionRequest(address);
+        await tx.refreshData();
+
+        return tx.gasPrice;
+      })
+    );
+
+    let costOfExecutingFutureTransactions = new BigNumber(0);
 
     if (gasPrices.length) {
-      const maxGasSubsidy = this.strategy.maxGasSubsidy;
-
-      const costOfExecutingFutureTransactions = gasPrices.reduce(
-        (sum: BigNumber, current: BigNumber) => {
-          if (maxGasSubsidy) {
-            const maxGasPrice = current.plus(current.times(maxGasSubsidy / 100));
-            return sum.add(maxGasPrice);
-          }
-          return sum.add(current);
-        }
+      const subsidyFactor = this.maxSubsidyFactor;
+      costOfExecutingFutureTransactions = gasPrices.reduce((sum: BigNumber, current: BigNumber) =>
+        sum.add(current.times(subsidyFactor))
       );
-
-      if (minBalance) {
-        return currentBalance.gt(minBalance.add(costOfExecutingFutureTransactions));
-      }
     }
 
-    if (minBalance) {
-      return currentBalance.gt(minBalance);
-    }
-    return true;
+    const requiredBalance = minBalance.add(costOfExecutingFutureTransactions);
+    const isAboveMinBalanceLimit = currentBalance.gt(requiredBalance);
+
+    this.logger.debug(
+      `isAboveMinBalanceLimit: currentBalance=${currentBalance} > minBalance=${minBalance} + costOfExecutingFutureTransactions=${costOfExecutingFutureTransactions} returns ${isAboveMinBalanceLimit}`,
+      txRequest.address
+    );
+
+    return isAboveMinBalanceLimit;
   }
 
-  /**
-   * Compares the profitability user settings and checks if the TimeNode
-   * should claim a transaction.
-   * @param {TransactionRequest} txRequest Transaction Request object to check.
-   * @param {Config} config TimeNode configuration object.
-   */
-  private async isProfitable(txRequest: ITxRequest): Promise<boolean> {
-    const paymentModifier = await txRequest.claimPaymentModifier();
-    const claimingGas = new BigNumber(CLAIMING_GAS_ESTIMATE);
-    const claimingGasPrice = await this.util.networkGasPrice();
-    const claimingGasCost = claimingGasPrice.times(claimingGas);
-
+  private async isClaimingProfitable(
+    txRequest: ITxRequest,
+    targetGasPrice: BigNumber
+  ): Promise<boolean> {
+    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
+    const claimingGasCost = targetGasPrice.times(CLAIMING_GAS_ESTIMATE);
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
-
     const minProfitability = this.strategy.minProfitability;
 
-    if (minProfitability && minProfitability.gt(0)) {
-      return reward.gt(minProfitability);
+    const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
+
+    this.logger.debug(
+      `isClaimingProfitable: paymentModifier=${paymentModifier} targetGasPrice=${targetGasPrice} bounty=${
+        txRequest.bounty
+      } reward=${reward} >= minProfitability=${minProfitability} returns ${isProfitable}`,
+      txRequest.address
+    );
+
+    return isProfitable;
+  }
+
+  private get maxSubsidyFactor(): number {
+    const maxGasSubsidy = this.strategy.maxGasSubsidy / 100;
+    return maxGasSubsidy + 1;
+  }
+
+  private async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
+    const gasStats = await W3Util.getEthGasStationStats();
+    if (!gasStats) {
+      return null;
     }
 
-    return true;
+    const { temporalUnit } = txRequest;
+    const now = await txRequest.now();
+    const inReservedWindow = await txRequest.inReservedWindow();
+
+    const timeLeft = inReservedWindow
+      ? txRequest.reservedWindowEnd.sub(now)
+      : txRequest.executionWindowEnd.sub(now);
+    const normalizedTimeLeft = temporalUnit === 1 ? timeLeft.mul(gasStats.blockTime) : timeLeft;
+
+    const gasEstimation = new NormalizedTimes(gasStats, temporalUnit).pickGasPrice(
+      normalizedTimeLeft
+    );
+
+    this.logger.debug(
+      `smartGasEstimation: inReservedWindow=${inReservedWindow} timeLeft=${timeLeft} normalizedTimeLeft=${normalizedTimeLeft} returns ${gasEstimation}`,
+      txRequest.address
+    );
+
+    return gasEstimation;
   }
 }

@@ -29,4 +29,19 @@ export interface IEconomicStrategy {
    *      to subsidize gas costs to up to 30 gwei.
    */
   maxGasSubsidy?: number;
+
+  minExecutionWindow?: number;
+
+  minExecutionWindowBlock?: number;
+
+  minClaimWindow?: number;
+
+  minClaimWindowBlock?: number;
+
+  /**
+   * Smart gas estimation will use the Eth Gas Station API to
+   * retrieve information about the speed of gas prices and pick
+   * the gas price which better fits execution situations.
+   */
+  usingSmartGasEstimation?: boolean;
 }

@@ -21,6 +21,17 @@ describe('Util Unit Tests', async () => {
     });
   });
 
+  describe('getAdvancedNetworkGasPrice()', () => {
+    it('returns an object containing BigNumber', async () => {
+      const advNetworkGasPrice = await util.getAdvancedNetworkGasPrice();
+      const expectedFields = ['average', 'fast', 'fastest', 'safeLow'];
+
+      expectedFields.forEach(field => {
+        assert.isTrue(advNetworkGasPrice[field].greaterThan(config.web3.toWei('0.05', 'gwei')));
+      });
+    });
+  });
+
   describe('getBlockNumber()', () => {
     it('returns a block number', async () => {
       const blockNum = await util.getBlockNumber();
