@@ -22,7 +22,22 @@ export default class CacheScanner extends BaseScanner {
     this.avgBlockTime = await this.config.util.getAverageBlockTime();
 
     let txRequests = this.getCacheTxRequests();
+    txRequests = this.prioritizeTransactions(txRequests);
+    txRequests.forEach((txRequest: ITxRequest) => this.route(txRequest));
+  }
 
+  private getCacheTxRequests(): ITxRequest[] {
+    return this.config.cache.stored().map(address => this.config.eac.transactionRequest(address));
+  }
+
+  /*
+   *  Prioritizes transactions in the following order:
+   *  1. Transactions in FreezePeriod come first
+   *  2. Sorts sorted by windowStart
+   *  3. If some 2 transactions have windowStart set to the same block,
+   *     it sorts those by whichever has the highest bounty.
+   */
+  private prioritizeTransactions(txRequests: ITxRequest[]): ITxRequest[] {
     const blockTransactions = txRequests.filter(
       (tx: ITxRequest) => this.config.cache.get(tx.address).temporalUnit === 1
     );
@@ -31,20 +46,20 @@ export default class CacheScanner extends BaseScanner {
     );
 
     blockTransactions.sort((currentTx, nextTx) => this.windowStartSort(currentTx, nextTx));
-    blockTransactions.sort((a, b) => this.higherBountySortIfInSameBlock(a, b));
+    blockTransactions.sort((currentTx, nextTx) =>
+      this.higherBountySortIfInSameBlock(currentTx, nextTx)
+    );
 
-    timestampTransactions.sort((a, b) => this.windowStartSort(a, b));
-    timestampTransactions.sort((a, b) => this.higherBountySortIfInSameBlock(a, b));
+    timestampTransactions.sort((currentTx, nextTx) => this.windowStartSort(currentTx, nextTx));
+    timestampTransactions.sort((currentTx, nextTx) =>
+      this.higherBountySortIfInSameBlock(currentTx, nextTx)
+    );
 
     txRequests = blockTransactions
       .concat(timestampTransactions)
-      .sort((a, b) => this.prioritize(a, b));
+      .sort((currentTx, nextTx) => this.prioritizeFreezePeriod(currentTx, nextTx));
 
-    txRequests.forEach((txRequest: ITxRequest) => this.route(txRequest));
-  }
-
-  private getCacheTxRequests(): ITxRequest[] {
-    return this.config.cache.stored().map(address => this.config.eac.transactionRequest(address));
+    return txRequests;
   }
 
   private windowStartSort(currentTx: ITxRequest, nextTx: ITxRequest): number {
@@ -59,7 +74,7 @@ export default class CacheScanner extends BaseScanner {
     return 0;
   }
 
-  private prioritize(a: ITxRequest, b: ITxRequest): number {
+  private prioritizeFreezePeriod(a: ITxRequest, b: ITxRequest): number {
     const statusA = this.config.cache.get(a.address).status;
     const statusB = this.config.cache.get(b.address).status;
 
