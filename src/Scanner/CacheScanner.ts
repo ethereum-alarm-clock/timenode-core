@@ -2,19 +2,16 @@ import { IntervalId, ITxRequest } from '../Types';
 import BaseScanner from './BaseScanner';
 import IRouter from '../Router';
 import Config from '../Config';
-import W3Util from '../Util';
 import { TxStatus } from '../Enum';
 
 export default class CacheScanner extends BaseScanner {
   public cacheInterval: IntervalId;
   public avgBlockTime: number;
-  public util: W3Util;
 
   private routes: Set<string> = new Set<string>();
 
   constructor(config: Config, router: IRouter) {
     super(config, router);
-    this.util = new W3Util();
   }
 
   public async scanCache(): Promise<void> {
@@ -22,34 +19,41 @@ export default class CacheScanner extends BaseScanner {
       return;
     }
 
-    this.avgBlockTime = await this.util.getAverageBlockTime();
+    this.avgBlockTime = await this.config.util.getAverageBlockTime();
 
     let txRequests = this.getCacheTxRequests();
-    const blockTransactions = txRequests.filter((tx: ITxRequest) => tx.temporalUnit === 1);
-    const timestampTransactions = txRequests.filter((tx: ITxRequest) => tx.temporalUnit === 2);
 
-    blockTransactions.sort(this.windowStartSort);
-    blockTransactions.sort(this.higherBountySortIfInSameBlock);
+    const blockTransactions = txRequests.filter(
+      (tx: ITxRequest) => this.config.cache.get(tx.address).temporalUnit === 1
+    );
+    const timestampTransactions = txRequests.filter(
+      (tx: ITxRequest) => this.config.cache.get(tx.address).temporalUnit === 2
+    );
 
-    timestampTransactions.sort(this.windowStartSort);
-    timestampTransactions.sort(this.higherBountySortIfInSameBlock);
+    blockTransactions.sort((currentTx, nextTx) => this.windowStartSort(currentTx, nextTx));
+    blockTransactions.sort((a, b) => this.higherBountySortIfInSameBlock(a, b));
 
-    txRequests = blockTransactions.concat(timestampTransactions);
+    timestampTransactions.sort((a, b) => this.windowStartSort(a, b));
+    timestampTransactions.sort((a, b) => this.higherBountySortIfInSameBlock(a, b));
+
+    txRequests = blockTransactions
+      .concat(timestampTransactions)
+      .sort((a, b) => this.prioritize(a, b));
 
     txRequests.forEach((txRequest: ITxRequest) => this.route(txRequest));
   }
 
   private getCacheTxRequests(): ITxRequest[] {
-    return this.config.cache
-      .stored()
-      .map(address => this.config.eac.transactionRequest(address))
-      .sort((a, b) => this.prioritize(a, b));
+    return this.config.cache.stored().map(address => this.config.eac.transactionRequest(address));
   }
 
   private windowStartSort(currentTx: ITxRequest, nextTx: ITxRequest): number {
-    if (currentTx.windowStart < nextTx.windowStart) {
+    const currentWindowStart = this.config.cache.get(currentTx.address).windowStart;
+    const nextWindowStart = this.config.cache.get(nextTx.address).windowStart;
+
+    if (currentWindowStart.lessThan(nextWindowStart)) {
       return -1;
-    } else if (currentTx.windowStart > nextTx.windowStart) {
+    } else if (currentWindowStart.greaterThan(nextWindowStart)) {
       return 1;
     }
     return 0;
@@ -67,15 +71,18 @@ export default class CacheScanner extends BaseScanner {
   }
 
   private higherBountySortIfInSameBlock(currentTx: ITxRequest, nextTx: ITxRequest): number {
-    const blockTime = currentTx.temporalUnit === 1 ? 1 : this.avgBlockTime;
+    const cachedCurrentTx = this.config.cache.get(currentTx.address);
+    const cachedNextTx = this.config.cache.get(nextTx.address);
 
-    const blockDifference = currentTx.windowStart.minus(nextTx.windowStart).abs();
+    const blockTime = cachedCurrentTx.temporalUnit === 1 ? 1 : this.avgBlockTime;
+
+    const blockDifference = cachedCurrentTx.windowStart.minus(cachedNextTx.windowStart).abs();
     const isInSameBlock = blockDifference.lessThanOrEqualTo(blockTime);
 
     if (isInSameBlock) {
-      if (currentTx.bounty < nextTx.bounty) {
+      if (cachedCurrentTx.bounty.lessThan(cachedNextTx.bounty)) {
         return -1;
-      } else if (currentTx.bounty > nextTx.bounty) {
+      } else if (cachedCurrentTx.bounty.greaterThan(cachedNextTx.bounty)) {
         return 1;
       }
     }

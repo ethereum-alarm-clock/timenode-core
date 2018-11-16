@@ -68,6 +68,8 @@ export default class ChainScanner extends CacheScanner {
 
   private store(txRequest: ITxRequestRaw) {
     this.config.cache.set(txRequest.address, {
+      bounty: txRequest.params[1],
+      temporalUnit: txRequest.params[5].toNumber(),
       claimedBy: null,
       wasCalled: false,
       windowStart: txRequest.params[7],

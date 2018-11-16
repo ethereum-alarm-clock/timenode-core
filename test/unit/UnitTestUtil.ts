@@ -65,4 +65,12 @@ describe('Util Unit Tests', async () => {
       assert.isTrue(watching);
     });
   });
+
+  describe('getAverageBlockTime()', () => {
+    it('returns the average blocktime of last 100 blocks', async () => {
+      const avgBlockTime = await util.getAverageBlockTime();
+      assert.isNumber(avgBlockTime);
+      assert.isAbove(avgBlockTime, 0);
+    });
+  });
 });

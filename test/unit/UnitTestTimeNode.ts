@@ -95,6 +95,8 @@ describe('TimeNode Unit Tests', () => {
 
     it('returns a transaction', () => {
       const tx = {
+        bounty: new BigNumber(10e9), // 10 gwei
+        temporalUnit: 1,
         claimedBy: config.wallet.getAddresses()[0],
         wasCalled: false,
         windowStart: new BigNumber(10000),

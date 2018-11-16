@@ -165,7 +165,6 @@ export default class W3Util {
     let prevTimestamp = firstBlock.timestamp;
     resolvedBlocks.forEach((block: IBlock) => {
       const time = block.timestamp - prevTimestamp;
-      console.log(prevTimestamp);
       prevTimestamp = block.timestamp;
       times.push(time);
     });
