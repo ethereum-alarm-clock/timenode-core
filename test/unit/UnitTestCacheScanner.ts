@@ -104,4 +104,96 @@ describe('Cache Scanner Unit Tests', () => {
 
     assert.equal(routed.shift().address, '1');
   });
+
+  it('prioritizes the tx with a higher bounty', async () => {
+    const tx1 = TypeMoq.Mock.ofType<ICachedTxDetails>();
+    tx1.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
+    tx1.setup(tx => tx.temporalUnit).returns(() => 2);
+    tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
+
+    const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
+    tx2.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
+    tx2.setup(tx => tx.temporalUnit).returns(() => 2);
+    tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e10));
+
+    const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
+    tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
+    tx3.setup(tx => tx.temporalUnit).returns(() => 2);
+    tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e8));
+
+    const cache = new Cache<ICachedTxDetails>();
+    cache.set('3', tx3.object);
+    cache.set('2', tx2.object);
+    cache.set('1', tx1.object);
+
+    const routed: ITxRequest[] = [];
+
+    const router = TypeMoq.Mock.ofType<IRouter>();
+    router.setup(r => r.route(TypeMoq.It.isAny())).callback(txRequest => routed.push(txRequest));
+
+    const config = TypeMoq.Mock.ofType<Config>();
+    config.setup(c => c.cache).returns(() => cache);
+    config.setup(c => c.eac).returns(() => EAC);
+
+    const util = TypeMoq.Mock.ofType<W3Util>();
+    util.setup(u => u.getAverageBlockTime()).returns(() => Promise.resolve(BLOCKTIME));
+    config.setup(c => c.util).returns(() => util.object);
+
+    const scanner = new CacheScanner(config.object, router.object);
+
+    await scanner.scanCache();
+
+    router.verify(r => r.route(TypeMoq.It.isAny()), TypeMoq.Times.exactly(3));
+
+    assert.equal(routed.shift().address, '2');
+  });
+
+  it('prioritizes block tx over timestamp tx even if a higher bounty', async () => {
+    const tx1 = TypeMoq.Mock.ofType<ICachedTxDetails>();
+    tx1.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
+    tx1.setup(tx => tx.temporalUnit).returns(() => 2);
+    tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
+
+    const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
+    tx2.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
+    tx2.setup(tx => tx.temporalUnit).returns(() => 2);
+    tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e10));
+
+    const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
+    tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
+    tx3.setup(tx => tx.temporalUnit).returns(() => 1);
+    tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e8));
+
+    const cache = new Cache<ICachedTxDetails>();
+    cache.set('1', tx1.object);
+    cache.set('2', tx2.object);
+    cache.set('3', tx3.object);
+
+    const routed: ITxRequest[] = [];
+
+    const router = TypeMoq.Mock.ofType<IRouter>();
+    router.setup(r => r.route(TypeMoq.It.isAny())).callback(txRequest => routed.push(txRequest));
+
+    const config = TypeMoq.Mock.ofType<Config>();
+    config.setup(c => c.cache).returns(() => cache);
+    config.setup(c => c.eac).returns(() => EAC);
+
+    const util = TypeMoq.Mock.ofType<W3Util>();
+    util.setup(u => u.getAverageBlockTime()).returns(() => Promise.resolve(BLOCKTIME));
+    config.setup(c => c.util).returns(() => util.object);
+
+    const scanner = new CacheScanner(config.object, router.object);
+
+    await scanner.scanCache();
+
+    router.verify(r => r.route(TypeMoq.It.isAny()), TypeMoq.Times.exactly(3));
+
+    assert.equal(routed.shift().address, '3');
+  });
 });

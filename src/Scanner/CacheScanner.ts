@@ -1,8 +1,12 @@
+import BigNumber from 'bignumber.js';
+
 import { IntervalId, ITxRequest } from '../Types';
 import BaseScanner from './BaseScanner';
 import IRouter from '../Router';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
+
+import { ICachedTxDetails } from '../Cache';
 
 export default class CacheScanner extends BaseScanner {
   public cacheInterval: IntervalId;
@@ -26,7 +30,7 @@ export default class CacheScanner extends BaseScanner {
     txRequests.forEach((txRequest: ITxRequest) => this.route(txRequest));
   }
 
-  private getCacheTxRequests(): ITxRequest[] {
+  public getCacheTxRequests(): ITxRequest[] {
     return this.config.cache.stored().map(address => this.config.eac.transactionRequest(address));
   }
 
@@ -38,21 +42,39 @@ export default class CacheScanner extends BaseScanner {
    *     it sorts those by whichever has the highest bounty.
    */
   private prioritizeTransactions(txRequests: ITxRequest[]): ITxRequest[] {
+    const getTxFromCache = (address: string) => this.config.cache.get(address);
+
     const blockTransactions = txRequests.filter(
-      (tx: ITxRequest) => this.config.cache.get(tx.address).temporalUnit === 1
+      (tx: ITxRequest) => getTxFromCache(tx.address).temporalUnit === 1
     );
     const timestampTransactions = txRequests.filter(
-      (tx: ITxRequest) => this.config.cache.get(tx.address).temporalUnit === 2
+      (tx: ITxRequest) => getTxFromCache(tx.address).temporalUnit === 2
     );
 
-    blockTransactions.sort((currentTx, nextTx) => this.windowStartSort(currentTx, nextTx));
     blockTransactions.sort((currentTx, nextTx) =>
-      this.higherBountySortIfInSameBlock(currentTx, nextTx)
+      this.windowStartSort(
+        getTxFromCache(currentTx.address).windowStart,
+        getTxFromCache(nextTx.address).windowStart
+      )
+    );
+    blockTransactions.sort((currentTx, nextTx) =>
+      this.higherBountySortIfInSameBlock(
+        getTxFromCache(currentTx.address),
+        getTxFromCache(nextTx.address)
+      )
     );
 
-    timestampTransactions.sort((currentTx, nextTx) => this.windowStartSort(currentTx, nextTx));
     timestampTransactions.sort((currentTx, nextTx) =>
-      this.higherBountySortIfInSameBlock(currentTx, nextTx)
+      this.windowStartSort(
+        getTxFromCache(currentTx.address).windowStart,
+        getTxFromCache(nextTx.address).windowStart
+      )
+    );
+    timestampTransactions.sort((currentTx, nextTx) =>
+      this.higherBountySortIfInSameBlock(
+        getTxFromCache(currentTx.address),
+        getTxFromCache(nextTx.address)
+      )
     );
 
     txRequests = blockTransactions
@@ -62,10 +84,7 @@ export default class CacheScanner extends BaseScanner {
     return txRequests;
   }
 
-  private windowStartSort(currentTx: ITxRequest, nextTx: ITxRequest): number {
-    const currentWindowStart = this.config.cache.get(currentTx.address).windowStart;
-    const nextWindowStart = this.config.cache.get(nextTx.address).windowStart;
-
+  private windowStartSort(currentWindowStart: BigNumber, nextWindowStart: BigNumber): number {
     if (currentWindowStart.lessThan(nextWindowStart)) {
       return -1;
     } else if (currentWindowStart.greaterThan(nextWindowStart)) {
@@ -74,9 +93,9 @@ export default class CacheScanner extends BaseScanner {
     return 0;
   }
 
-  private prioritizeFreezePeriod(a: ITxRequest, b: ITxRequest): number {
-    const statusA = this.config.cache.get(a.address).status;
-    const statusB = this.config.cache.get(b.address).status;
+  private prioritizeFreezePeriod(currentTx: ITxRequest, nextTx: ITxRequest): number {
+    const statusA = this.config.cache.get(currentTx.address).status;
+    const statusB = this.config.cache.get(nextTx.address).status;
 
     if (statusA === statusB) {
       return 0;
@@ -85,20 +104,20 @@ export default class CacheScanner extends BaseScanner {
     return statusA === TxStatus.FreezePeriod && statusB !== TxStatus.FreezePeriod ? -1 : 1;
   }
 
-  private higherBountySortIfInSameBlock(currentTx: ITxRequest, nextTx: ITxRequest): number {
-    const cachedCurrentTx = this.config.cache.get(currentTx.address);
-    const cachedNextTx = this.config.cache.get(nextTx.address);
+  private higherBountySortIfInSameBlock(
+    currentTx: ICachedTxDetails,
+    nextTx: ICachedTxDetails
+  ): number {
+    const blockTime = currentTx.temporalUnit === 1 ? 1 : this.avgBlockTime;
 
-    const blockTime = cachedCurrentTx.temporalUnit === 1 ? 1 : this.avgBlockTime;
-
-    const blockDifference = cachedCurrentTx.windowStart.minus(cachedNextTx.windowStart).abs();
+    const blockDifference = currentTx.windowStart.minus(nextTx.windowStart).abs();
     const isInSameBlock = blockDifference.lessThanOrEqualTo(blockTime);
 
     if (isInSameBlock) {
-      if (cachedCurrentTx.bounty.lessThan(cachedNextTx.bounty)) {
-        return -1;
-      } else if (cachedCurrentTx.bounty.greaterThan(cachedNextTx.bounty)) {
+      if (currentTx.bounty.lessThan(nextTx.bounty)) {
         return 1;
+      } else if (currentTx.bounty.greaterThan(nextTx.bounty)) {
+        return -1;
       }
     }
 
