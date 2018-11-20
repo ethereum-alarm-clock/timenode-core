@@ -156,7 +156,7 @@ export default class W3Util {
     const currentBlockNumber: number = await this.getBlockNumber();
     const firstBlock: IBlock = await this.getBlock(currentBlockNumber - numLookbackBlocks);
 
-    for (let i = currentBlockNumber - numLookbackBlocks; i < currentBlockNumber; i++) {
+    for (let i = firstBlock.number; i < currentBlockNumber; i++) {
       blockPromises.push(this.getBlock(i));
     }
 
