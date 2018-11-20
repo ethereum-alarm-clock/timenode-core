@@ -169,6 +169,10 @@ export default class W3Util {
       times.push(time);
     });
 
+    if (times.length === 0) {
+      return 1;
+    }
+
     return Math.round(times.reduce((a, b) => a + b) / times.length);
   }
 

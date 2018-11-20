@@ -46,6 +46,6 @@ describe('Scanner Unit Tests', () => {
       assert.isNotTrue(scanner.scanning);
       assert.equal(scanner.cacheInterval[0], null);
       assert.equal(scanner.chainInterval[0], null);
-    }).timeout(5000);
+    }).timeout(50000);
   });
 });
