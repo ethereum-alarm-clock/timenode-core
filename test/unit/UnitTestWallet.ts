@@ -17,59 +17,57 @@ import ITransactionOptions from '../../src/Types/ITransactionOptions';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
+let config: Config;
+let wallet: Wallet;
+let myAccount: string;
+let opts: ITransactionOptions;
+
+const createTestWallet = (
+  baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
+  accountState = new AccountState()
+) => {
+  const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
+  transactionReceiptAwaiter
+    .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString(), TypeMoq.It.isAnyNumber()))
+    .returns(async (hash: string) => baseTransactionReceiptAwaiter.waitForConfirmations(hash, 1));
+
+  return new Wallet(transactionReceiptAwaiter.object, config.util, accountState);
+};
+
+const fundWallet = async (address: string) => {
+  await new Promise(resolve => {
+    config.web3.eth.sendTransaction(
+      {
+        from: myAccount,
+        to: address,
+        value: config.web3.toWei('0.5', 'ether')
+      },
+      () => setTimeout(resolve, 1000)
+    );
+  });
+};
+
+const reset = async () => {
+  config = await mockConfig();
+  wallet = createTestWallet(new TransactionReceiptAwaiter(config.util));
+
+  const accounts = await Bb.fromCallback((callback: any) => config.web3.eth.getAccounts(callback));
+
+  myAccount = accounts[0];
+  opts = {
+    to: myAccount,
+    gas: 150000,
+    gasPrice: new BigNumber(config.web3.toWei(21, 'gwei')),
+    value: new BigNumber(config.web3.toWei(0.1, 'ether')),
+    operation: Operation.CLAIM,
+    data: ''
+  };
+};
+
+beforeEach(reset);
+
 // tslint:disable-next-line:no-big-function
 describe('Wallet Unit Tests', () => {
-  let config: Config;
-  let wallet: Wallet;
-  let myAccount: string;
-  let opts: ITransactionOptions;
-
-  const createTestWallet = (
-    baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
-    accountState = new AccountState()
-  ) => {
-    const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
-    transactionReceiptAwaiter
-      .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString(), TypeMoq.It.isAnyNumber()))
-      .returns(async (hash: string) => baseTransactionReceiptAwaiter.waitForConfirmations(hash, 1));
-
-    return new Wallet(transactionReceiptAwaiter.object, config.util, accountState);
-  };
-
-  const fundWallet = async (address: string) => {
-    await new Promise(resolve => {
-      config.web3.eth.sendTransaction(
-        {
-          from: myAccount,
-          to: address,
-          value: config.web3.toWei('0.5', 'ether')
-        },
-        () => setTimeout(resolve, 1000)
-      );
-    });
-  };
-
-  const reset = async () => {
-    config = await mockConfig();
-    wallet = createTestWallet(new TransactionReceiptAwaiter(config.util));
-
-    const accounts = await Bb.fromCallback((callback: any) =>
-      config.web3.eth.getAccounts(callback)
-    );
-
-    myAccount = accounts[0];
-    opts = {
-      to: myAccount,
-      gas: 150000,
-      gasPrice: new BigNumber(config.web3.toWei(21, 'gwei')),
-      value: new BigNumber(config.web3.toWei(0.1, 'ether')),
-      operation: Operation.CLAIM,
-      data: ''
-    };
-  };
-
-  beforeEach(reset);
-
   describe('create()', () => {
     it('creates a number of wallets', () => {
       wallet.create(5);

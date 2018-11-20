@@ -4,29 +4,29 @@ import { mockConfig } from '../helpers';
 import { BigNumber } from 'bignumber.js';
 import { TxStatus } from '../../src/Enum';
 
+let config: Config;
+let myAccount: string;
+let timenode: TimeNode;
+const emitEvents = {
+  emitClose: (self: any) => {
+    self.emit('close');
+  },
+  emitEnd: (self: any) => {
+    self.connection._client.emit('connectFailed');
+  },
+  emitError: (self: any) => {
+    //Trigger connection failed event
+    self.connection._client.emit('connectFailed');
+  }
+};
+
+before(async () => {
+  config = await mockConfig();
+  myAccount = config.wallet.getAddresses()[0];
+  timenode = new TimeNode(config);
+});
+
 describe('TimeNode Unit Tests', () => {
-  let config: Config;
-  let myAccount: string;
-  let timenode: TimeNode;
-  const emitEvents = {
-    emitClose: (self: any) => {
-      self.emit('close');
-    },
-    emitEnd: (self: any) => {
-      self.connection._client.emit('connectFailed');
-    },
-    emitError: (self: any) => {
-      //Trigger connection failed event
-      self.connection._client.emit('connectFailed');
-    }
-  };
-
-  before(async () => {
-    config = await mockConfig();
-    myAccount = config.wallet.getAddresses()[0];
-    timenode = new TimeNode(config);
-  });
-
   it('initializes a basic timenode', () => {
     expect(timenode).to.exist; // tslint:disable-line no-unused-expression
   });

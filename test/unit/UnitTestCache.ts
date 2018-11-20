@@ -1,13 +1,13 @@
 import { expect, assert } from 'chai';
 import Cache from '../../src/Cache';
 
+let cache: Cache<any>;
+
+beforeEach(() => {
+  cache = new Cache(null);
+});
+
 describe('Cache unit tests', () => {
-  let cache: Cache<any>;
-
-  beforeEach(() => {
-    cache = new Cache(null);
-  });
-
   describe('get()', () => {
     it('get the key value', () => {
       cache.set('key', 'value');

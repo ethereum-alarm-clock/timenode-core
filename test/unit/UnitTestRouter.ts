@@ -16,83 +16,83 @@ import { ICachedTxDetails } from '../../src/Cache';
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
 
+let config: Config;
+let txTimestamp: ITxRequest;
+let txBlock: ITxRequest;
+
+let router: Router;
+let myAccount: string;
+
+const createRouter = async (claimingEnabled = true) => {
+  const web3 = {
+    eth: {
+      getBlockNumber: (callback: any) => callback(null, 1000)
+    },
+    toWei: config.web3.toWei
+  };
+
+  const v3wallet = TypeMoq.Mock.ofType<V3Wallet>();
+  v3wallet.setup(w => w.getAddressString()).returns(() => myAccount);
+
+  const wallet = TypeMoq.Mock.ofType<Wallet>();
+  wallet
+    .setup(w => w.isWaitingForConfirmation(TypeMoq.It.isAnyString(), TypeMoq.It.isAny()))
+    .returns(() => false);
+  wallet.setup(w => w.nextAccount).returns(() => v3wallet.object);
+  wallet.setup(w => w.isKnownAddress(myAccount)).returns(() => true);
+  wallet.setup(w => w.isKnownAddress(TypeMoq.It.isAnyString())).returns(() => false);
+
+  const util = TypeMoq.Mock.ofType<W3Util>();
+  util.setup(u => u.networkGasPrice()).returns(async () => new BigNumber(20000));
+  util
+    .setup(u => u.getAdvancedNetworkGasPrice())
+    .returns(() =>
+      Promise.resolve({
+        fastest: new BigNumber(20000)
+      } as GasPriceEstimation)
+    );
+
+  const economicStrategyManager = TypeMoq.Mock.ofType<IEconomicStrategyManager>();
+  economicStrategyManager
+    .setup(e => e.shouldClaimTx(TypeMoq.It.isAny(), TypeMoq.It.isAny(), TypeMoq.It.isAny()))
+    .returns(async () => EconomicStrategyStatus.CLAIM);
+
+  txTimestamp = await mockTxRequest(web3);
+  txBlock = await mockTxRequest(web3, true);
+
+  config.cache.set(txTimestamp.address, {} as ICachedTxDetails);
+  config.cache.set(txBlock.address, {} as ICachedTxDetails);
+
+  const actions = new Actions(
+    config.wallet,
+    config.ledger,
+    config.logger,
+    config.cache,
+    util.object,
+    config.pending
+  );
+
+  return new Router(
+    claimingEnabled,
+    config.cache,
+    config.logger,
+    actions,
+    economicStrategyManager.object,
+    util.object,
+    wallet.object
+  );
+};
+
+const reset = async () => {
+  config = await mockConfig();
+  router = await createRouter();
+  myAccount = config.wallet.getAddresses()[0];
+};
+
+beforeEach(reset);
+
 // tslint:disable-next-line:no-big-function
 describe('Router Unit Tests', () => {
-  let config: Config;
-  let txTimestamp: ITxRequest;
-  let txBlock: ITxRequest;
-
-  let router: Router;
-  let myAccount: string;
-
-  const createRouter = async (claimingEnabled = true) => {
-    const web3 = {
-      eth: {
-        getBlockNumber: (callback: any) => callback(null, 1000)
-      },
-      toWei: config.web3.toWei
-    };
-
-    const v3wallet = TypeMoq.Mock.ofType<V3Wallet>();
-    v3wallet.setup(w => w.getAddressString()).returns(() => myAccount);
-
-    const wallet = TypeMoq.Mock.ofType<Wallet>();
-    wallet
-      .setup(w => w.isWaitingForConfirmation(TypeMoq.It.isAnyString(), TypeMoq.It.isAny()))
-      .returns(() => false);
-    wallet.setup(w => w.nextAccount).returns(() => v3wallet.object);
-    wallet.setup(w => w.isKnownAddress(myAccount)).returns(() => true);
-    wallet.setup(w => w.isKnownAddress(TypeMoq.It.isAnyString())).returns(() => false);
-
-    const util = TypeMoq.Mock.ofType<W3Util>();
-    util.setup(u => u.networkGasPrice()).returns(async () => new BigNumber(20000));
-    util
-      .setup(u => u.getAdvancedNetworkGasPrice())
-      .returns(() =>
-        Promise.resolve({
-          fastest: new BigNumber(20000)
-        } as GasPriceEstimation)
-      );
-
-    const economicStrategyManager = TypeMoq.Mock.ofType<IEconomicStrategyManager>();
-    economicStrategyManager
-      .setup(e => e.shouldClaimTx(TypeMoq.It.isAny(), TypeMoq.It.isAny(), TypeMoq.It.isAny()))
-      .returns(async () => EconomicStrategyStatus.CLAIM);
-
-    txTimestamp = await mockTxRequest(web3);
-    txBlock = await mockTxRequest(web3, true);
-
-    config.cache.set(txTimestamp.address, {} as ICachedTxDetails);
-    config.cache.set(txBlock.address, {} as ICachedTxDetails);
-
-    const actions = new Actions(
-      config.wallet,
-      config.ledger,
-      config.logger,
-      config.cache,
-      util.object,
-      config.pending
-    );
-
-    return new Router(
-      claimingEnabled,
-      config.cache,
-      config.logger,
-      actions,
-      economicStrategyManager.object,
-      util.object,
-      wallet.object
-    );
-  };
-
-  const reset = async () => {
-    config = await mockConfig();
-    router = await createRouter();
-    myAccount = config.wallet.getAddresses()[0];
-  };
-
-  beforeEach(reset);
-
   it('initializes the Router', async () => {
     expect(router).to.exist;
   });

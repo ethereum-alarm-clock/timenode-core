@@ -7,19 +7,19 @@ import IRouter from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { mockConfig } from '../helpers';
 
+let config: Config;
+let scanner: Scanner;
+
+const reset = async () => {
+  const router = TypeMoq.Mock.ofType<IRouter>();
+  config = await mockConfig();
+
+  scanner = new Scanner(config, router.object);
+};
+
+beforeEach(reset);
+
 describe('Scanner Unit Tests', () => {
-  let config: Config;
-  let scanner: Scanner;
-
-  const reset = async () => {
-    const router = TypeMoq.Mock.ofType<IRouter>();
-    config = await mockConfig();
-
-    scanner = new Scanner(config, router.object);
-  };
-
-  beforeEach(reset);
-
   it('initializes the Scanner', () => {
     scanner = new Scanner(config, null);
     expect(scanner).to.exist;
