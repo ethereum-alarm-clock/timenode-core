@@ -8,6 +8,7 @@ export interface ICachedTxDetails {
   claimedBy: string;
   wasCalled: boolean;
   windowStart: BigNumber;
+  claimWindowStart: BigNumber;
   status: TxStatus;
 }
 

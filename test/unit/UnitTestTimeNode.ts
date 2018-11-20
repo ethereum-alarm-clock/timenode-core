@@ -100,6 +100,7 @@ describe('TimeNode Unit Tests', () => {
         claimedBy: config.wallet.getAddresses()[0],
         wasCalled: false,
         windowStart: new BigNumber(10000),
+        claimWindowStart: new BigNumber(9000),
         status: TxStatus.FreezePeriod
       };
       config.cache.set('tx', tx);

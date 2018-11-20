@@ -52,9 +52,9 @@ export default class CacheScanner extends BaseScanner {
     );
 
     blockTransactions.sort((currentTx, nextTx) =>
-      this.windowStartSort(
-        getTxFromCache(currentTx.address).windowStart,
-        getTxFromCache(nextTx.address).windowStart
+      this.claimWindowStartSort(
+        getTxFromCache(currentTx.address).claimWindowStart,
+        getTxFromCache(nextTx.address).claimWindowStart
       )
     );
     blockTransactions.sort((currentTx, nextTx) =>
@@ -65,9 +65,9 @@ export default class CacheScanner extends BaseScanner {
     );
 
     timestampTransactions.sort((currentTx, nextTx) =>
-      this.windowStartSort(
-        getTxFromCache(currentTx.address).windowStart,
-        getTxFromCache(nextTx.address).windowStart
+      this.claimWindowStartSort(
+        getTxFromCache(currentTx.address).claimWindowStart,
+        getTxFromCache(nextTx.address).claimWindowStart
       )
     );
     timestampTransactions.sort((currentTx, nextTx) =>
@@ -84,10 +84,13 @@ export default class CacheScanner extends BaseScanner {
     return txRequests;
   }
 
-  private windowStartSort(currentWindowStart: BigNumber, nextWindowStart: BigNumber): number {
-    if (currentWindowStart.lessThan(nextWindowStart)) {
+  private claimWindowStartSort(
+    currentClaimWindowStart: BigNumber,
+    nextClaimWindowStart: BigNumber
+  ): number {
+    if (currentClaimWindowStart.lessThan(nextClaimWindowStart)) {
       return -1;
-    } else if (currentWindowStart.greaterThan(nextWindowStart)) {
+    } else if (currentClaimWindowStart.greaterThan(nextClaimWindowStart)) {
       return 1;
     }
     return 0;

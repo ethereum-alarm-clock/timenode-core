@@ -64,18 +64,21 @@ describe('Cache Scanner Unit Tests', () => {
     tx1.setup(tx => tx.status).returns(() => TxStatus.FreezePeriod);
     tx1.setup(tx => tx.temporalUnit).returns(() => 2);
     tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(10000));
+    tx1.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(9750));
     tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
 
     const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
     tx2.setup(tx => tx.status).returns(() => TxStatus.Executed);
     tx2.setup(tx => tx.temporalUnit).returns(() => 2);
     tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(10000));
+    tx2.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(9750));
     tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
 
     const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
     tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
     tx3.setup(tx => tx.temporalUnit).returns(() => 1);
     tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(10000));
+    tx3.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(9750));
     tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
 
     const cache = new Cache<ICachedTxDetails>();
@@ -110,18 +113,21 @@ describe('Cache Scanner Unit Tests', () => {
     tx1.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
     tx1.setup(tx => tx.temporalUnit).returns(() => 2);
     tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx1.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
     tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
 
     const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
     tx2.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
     tx2.setup(tx => tx.temporalUnit).returns(() => 2);
     tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx2.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
     tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e10));
 
     const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
     tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
     tx3.setup(tx => tx.temporalUnit).returns(() => 2);
     tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx3.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
     tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e8));
 
     const cache = new Cache<ICachedTxDetails>();
@@ -156,18 +162,21 @@ describe('Cache Scanner Unit Tests', () => {
     tx1.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
     tx1.setup(tx => tx.temporalUnit).returns(() => 2);
     tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx1.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
     tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
 
     const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
     tx2.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
     tx2.setup(tx => tx.temporalUnit).returns(() => 2);
     tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx2.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
     tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e10));
 
     const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
     tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
     tx3.setup(tx => tx.temporalUnit).returns(() => 1);
     tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
+    tx3.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
     tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e8));
 
     const cache = new Cache<ICachedTxDetails>();

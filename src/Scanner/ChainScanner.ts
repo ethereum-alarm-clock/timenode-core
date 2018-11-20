@@ -67,12 +67,19 @@ export default class ChainScanner extends CacheScanner {
   }
 
   private store(txRequest: ITxRequestRaw) {
+    const windowStart = txRequest.params[7];
+    const freezePeriod = txRequest.params[3];
+    const claimWindowSize = txRequest.params[2];
+
+    const claimWindowStart = windowStart.minus(freezePeriod).minus(claimWindowSize);
+
     this.config.cache.set(txRequest.address, {
       bounty: txRequest.params[1],
       temporalUnit: txRequest.params[5].toNumber(),
       claimedBy: null,
       wasCalled: false,
-      windowStart: txRequest.params[7],
+      windowStart,
+      claimWindowStart,
       status: TxStatus.BeforeClaimWindow
     });
   }
