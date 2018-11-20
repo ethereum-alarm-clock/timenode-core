@@ -241,7 +241,7 @@ describe('Wallet Unit Tests', () => {
       let receipt = await wallet.sendFromIndex(
         idx,
         Object.assign({}, opts, {
-          data: '0x1234'
+          gas: 15e64 // Setting a ridiculously high gas limit will trigger a revert
         })
       );
       assert.equal(receipt.status, TxSendStatus.UNKNOWN_ERROR);
