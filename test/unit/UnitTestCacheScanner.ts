@@ -19,6 +19,32 @@ describe('Cache Scanner Unit Tests', () => {
     }
   };
 
+  const mockTx = (params: any) => {
+    const TX_DEFAULTS: ICachedTxDetails = {
+      status: TxStatus.ClaimWindow,
+      temporalUnit: 2,
+      windowStart: new BigNumber(10000),
+      claimWindowStart: new BigNumber(9750),
+      claimedBy: '0x0',
+      bounty: new BigNumber(10e9),
+      wasCalled: false
+    };
+
+    const transaction = TypeMoq.Mock.ofType<ICachedTxDetails>();
+    transaction.setup(tx => tx.status).returns(() => params.status || TX_DEFAULTS.status);
+    transaction
+      .setup(tx => tx.temporalUnit)
+      .returns(() => params.temporalUnit || TX_DEFAULTS.temporalUnit);
+    transaction
+      .setup(tx => tx.windowStart)
+      .returns(() => params.windowStart || TX_DEFAULTS.windowStart);
+    transaction
+      .setup(tx => tx.claimWindowStart)
+      .returns(() => params.claimWindowStart || TX_DEFAULTS.claimWindowStart);
+    transaction.setup(tx => tx.bounty).returns(() => params.bounty || TX_DEFAULTS.bounty);
+    return transaction;
+  };
+
   it('does not route when cache empty', async () => {
     const cache = TypeMoq.Mock.ofType<Cache<ICachedTxDetails>>();
     cache.setup(c => c.isEmpty()).returns(() => true);
@@ -60,26 +86,9 @@ describe('Cache Scanner Unit Tests', () => {
   });
 
   it('does prioritize requests in FreezePeriod ', async () => {
-    const tx1 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx1.setup(tx => tx.status).returns(() => TxStatus.FreezePeriod);
-    tx1.setup(tx => tx.temporalUnit).returns(() => 2);
-    tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(10000));
-    tx1.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(9750));
-    tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
-
-    const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx2.setup(tx => tx.status).returns(() => TxStatus.Executed);
-    tx2.setup(tx => tx.temporalUnit).returns(() => 2);
-    tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(10000));
-    tx2.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(9750));
-    tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
-
-    const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
-    tx3.setup(tx => tx.temporalUnit).returns(() => 1);
-    tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(10000));
-    tx3.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(9750));
-    tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
+    const tx1 = mockTx({ status: TxStatus.FreezePeriod });
+    const tx2 = mockTx({ status: TxStatus.Executed });
+    const tx3 = mockTx({ status: TxStatus.ClaimWindow });
 
     const cache = new Cache<ICachedTxDetails>();
     cache.set('3', tx3.object);
@@ -108,27 +117,10 @@ describe('Cache Scanner Unit Tests', () => {
     assert.equal(routed.shift().address, '1');
   });
 
-  it('prioritizes the tx with a higher bounty', async () => {
-    const tx1 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx1.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
-    tx1.setup(tx => tx.temporalUnit).returns(() => 2);
-    tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
-    tx1.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
-    tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
-
-    const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx2.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
-    tx2.setup(tx => tx.temporalUnit).returns(() => 2);
-    tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
-    tx2.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
-    tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e10));
-
-    const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
-    tx3.setup(tx => tx.temporalUnit).returns(() => 2);
-    tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
-    tx3.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
-    tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e8));
+  it('prioritizes the tx with a higher bounty if in the same block', async () => {
+    const tx1 = mockTx({ bounty: new BigNumber(10e9) });
+    const tx2 = mockTx({ bounty: new BigNumber(10e10) });
+    const tx3 = mockTx({ bounty: new BigNumber(10e8) });
 
     const cache = new Cache<ICachedTxDetails>();
     cache.set('3', tx3.object);
@@ -158,26 +150,9 @@ describe('Cache Scanner Unit Tests', () => {
   });
 
   it('prioritizes block tx over timestamp tx even if a higher bounty', async () => {
-    const tx1 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx1.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
-    tx1.setup(tx => tx.temporalUnit).returns(() => 2);
-    tx1.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
-    tx1.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
-    tx1.setup(tx => tx.bounty).returns(() => new BigNumber(10e9));
-
-    const tx2 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx2.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
-    tx2.setup(tx => tx.temporalUnit).returns(() => 2);
-    tx2.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
-    tx2.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
-    tx2.setup(tx => tx.bounty).returns(() => new BigNumber(10e10));
-
-    const tx3 = TypeMoq.Mock.ofType<ICachedTxDetails>();
-    tx3.setup(tx => tx.status).returns(() => TxStatus.ClaimWindow);
-    tx3.setup(tx => tx.temporalUnit).returns(() => 1);
-    tx3.setup(tx => tx.windowStart).returns(() => new BigNumber(15000));
-    tx3.setup(tx => tx.claimWindowStart).returns(() => new BigNumber(14750));
-    tx3.setup(tx => tx.bounty).returns(() => new BigNumber(10e8));
+    const tx1 = mockTx({ temporalUnit: 2 });
+    const tx2 = mockTx({ temporalUnit: 2 });
+    const tx3 = mockTx({ temporalUnit: 1 });
 
     const cache = new Cache<ICachedTxDetails>();
     cache.set('1', tx1.object);
