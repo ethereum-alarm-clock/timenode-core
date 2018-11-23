@@ -103,8 +103,8 @@ export class EconomicStrategyManager {
     return currentNetworkPrice.greaterThan(maxGasPrice)
       ? maxGasPrice
       : currentNetworkPrice.lessThan(minGasPrice)
-        ? minGasPrice
-        : currentNetworkPrice;
+      ? minGasPrice
+      : currentNetworkPrice;
   }
 
   public async shouldExecuteTx(txRequest: ITxRequest, targetGasPrice: BigNumber): Promise<boolean> {

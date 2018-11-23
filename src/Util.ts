@@ -144,6 +144,38 @@ export default class W3Util {
     });
   }
 
+  /*
+   * Takes an average of the last 100 blocks and estimates the
+   * blocktime.
+   */
+  public async getAverageBlockTime(): Promise<number> {
+    const numLookbackBlocks: number = 100;
+    const times: number[] = [];
+
+    const blockPromises: Promise<IBlock>[] = [];
+    const currentBlockNumber: number = await this.getBlockNumber();
+    const firstBlock: IBlock = await this.getBlock(currentBlockNumber - numLookbackBlocks);
+
+    for (let i = firstBlock.number; i < currentBlockNumber; i++) {
+      blockPromises.push(this.getBlock(i));
+    }
+
+    const resolvedBlocks: IBlock[] = await Promise.all(blockPromises);
+
+    let prevTimestamp = firstBlock.timestamp;
+    resolvedBlocks.forEach((block: IBlock) => {
+      const time = block.timestamp - prevTimestamp;
+      prevTimestamp = block.timestamp;
+      times.push(time);
+    });
+
+    if (times.length === 0) {
+      return 1;
+    }
+
+    return Math.round(times.reduce((a, b) => a + b) / times.length);
+  }
+
   public isWatchingEnabled(): Promise<boolean> {
     return W3Util.isWatchingEnabled(this.web3);
   }
@@ -174,9 +206,8 @@ export default class W3Util {
 
   public sendRawTransaction(transaction: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this.web3.eth.sendRawTransaction(
-        transaction,
-        (e: any, r: any) => (e ? reject(e) : resolve(r))
+      this.web3.eth.sendRawTransaction(transaction, (e: any, r: any) =>
+        e ? reject(e) : resolve(r)
       );
     });
   }

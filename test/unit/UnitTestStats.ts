@@ -3,27 +3,27 @@ import * as loki from 'lokijs';
 import { StatsDB } from '../../src/Stats';
 import { assert } from 'chai';
 
+const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
+const account2: string = '0x0054a7eef4dc5d729115c71cba074151b3d41804';
+
+const tx1: string = '0xaa55bf414ecef0285dcece4ddf78a0ee8beb6707';
+const tx2: string = '0x9b7b4a8fdafda1b688c22fcb6f4bc97ed29ff676';
+const tx3: string = '0x57f1b33b8b44689982ce7b3f560577e89375b2da';
+let stats: StatsDB;
+let cost: BigNumber;
+let bounty: BigNumber;
+
+const reset = async () => {
+  stats = new StatsDB(new loki('stats.db'));
+  await stats.init();
+  cost = new BigNumber(10);
+  bounty = new BigNumber(15);
+};
+
+beforeEach(reset);
+
 // tslint:disable-next-line:no-big-function
 describe('Stats Unit Tests', () => {
-  const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
-  const account2: string = '0x0054a7eef4dc5d729115c71cba074151b3d41804';
-
-  const tx1: string = '0xaa55bf414ecef0285dcece4ddf78a0ee8beb6707';
-  const tx2: string = '0x9b7b4a8fdafda1b688c22fcb6f4bc97ed29ff676';
-  const tx3: string = '0x57f1b33b8b44689982ce7b3f560577e89375b2da';
-  let stats: StatsDB;
-  let cost: BigNumber;
-  let bounty: BigNumber;
-
-  const reset = async () => {
-    stats = new StatsDB(new loki('stats.db'));
-    await stats.init();
-    cost = new BigNumber(10);
-    bounty = new BigNumber(15);
-  };
-
-  beforeEach(reset);
-
   describe('getFailedExecutions()', () => {
     // tslint:disable-next-line:no-duplicate-string
     it('returns an empty array if none', () => {

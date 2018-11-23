@@ -3,9 +3,12 @@ import BigNumber from 'bignumber.js';
 import { TxStatus } from '../Enum';
 
 export interface ICachedTxDetails {
+  bounty: BigNumber;
+  temporalUnit: number;
   claimedBy: string;
   wasCalled: boolean;
   windowStart: BigNumber;
+  claimWindowStart: BigNumber;
   status: TxStatus;
 }
 
