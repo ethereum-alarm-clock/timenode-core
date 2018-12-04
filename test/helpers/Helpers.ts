@@ -1,7 +1,9 @@
-export const getHelperMethods = (web3: any) => {
+import Web3 = require('web3');
+
+export const getHelperMethods = (web3: Web3) => {
   function sendRpc(method: any, params?: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync(
+      web3.currentProvider.send(
         {
           jsonrpc: '2.0',
           method,

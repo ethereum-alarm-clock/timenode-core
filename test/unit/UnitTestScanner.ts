@@ -6,6 +6,7 @@ import { Config } from '../../src';
 import IRouter from '../../src/Router';
 import Scanner from '../../src/Scanner';
 import { mockConfig } from '../helpers';
+import { Util } from '@ethereum-alarm-clock/lib';
 
 let config: Config;
 let scanner: Scanner;
@@ -34,8 +35,12 @@ describe('Scanner Unit Tests', () => {
     }).timeout(5000);
 
     it('returns true when watching disabled', async () => {
-      scanner.util.isWatchingEnabled = () => Promise.resolve(false);
+      const originalIsWatchingEnabled = Util.isWatchingEnabled;
+
+      Util.isWatchingEnabled = () => Promise.resolve(false);
       expect(scanner.start).to.throw;
+
+      Util.isWatchingEnabled = originalIsWatchingEnabled;
     }).timeout(5000);
   });
 

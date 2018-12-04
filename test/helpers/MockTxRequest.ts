@@ -1,12 +1,12 @@
 import BigNumber from 'bignumber.js';
 import * as moment from 'moment';
-import * as Bb from 'bluebird';
 import { TxStatus, FnSignatures } from '../../src/Enum';
-import { ITxRequest } from '../../src/Types';
+import Web3 = require('web3');
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
 
-const mockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> => {
+const mockTxRequest = async (web3: Web3, isBlock?: boolean): Promise<ITransactionRequest> => {
   const claimedBy = '0x0000000000000000000000000000000000000000';
-  const requiredDeposit = new BigNumber(web3.toWei(0.1, 'ether'));
+  const requiredDeposit = new BigNumber(web3.utils.toWei('0.1', 'ether'));
 
   const hoursLater = (num: number) =>
     moment()
@@ -17,17 +17,15 @@ const mockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
       .add(num, 'day')
       .unix();
 
-  const currentBlockNumber = (await Bb.fromCallback((callback: any) =>
-    web3.eth.getBlockNumber(callback)
-  )) as number;
+  const currentBlockNumber = await web3.eth.getBlockNumber();
   const blocksLater = (num: number) => currentBlockNumber + num;
   const oneHourWindowSize = new BigNumber(isBlock ? 255 : 3600);
 
   return {
     address: '0x24f8e3501b00bd219e864650f5625cd4f9272a25',
-    bounty: new BigNumber(web3.toWei(0.1, 'ether')),
+    bounty: new BigNumber(web3.utils.toWei('0.1', 'ether')),
     callGas: new BigNumber(Math.pow(10, 6)),
-    gasPrice: new BigNumber(web3.toWei(21, 'gwei')),
+    gasPrice: new BigNumber(web3.utils.toWei('21', 'gwei')),
     claimedBy,
     isClaimed: false,
     requiredDeposit,
@@ -88,10 +86,13 @@ const mockTxRequest = async (web3: any, isBlock?: boolean): Promise<ITxRequest> 
     },
     executeData: '',
     isCancelled: false
-  };
+  } as ITransactionRequest;
 };
 
-const mockTxStatus = async (tx: ITxRequest, status: TxStatus): Promise<ITxRequest> => {
+const mockTxStatus = async (
+  tx: ITransactionRequest,
+  status: TxStatus
+): Promise<ITransactionRequest> => {
   if (status === TxStatus.BeforeClaimWindow) {
     return tx;
   }

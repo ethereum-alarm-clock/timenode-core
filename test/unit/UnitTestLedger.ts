@@ -2,17 +2,17 @@ import * as TypeMoq from 'typemoq';
 import { assert } from 'chai';
 import BigNumber from 'bignumber.js';
 import { ILedger, Ledger } from '../../src/Actions/Ledger';
-import { ITxRequest } from '../../src/Types';
 import { IStatsDB } from '../../src/Stats/StatsDB';
 import { Operation } from '../../src/Types/Operation';
-import { ITransactionReceipt, ILog } from '../../src/Types/ITransactionReceipt';
+import { TransactionReceipt, Log } from 'web3/types';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
 
 const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
 const account2: string = '0x0054a7eef4dc5d729115c71cba074151b3d41804';
 
 const tx1: string = '0xaa55bf414ecef0285dcece4ddf78a0ee8beb6707';
 
-const gas = 100000;
+const gas = new BigNumber('100000');
 const gasPrice = new BigNumber(100000000);
 const requiredDeposit = new BigNumber(10000000);
 const opts = {
@@ -27,7 +27,7 @@ const opts = {
 let ledger: ILedger;
 let stats: TypeMoq.IMock<IStatsDB>;
 
-const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
+const txRequest = TypeMoq.Mock.ofType<ITransactionRequest>();
 txRequest.setup(x => x.requiredDeposit).returns(() => requiredDeposit);
 txRequest.setup(x => x.address).returns(() => tx1);
 
@@ -40,9 +40,9 @@ beforeEach(reset);
 
 describe('Ledger Unit Tests', async () => {
   it('should account for required deposit and tx cost when claiming was successful', async () => {
-    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
-    receipt.setup(r => r.status).returns(() => '0x1');
-    receipt.setup(r => r.gasUsed).returns(() => gas);
+    const receipt = TypeMoq.Mock.ofType<TransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => true);
+    receipt.setup(r => r.gasUsed).returns(() => gas.toNumber());
 
     ledger.accountClaiming(receipt.object, txRequest.object, opts, account2);
 
@@ -54,9 +54,9 @@ describe('Ledger Unit Tests', async () => {
   });
 
   it('should account for tx cost when claiming failed', async () => {
-    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
-    receipt.setup(r => r.status).returns(() => '0x0');
-    receipt.setup(r => r.gasUsed).returns(() => gas);
+    const receipt = TypeMoq.Mock.ofType<TransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => false);
+    receipt.setup(r => r.gasUsed).returns(() => gas.toNumber());
 
     ledger.accountClaiming(receipt.object, txRequest.object, opts, account2);
 
@@ -68,7 +68,7 @@ describe('Ledger Unit Tests', async () => {
   });
 
   it('should account for bounty only when execution was successful', async () => {
-    const log = TypeMoq.Mock.ofType<ILog>();
+    const log = TypeMoq.Mock.ofType<Log>();
     log
       .setup(l => l.data)
       .returns(
@@ -76,9 +76,9 @@ describe('Ledger Unit Tests', async () => {
           '0x000000000000000000000000000000000000000000000000000fe3c87f4b736300000000000000000000000000000000000000000000000000000002540be4000000000000000000000000000000000000000000000000000000000000030cd6'
       );
 
-    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
-    receipt.setup(r => r.status).returns(() => '0x1');
-    receipt.setup(r => r.gasUsed).returns(() => gas);
+    const receipt = TypeMoq.Mock.ofType<TransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => true);
+    receipt.setup(r => r.gasUsed).returns(() => gas.toNumber());
     receipt.setup(r => r.logs).returns(() => [log.object]);
 
     ledger.accountExecution(txRequest.object, receipt.object, opts, account2, true);
@@ -99,9 +99,9 @@ describe('Ledger Unit Tests', async () => {
   });
 
   it('should account for tx costs when execution was not successful', async () => {
-    const receipt = TypeMoq.Mock.ofType<ITransactionReceipt>();
-    receipt.setup(r => r.status).returns(() => '0x0');
-    receipt.setup(r => r.gasUsed).returns(() => gas);
+    const receipt = TypeMoq.Mock.ofType<TransactionReceipt>();
+    receipt.setup(r => r.status).returns(() => false);
+    receipt.setup(r => r.gasUsed).returns(() => gas.toNumber());
 
     ledger.accountExecution(txRequest.object, receipt.object, opts, account2, false);
 

@@ -3,17 +3,17 @@ import IRouter from '../../src/Router';
 import { Config } from '../../src';
 import CacheScanner from '../../src/Scanner/CacheScanner';
 import Cache, { ICachedTxDetails } from '../../src/Cache';
-import W3Util from '../../src/Util';
 import { TxStatus } from '../../src/Enum';
-import { ITxRequest } from '../../src/Types';
 import { assert } from 'chai';
 import BigNumber from 'bignumber.js';
+import { EAC, Util } from '@ethereum-alarm-clock/lib';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
 
 describe('Cache Scanner Unit Tests', () => {
   const BLOCKTIME = 14;
-  const EAC = {
-    transactionRequest: (address: any) => {
-      const req = TypeMoq.Mock.ofType<ITxRequest>();
+  const eac = {
+    transactionRequest(address: string) {
+      const req = TypeMoq.Mock.ofType<ITransactionRequest>();
       req.setup(r => r.address).returns(() => address);
       return req.object;
     }
@@ -61,7 +61,7 @@ describe('Cache Scanner Unit Tests', () => {
   });
 
   it('calculates the average blocktime', async () => {
-    const util = TypeMoq.Mock.ofType<W3Util>();
+    const util = TypeMoq.Mock.ofType<Util>();
     util.setup(u => u.getAverageBlockTime()).returns(() => Promise.resolve(BLOCKTIME));
 
     const transaction = TypeMoq.Mock.ofType<ICachedTxDetails>();
@@ -74,7 +74,7 @@ describe('Cache Scanner Unit Tests', () => {
     const config = TypeMoq.Mock.ofType<Config>();
     config.setup(c => c.cache).returns(() => cache);
     config.setup(c => c.util).returns(() => util.object);
-    config.setup(c => c.eac).returns(() => EAC);
+    config.setup(c => c.eac).returns(() => eac as EAC);
 
     const scanner = new CacheScanner(config.object, router.object);
     assert.notExists(scanner.avgBlockTime);
@@ -95,16 +95,16 @@ describe('Cache Scanner Unit Tests', () => {
     cache.set('2', tx2.object);
     cache.set('1', tx1.object);
 
-    const routed: ITxRequest[] = [];
+    const routed: ITransactionRequest[] = [];
 
     const router = TypeMoq.Mock.ofType<IRouter>();
     router.setup(r => r.route(TypeMoq.It.isAny())).callback(txRequest => routed.push(txRequest));
 
     const config = TypeMoq.Mock.ofType<Config>();
     config.setup(c => c.cache).returns(() => cache);
-    config.setup(c => c.eac).returns(() => EAC);
+    config.setup(c => c.eac).returns(() => eac as EAC);
 
-    const util = TypeMoq.Mock.ofType<W3Util>();
+    const util = TypeMoq.Mock.ofType<Util>();
     util.setup(u => u.getAverageBlockTime()).returns(() => Promise.resolve(BLOCKTIME));
     config.setup(c => c.util).returns(() => util.object);
 
@@ -127,16 +127,16 @@ describe('Cache Scanner Unit Tests', () => {
     cache.set('2', tx2.object);
     cache.set('1', tx1.object);
 
-    const routed: ITxRequest[] = [];
+    const routed: ITransactionRequest[] = [];
 
     const router = TypeMoq.Mock.ofType<IRouter>();
     router.setup(r => r.route(TypeMoq.It.isAny())).callback(txRequest => routed.push(txRequest));
 
     const config = TypeMoq.Mock.ofType<Config>();
     config.setup(c => c.cache).returns(() => cache);
-    config.setup(c => c.eac).returns(() => EAC);
+    config.setup(c => c.eac).returns(() => eac as EAC);
 
-    const util = TypeMoq.Mock.ofType<W3Util>();
+    const util = TypeMoq.Mock.ofType<Util>();
     util.setup(u => u.getAverageBlockTime()).returns(() => Promise.resolve(BLOCKTIME));
     config.setup(c => c.util).returns(() => util.object);
 
@@ -159,16 +159,16 @@ describe('Cache Scanner Unit Tests', () => {
     cache.set('2', tx2.object);
     cache.set('3', tx3.object);
 
-    const routed: ITxRequest[] = [];
+    const routed: ITransactionRequest[] = [];
 
     const router = TypeMoq.Mock.ofType<IRouter>();
     router.setup(r => r.route(TypeMoq.It.isAny())).callback(txRequest => routed.push(txRequest));
 
     const config = TypeMoq.Mock.ofType<Config>();
     config.setup(c => c.cache).returns(() => cache);
-    config.setup(c => c.eac).returns(() => EAC);
+    config.setup(c => c.eac).returns(() => eac as EAC);
 
-    const util = TypeMoq.Mock.ofType<W3Util>();
+    const util = TypeMoq.Mock.ofType<Util>();
     util.setup(u => u.getAverageBlockTime()).returns(() => Promise.resolve(BLOCKTIME));
     config.setup(c => c.util).returns(() => util.object);
 

@@ -49,6 +49,6 @@ npm run clean-backups
 ## Want more?
 
 This package is a part of EAC.JS family ~
-* [EAC.JS-LIB](https://github.com/ethereum-alarm-clock/eac.js-lib)
+* [lib](https://github.com/ethereum-alarm-clock/lib)
 * [timenode-core](https://github.com/ethereum-alarm-clock/timenode-core)
 * [cli](https://github.com/ethereum-alarm-clock/cli)

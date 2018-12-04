@@ -1,23 +1,24 @@
-import { IBlock } from '../Types';
 import { BucketSize } from '.';
-import W3Util from '../Util';
 import { Bucket } from './IBucketPair';
+import RequestFactory from '@ethereum-alarm-clock/lib/built/requestFactory/RequestFactory';
+import { Block } from 'web3/eth/types';
+import { Util } from '@ethereum-alarm-clock/lib';
 
 export interface IBucketCalc {
   getBuckets(): Promise<Bucket[]>;
 }
 
 export class BucketCalc {
-  private requestFactory: Promise<any>;
-  private util: W3Util;
+  private requestFactory: Promise<RequestFactory>;
+  private util: Util;
 
-  constructor(util: W3Util, requestFactory: any) {
+  constructor(util: Util, requestFactory: Promise<RequestFactory>) {
     this.util = util;
     this.requestFactory = requestFactory;
   }
 
   public async getBuckets(): Promise<Bucket[]> {
-    const latest: IBlock = await this.util.getBlock('latest');
+    const latest: Block = await this.util.getBlock('latest');
 
     const currentBuckets = await this.getCurrentBuckets(latest);
     const nextBuckets = await this.getNextBuckets(latest);
@@ -26,14 +27,14 @@ export class BucketCalc {
     return currentBuckets.concat(nextBuckets).concat(afterNextBuckets);
   }
 
-  private async getCurrentBuckets(latest: IBlock): Promise<Bucket[]> {
+  private async getCurrentBuckets(latest: Block): Promise<Bucket[]> {
     return [
       (await this.requestFactory).calcBucket(latest.number, 1),
       (await this.requestFactory).calcBucket(latest.timestamp, 2)
     ];
   }
 
-  private async getNextBuckets(latest: IBlock): Promise<Bucket[]> {
+  private async getNextBuckets(latest: Block): Promise<Bucket[]> {
     const nextBlockInterval = latest.number + BucketSize.block;
     const nextTsInterval = latest.timestamp + BucketSize.timestamp;
 
@@ -43,7 +44,7 @@ export class BucketCalc {
     ];
   }
 
-  private async getAfterNextBuckets(latest: IBlock): Promise<Bucket[]> {
+  private async getAfterNextBuckets(latest: Block): Promise<Bucket[]> {
     const nextBlockInterval = latest.number + 2 * BucketSize.block;
     const nextTsInterval = latest.timestamp + 2 * BucketSize.timestamp;
 

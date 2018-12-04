@@ -1,9 +1,8 @@
 import BigNumber from 'bignumber.js';
-
-import { ITxRequestPending } from '../Types/ITxRequest';
-import W3Util from '../Util';
 import { Operation } from '../Types/Operation';
 import { ITxPool, ITxPoolTxDetails } from '../TxPool';
+import { ITransactionRequestPending } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { GasPriceUtil } from '@ethereum-alarm-clock/lib';
 
 interface PendingOpts {
   type: Operation;
@@ -14,28 +13,34 @@ interface PendingOpts {
 const NETWORK_GAS_PRICE_RATIO = 0.3;
 
 export class Pending {
-  private util: W3Util;
+  private gasPriceUtil: GasPriceUtil;
   private txPool: ITxPool;
 
-  constructor(util: W3Util, txPool: ITxPool) {
-    this.util = util;
+  constructor(gasPriceUtil: GasPriceUtil, txPool: ITxPool) {
+    this.gasPriceUtil = gasPriceUtil;
     this.txPool = txPool;
   }
 
   /**
    *
    *
-   * @param {ITxRequestPending} txRequest Transaction Request object to check.
+   * @param {ITransactionRequestPending} txRequest Transaction Request object to check.
    * @param {PendingOpts} opts Options for pending check
    * @returns {Promise<boolean>} True if a pending transaction to this address exists.
    * @memberof Pending
    */
-  public async hasPending(txRequest: ITxRequestPending, opts: PendingOpts): Promise<boolean> {
+  public async hasPending(
+    txRequest: ITransactionRequestPending,
+    opts: PendingOpts
+  ): Promise<boolean> {
     return this.txPool.running() ? this.hasPendingPool(txRequest, opts) : false;
   }
 
-  private async hasPendingPool(txRequest: ITxRequestPending, opts: PendingOpts): Promise<boolean> {
-    const currentGasPrice = await this.util.networkGasPrice();
+  private async hasPendingPool(
+    txRequest: ITransactionRequestPending,
+    opts: PendingOpts
+  ): Promise<boolean> {
+    const currentGasPrice = await this.gasPriceUtil.networkGasPrice();
     return Array.from(this.txPool.pool.values()).some(poolTx => {
       const hasCorrectAddress = poolTx.to === txRequest.address;
       const withValidGasPrice =

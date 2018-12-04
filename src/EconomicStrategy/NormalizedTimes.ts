@@ -1,5 +1,5 @@
-import { EthGasStationInfo } from '../Types';
 import BigNumber from 'bignumber.js';
+import { EthGasStationInfo } from '@ethereum-alarm-clock/lib/built/utils/GasPriceUtil';
 
 export class NormalizedTimes {
   private gasStats: EthGasStationInfo;

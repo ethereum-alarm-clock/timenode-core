@@ -1,12 +1,12 @@
 import { BigNumber } from 'bignumber.js';
-
-import { W3Util } from '..';
 import Cache, { ICachedTxDetails } from '../Cache';
 import { EconomicStrategyStatus } from '../Enum';
 import { ILogger, DefaultLogger } from '../Logger';
-import { Address, ITxRequest } from '../Types';
+import { Address } from '../Types';
 import { IEconomicStrategy } from './IEconomicStrategy';
 import { NormalizedTimes } from './NormalizedTimes';
+import { EAC, Util, GasPriceUtil } from '@ethereum-alarm-clock/lib';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
 
 const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
 
@@ -14,30 +14,33 @@ export interface IEconomicStrategyManager {
   strategy: IEconomicStrategy;
 
   shouldClaimTx(
-    txRequest: ITxRequest,
+    txRequest: ITransactionRequest,
     nextAccount: Address,
     gasPrice: BigNumber
   ): Promise<EconomicStrategyStatus>;
-  shouldExecuteTx(txRequest: ITxRequest, gasPrice: BigNumber): Promise<boolean>;
-  getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber>;
+  shouldExecuteTx(txRequest: ITransactionRequest, gasPrice: BigNumber): Promise<boolean>;
+  getExecutionGasPrice(txRequest: ITransactionRequest): Promise<BigNumber>;
 }
 
 export class EconomicStrategyManager {
   public strategy: IEconomicStrategy;
 
-  private util: W3Util;
+  private gasPriceUtil: GasPriceUtil;
+  private util: Util;
   private logger: ILogger;
   private cache: Cache<ICachedTxDetails>;
-  private eac: any;
+  private eac: EAC;
 
   constructor(
     strategy: IEconomicStrategy,
-    util: W3Util,
+    gasPriceUtil: GasPriceUtil,
     cache: Cache<ICachedTxDetails>,
-    eac: any,
+    eac: EAC,
+    util: Util,
     logger: ILogger = new DefaultLogger()
   ) {
     this.strategy = strategy;
+    this.gasPriceUtil = gasPriceUtil;
     this.util = util;
     this.logger = logger;
     this.cache = cache;
@@ -53,13 +56,13 @@ export class EconomicStrategyManager {
   /**
    * Tests transaction if claiming should be performed
    *
-   * @param {ITxRequest} txRequest Request under test
+   * @param {ITransactionRequest} txRequest Request under test
    * @param {Address} nextAccount Account
    * @returns {Promise<EconomicStrategyStatus>} Status
    * @memberof EconomicStrategyManager
    */
   public async shouldClaimTx(
-    txRequest: ITxRequest,
+    txRequest: ITransactionRequest,
     nextAccount: Address,
     fastestGas: BigNumber
   ): Promise<EconomicStrategyStatus> {
@@ -91,8 +94,8 @@ export class EconomicStrategyManager {
     return EconomicStrategyStatus.CLAIM;
   }
 
-  public async getExecutionGasPrice(txRequest: ITxRequest): Promise<BigNumber> {
-    const { average } = await this.util.getAdvancedNetworkGasPrice();
+  public async getExecutionGasPrice(txRequest: ITransactionRequest): Promise<BigNumber> {
+    const { average } = await this.gasPriceUtil.getAdvancedNetworkGasPrice();
     const currentNetworkPrice = this.strategy.usingSmartGasEstimation
       ? (await this.smartGasEstimation(txRequest)) || average
       : average;
@@ -107,7 +110,10 @@ export class EconomicStrategyManager {
       : currentNetworkPrice;
   }
 
-  public async shouldExecuteTx(txRequest: ITxRequest, targetGasPrice: BigNumber): Promise<boolean> {
+  public async shouldExecuteTx(
+    txRequest: ITransactionRequest,
+    targetGasPrice: BigNumber
+  ): Promise<boolean> {
     const { gasPrice, requiredDeposit, bounty } = txRequest;
     const gasAmount = this.util.calculateGasAmount(txRequest);
     const reimbursement = gasPrice.times(gasAmount);
@@ -129,7 +135,7 @@ export class EconomicStrategyManager {
     return shouldExecute;
   }
 
-  private async tooShortClaimWindow(txRequest: ITxRequest): Promise<boolean> {
+  private async tooShortClaimWindow(txRequest: ITransactionRequest): Promise<boolean> {
     const { minClaimWindowBlock, minClaimWindow } = this.strategy;
     const { claimWindowEnd, temporalUnit } = txRequest;
     const now = await txRequest.now();
@@ -139,7 +145,7 @@ export class EconomicStrategyManager {
     return claimWindowEnd.sub(now).lt(minWindow);
   }
 
-  private tooShortReserved(txRequest: ITxRequest): boolean {
+  private tooShortReserved(txRequest: ITransactionRequest): boolean {
     const { minExecutionWindowBlock, minExecutionWindow } = this.strategy;
     const { reservedWindowSize, temporalUnit } = txRequest;
 
@@ -148,7 +154,7 @@ export class EconomicStrategyManager {
     return minWindow && reservedWindowSize.lt(minWindow);
   }
 
-  private exceedsMaxDeposit(txRequest: ITxRequest): boolean {
+  private exceedsMaxDeposit(txRequest: ITransactionRequest): boolean {
     const requiredDeposit = txRequest.requiredDeposit;
     const maxDeposit = this.strategy.maxDeposit;
 
@@ -164,14 +170,14 @@ export class EconomicStrategyManager {
 
   private async isAboveMinBalanceLimit(
     nextAccount: Address,
-    txRequest: ITxRequest
+    txRequest: ITransactionRequest
   ): Promise<boolean> {
     const minBalance = this.strategy.minBalance;
-    const currentBalance = await this.util.balanceOf(nextAccount);
+    const currentBalance: BigNumber = await this.util.balanceOf(nextAccount);
     const txRequestsClaimed: string[] = this.getTxRequestsClaimedBy(nextAccount);
     const gasPrices: BigNumber[] = await Promise.all(
       txRequestsClaimed.map(async (address: string) => {
-        const tx = await this.eac.transactionRequest(address);
+        const tx = this.eac.transactionRequest(address);
         await tx.refreshData();
 
         return tx.gasPrice;
@@ -199,7 +205,7 @@ export class EconomicStrategyManager {
   }
 
   private async isClaimingProfitable(
-    txRequest: ITxRequest,
+    txRequest: ITransactionRequest,
     targetGasPrice: BigNumber
   ): Promise<boolean> {
     const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
@@ -224,8 +230,8 @@ export class EconomicStrategyManager {
     return maxGasSubsidy + 1;
   }
 
-  private async smartGasEstimation(txRequest: ITxRequest): Promise<BigNumber | null> {
-    const gasStats = await W3Util.getEthGasStationStats();
+  private async smartGasEstimation(txRequest: ITransactionRequest): Promise<BigNumber | null> {
+    const gasStats = await GasPriceUtil.getEthGasStationStats();
     if (!gasStats) {
       return null;
     }

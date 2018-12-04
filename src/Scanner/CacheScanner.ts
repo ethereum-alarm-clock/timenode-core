@@ -1,12 +1,13 @@
 import BigNumber from 'bignumber.js';
 
-import { IntervalId, ITxRequest } from '../Types';
+import { IntervalId } from '../Types';
 import BaseScanner from './BaseScanner';
 import IRouter from '../Router';
 import Config from '../Config';
 import { TxStatus } from '../Enum';
 
 import { ICachedTxDetails } from '../Cache';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
 
 export default class CacheScanner extends BaseScanner {
   public cacheInterval: IntervalId;
@@ -27,10 +28,10 @@ export default class CacheScanner extends BaseScanner {
 
     let txRequests = this.getCacheTxRequests();
     txRequests = this.prioritizeTransactions(txRequests);
-    txRequests.forEach((txRequest: ITxRequest) => this.route(txRequest));
+    txRequests.forEach((txRequest: ITransactionRequest) => this.route(txRequest));
   }
 
-  public getCacheTxRequests(): ITxRequest[] {
+  public getCacheTxRequests(): ITransactionRequest[] {
     return this.config.cache.stored().map(address => this.config.eac.transactionRequest(address));
   }
 
@@ -41,14 +42,14 @@ export default class CacheScanner extends BaseScanner {
    *  3. If some 2 transactions have windowStart set to the same block,
    *     it sorts those by whichever has the highest bounty.
    */
-  private prioritizeTransactions(txRequests: ITxRequest[]): ITxRequest[] {
+  private prioritizeTransactions(txRequests: ITransactionRequest[]): ITransactionRequest[] {
     const getTxFromCache = (address: string) => this.config.cache.get(address);
 
     const blockTransactions = txRequests.filter(
-      (tx: ITxRequest) => getTxFromCache(tx.address).temporalUnit === 1
+      (tx: ITransactionRequest) => getTxFromCache(tx.address).temporalUnit === 1
     );
     const timestampTransactions = txRequests.filter(
-      (tx: ITxRequest) => getTxFromCache(tx.address).temporalUnit === 2
+      (tx: ITransactionRequest) => getTxFromCache(tx.address).temporalUnit === 2
     );
 
     blockTransactions.sort((currentTx, nextTx) =>
@@ -96,7 +97,10 @@ export default class CacheScanner extends BaseScanner {
     return 0;
   }
 
-  private prioritizeFreezePeriod(currentTx: ITxRequest, nextTx: ITxRequest): number {
+  private prioritizeFreezePeriod(
+    currentTx: ITransactionRequest,
+    nextTx: ITransactionRequest
+  ): number {
     const statusA = this.config.cache.get(currentTx.address).status;
     const statusB = this.config.cache.get(nextTx.address).status;
 
@@ -127,7 +131,7 @@ export default class CacheScanner extends BaseScanner {
     return 0;
   }
 
-  private async route(txRequest: ITxRequest): Promise<void> {
+  private async route(txRequest: ITransactionRequest): Promise<void> {
     const address = txRequest.address;
     if (!this.routes.has(address)) {
       this.routes.add(address);

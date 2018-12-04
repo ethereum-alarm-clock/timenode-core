@@ -1,56 +1,44 @@
-import * as EAC from 'eac.js-lib';
-import * as Bb from 'bluebird';
+import { EAC, Util } from '@ethereum-alarm-clock/lib';
 import BigNumber from 'bignumber.js';
 import { expect } from 'chai';
-import { calcEndowment, providerUrl } from '../helpers';
-import { W3Util } from '../../src';
+import { providerUrl } from '../helpers';
 import { getHelperMethods } from '../helpers/Helpers';
 
-const web3 = W3Util.getWeb3FromProviderUrl(providerUrl);
-const util = new W3Util(web3);
+const web3 = Util.getWeb3FromProviderUrl(providerUrl);
 
 export const SCHEDULED_TX_PARAMS = {
   callValue: new BigNumber(Math.pow(10, 18))
 };
 
 export const scheduleTestTx = async (blocksInFuture = 270) => {
-  const eac = EAC(web3);
-
-  const scheduler = await eac.scheduler();
+  const eac = new EAC(web3);
 
   const { callValue } = SCHEDULED_TX_PARAMS;
 
   const callGas = new BigNumber(1000000);
-  const gasPrice = new BigNumber(web3.toWei(20, 'gwei'));
+  const gasPrice = new BigNumber(web3.utils.toWei('20', 'gwei'));
   const fee = new BigNumber(0);
-  const bounty = web3.toWei('0.1', 'ether');
+  const bounty = new BigNumber(web3.utils.toWei('0.1', 'ether'));
 
-  const endowment = calcEndowment(eac, callGas, callValue, gasPrice, fee, bounty);
-
-  const accounts = await Bb.fromCallback((callback: any) => web3.eth.getAccounts(callback));
+  const accounts = await web3.eth.getAccounts();
   const mainAccount = accounts[0];
 
-  await scheduler.initSender({
+  const receipt = await eac.schedule({
     from: mainAccount,
-    gas: 4000000,
-    value: endowment
-  });
-
-  const receipt = await scheduler.blockSchedule(
-    mainAccount,
+    toAddress: mainAccount,
     callGas,
-    '', // callData
+    callData: '',
     callValue,
-    30, // windowSize
-    (await util.getBlockNumber()) + blocksInFuture, // windowStart
-    gasPrice, // gasPrice
+    windowSize: new BigNumber(30),
+    windowStart: new BigNumber((await web3.eth.getBlockNumber()) + blocksInFuture),
+    gasPrice,
     fee,
     bounty,
-    '0', // requiredDeposit
-    true
-  );
+    requiredDeposit: new BigNumber('0'),
+    timestampScheduling: false
+  });
 
-  return eac.Util.getTxRequestFromReceipt(receipt);
+  return eac.getTxRequestFromReceipt(receipt);
 };
 
 if (process.env.RUN_ONLY_OPTIONAL_TESTS !== 'true') {

@@ -8,6 +8,7 @@ import {
   getAbortedExecuteStatus
 } from '../../src/Actions/Helpers';
 import { TxSendStatus } from '../../src/Enum';
+import { TransactionReceipt } from 'web3/types';
 
 describe('Actions Helpers Unit Tests', () => {
   describe('isExecuted()', () => {
@@ -18,14 +19,14 @@ describe('Actions Helpers Unit Tests', () => {
             topics: [EXECUTED_EVENT]
           }
         ]
-      };
+      } as TransactionReceipt;
       assert.isTrue(isExecuted(receipt));
     });
 
     it('returns false when receipt executed event address mismatches', () => {
       const receipt = {
         logs: [{ topics: ['0x0'] }]
-      };
+      } as TransactionReceipt;
       assert.isFalse(isExecuted(receipt));
     });
 
@@ -60,7 +61,7 @@ describe('Actions Helpers Unit Tests', () => {
             topics: [ABORTED_EVENT]
           }
         ]
-      };
+      } as TransactionReceipt;
       assert.isTrue(isAborted(receipt));
     });
   });
@@ -74,7 +75,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000000'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -89,7 +90,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000001'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -104,7 +105,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000002'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -119,7 +120,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000003'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -134,7 +135,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000004'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -149,7 +150,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000005'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -164,7 +165,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000006'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -179,7 +180,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: '0x0000000000000000000000000000000000000000000000000000000000000008'
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
@@ -195,7 +196,7 @@ describe('Actions Helpers Unit Tests', () => {
             data: ''
           }
         ]
-      };
+      } as TransactionReceipt;
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 

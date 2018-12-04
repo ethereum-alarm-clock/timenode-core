@@ -1,23 +1,23 @@
-import { ITransactionReceipt } from '../Types/ITransactionReceipt';
-import { W3Util } from '..';
+import { TransactionReceipt } from 'web3/types';
+import { Util } from '@ethereum-alarm-clock/lib';
 
 const POLL_INTERVAL = 3000;
 
 export interface ITransactionReceiptAwaiter {
-  waitForConfirmations(hash: string, blocks: number): Promise<ITransactionReceipt>;
+  waitForConfirmations(hash: string, blocks: number): Promise<TransactionReceipt>;
 }
 
 export class TransactionReceiptAwaiter implements ITransactionReceiptAwaiter {
-  private util: W3Util;
+  private util: Util;
 
-  public constructor(util: W3Util) {
+  public constructor(util: Util) {
     this.util = util;
   }
 
   public async waitForConfirmations(
     hash: string,
     blocks: number = 12
-  ): Promise<ITransactionReceipt> {
+  ): Promise<TransactionReceipt> {
     return this.awaitTx(hash, {
       ensureNotUncle: true,
       interval: POLL_INTERVAL,
@@ -26,7 +26,7 @@ export class TransactionReceiptAwaiter implements ITransactionReceiptAwaiter {
   }
 
   // tslint:disable-next-line:cognitive-complexity
-  private awaitTx(hash: string, options: any): Promise<ITransactionReceipt> {
+  private awaitTx(hash: string, options: any): Promise<TransactionReceipt> {
     const interval = options && options.interval ? options.interval : 500;
     const transactionReceiptAsync = async (txnHash: string, resolve: any, reject: any) => {
       try {

@@ -1,8 +1,8 @@
 import { TxSendStatus } from '../Enum/TxSendStatus';
-import { ITransactionReceipt } from '../Types/ITransactionReceipt';
+import { TransactionReceipt } from 'web3/types';
 
 export interface IWalletReceipt {
-  receipt?: ITransactionReceipt;
+  receipt?: TransactionReceipt;
   from: string;
   status: TxSendStatus;
 }
