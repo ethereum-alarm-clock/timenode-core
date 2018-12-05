@@ -10,10 +10,6 @@ import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
 import { ICachedTxDetails } from '../Cache/Cache';
 import BigNumber from 'bignumber.js';
-import {
-  ITransactionReceiptAwaiter,
-  TransactionReceiptAwaiter
-} from '../Wallet/TransactionReceiptAwaiter';
 import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
 import { Ledger } from '../Actions/Ledger';
 import { Pending } from '../Actions/Pending';
@@ -51,7 +47,6 @@ export default class Config implements IConfigParams {
   public scanSpread: any;
   public statsDb: StatsDB;
   public statsDbLoaded: Promise<boolean>;
-  public transactionReceiptAwaiter: ITransactionReceiptAwaiter;
   public txPool: TxPool;
   public util: Util;
   public wallet: Wallet;
@@ -81,7 +76,6 @@ export default class Config implements IConfigParams {
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
     this.txPool = new TxPool(this.web3, this.util, this.logger);
-    this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.util);
     this.cache = new Cache(this.logger);
     this.economicStrategyManager = new EconomicStrategyManager(
       this.economicStrategy,
@@ -95,7 +89,6 @@ export default class Config implements IConfigParams {
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
       this.wallet = new Wallet(
-        this.transactionReceiptAwaiter,
         this.util,
         new AccountState(),
         this.logger

@@ -1,4 +1,3 @@
-import * as TypeMoq from 'typemoq';
 import { assert } from 'chai';
 import { Config, Wallet } from '../../src/index';
 import { mockConfig } from '../helpers';
@@ -6,10 +5,6 @@ import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import { TxSendStatus } from '../../src/Enum/';
 import { isTransactionStatusSuccessful } from '../../src/Actions/Helpers';
-import {
-  ITransactionReceiptAwaiter,
-  TransactionReceiptAwaiter
-} from '../../src/Wallet/TransactionReceiptAwaiter';
 import { AccountState, TransactionState } from '../../src/Wallet/AccountState';
 import { Operation } from '../../src/Types/Operation';
 import ITransactionOptions from '../../src/Types/ITransactionOptions';
@@ -23,15 +18,9 @@ let myAccount: string;
 let opts: ITransactionOptions;
 
 const createTestWallet = (
-  baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
   accountState = new AccountState()
 ) => {
-  const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
-  transactionReceiptAwaiter
-    .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString(), TypeMoq.It.isAnyNumber()))
-    .returns(async (hash: string) => baseTransactionReceiptAwaiter.waitForConfirmations(hash, 1));
-
-  return new Wallet(transactionReceiptAwaiter.object, config.util, accountState);
+  return new Wallet(config.util, accountState);
 };
 
 const fundWallet = async (address: string) => {
@@ -49,7 +38,7 @@ const fundWallet = async (address: string) => {
 
 const reset = async () => {
   config = await mockConfig();
-  wallet = createTestWallet(new TransactionReceiptAwaiter(config.util));
+  wallet = createTestWallet();
 
   const accounts = await config.web3.eth.getAccounts();
 
@@ -171,7 +160,7 @@ describe('Wallet Unit Tests', () => {
 
     it('returns false if wallet state set', () => {
       const accountState = new AccountState();
-      wallet = createTestWallet(null, accountState);
+      wallet = createTestWallet(accountState);
       wallet.create(1);
       const address = wallet.getAddresses()[0];
 
@@ -216,7 +205,7 @@ describe('Wallet Unit Tests', () => {
 
     it('returns error when sending a Tx is in progress', async () => {
       const accountState = new AccountState();
-      wallet = createTestWallet(null, accountState);
+      wallet = createTestWallet(accountState);
       wallet.create(1);
 
       const idx = 0;
