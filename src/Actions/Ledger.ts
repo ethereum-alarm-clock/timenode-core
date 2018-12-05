@@ -4,12 +4,18 @@ import { IStatsDB } from '../Stats/StatsDB';
 import { ITxRequest } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
 import { isTransactionStatusSuccessful } from './Helpers';
+import { ITransactionReceipt } from '../Types/ITransactionReceipt';
 
 export interface ILedger {
-  accountClaiming(receipt: any, txRequest: ITxRequest, opts: any, from: string): boolean;
+  accountClaiming(
+    receipt: ITransactionReceipt,
+    txRequest: ITxRequest,
+    opts: any,
+    from: string
+  ): boolean;
   accountExecution(
     txRequest: ITxRequest,
-    receipt: any,
+    receipt: ITransactionReceipt,
     opts: ITransactionOptions,
     from: string,
     success: boolean
@@ -24,7 +30,7 @@ export class Ledger implements ILedger {
   }
 
   public accountClaiming(
-    receipt: any,
+    receipt: ITransactionReceipt,
     txRequest: ITxRequest,
     opts: ITransactionOptions,
     from: string
@@ -48,7 +54,7 @@ export class Ledger implements ILedger {
 
   public accountExecution(
     txRequest: ITxRequest,
-    receipt: any,
+    receipt: ITransactionReceipt,
     opts: ITransactionOptions,
     from: string,
     success: boolean

@@ -5,7 +5,7 @@ import { mockConfig } from '../helpers';
 import * as ethWallet from 'ethereumjs-wallet';
 import { BigNumber } from 'bignumber.js';
 import * as Bb from 'bluebird';
-import { TxSendErrors } from '../../src/Enum/TxSendErrors';
+import { TxSendStatus } from '../../src/Enum/';
 import { isTransactionStatusSuccessful } from '../../src/Actions/Helpers';
 import {
   ITransactionReceiptAwaiter,
@@ -17,59 +17,57 @@ import ITransactionOptions from '../../src/Types/ITransactionOptions';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
+let config: Config;
+let wallet: Wallet;
+let myAccount: string;
+let opts: ITransactionOptions;
+
+const createTestWallet = (
+  baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
+  accountState = new AccountState()
+) => {
+  const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
+  transactionReceiptAwaiter
+    .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString(), TypeMoq.It.isAnyNumber()))
+    .returns(async (hash: string) => baseTransactionReceiptAwaiter.waitForConfirmations(hash, 1));
+
+  return new Wallet(transactionReceiptAwaiter.object, config.util, accountState);
+};
+
+const fundWallet = async (address: string) => {
+  await new Promise(resolve => {
+    config.web3.eth.sendTransaction(
+      {
+        from: myAccount,
+        to: address,
+        value: config.web3.toWei('0.5', 'ether')
+      },
+      () => setTimeout(resolve, 1000)
+    );
+  });
+};
+
+const reset = async () => {
+  config = await mockConfig();
+  wallet = createTestWallet(new TransactionReceiptAwaiter(config.util));
+
+  const accounts = await Bb.fromCallback((callback: any) => config.web3.eth.getAccounts(callback));
+
+  myAccount = accounts[0];
+  opts = {
+    to: myAccount,
+    gas: 150000,
+    gasPrice: new BigNumber(config.web3.toWei(21, 'gwei')),
+    value: new BigNumber(config.web3.toWei(0.1, 'ether')),
+    operation: Operation.CLAIM,
+    data: ''
+  };
+};
+
+beforeEach(reset);
+
 // tslint:disable-next-line:no-big-function
 describe('Wallet Unit Tests', () => {
-  let config: Config;
-  let wallet: Wallet;
-  let myAccount: string;
-  let opts: ITransactionOptions;
-
-  const createTestWallet = (
-    baseTransactionReceiptAwaiter: ITransactionReceiptAwaiter,
-    accountState = new AccountState()
-  ) => {
-    const transactionReceiptAwaiter = TypeMoq.Mock.ofType<ITransactionReceiptAwaiter>();
-    transactionReceiptAwaiter
-      .setup(u => u.waitForConfirmations(TypeMoq.It.isAnyString(), TypeMoq.It.isAnyNumber()))
-      .returns(async (hash: string) => baseTransactionReceiptAwaiter.waitForConfirmations(hash, 1));
-
-    return new Wallet(transactionReceiptAwaiter.object, config.util, accountState);
-  };
-
-  const fundWallet = async (address: string) => {
-    await new Promise(resolve => {
-      config.web3.eth.sendTransaction(
-        {
-          from: myAccount,
-          to: address,
-          value: config.web3.toWei('0.5', 'ether')
-        },
-        () => setTimeout(resolve, 1000)
-      );
-    });
-  };
-
-  const reset = async () => {
-    config = await mockConfig();
-    wallet = createTestWallet(new TransactionReceiptAwaiter(config.util));
-
-    const accounts = await Bb.fromCallback((callback: any) =>
-      config.web3.eth.getAccounts(callback)
-    );
-
-    myAccount = accounts[0];
-    opts = {
-      to: myAccount,
-      gas: 150000,
-      gasPrice: new BigNumber(config.web3.toWei(21, 'gwei')),
-      value: new BigNumber(config.web3.toWei(0.1, 'ether')),
-      operation: Operation.CLAIM,
-      data: ''
-    };
-  };
-
-  beforeEach(reset);
-
   describe('create()', () => {
     it('creates a number of wallets', () => {
       wallet.create(5);
@@ -206,14 +204,14 @@ describe('Wallet Unit Tests', () => {
       wallet.create(1);
 
       const { status } = await wallet.sendFromIndex(0, opts);
-      assert.equal(status, TxSendErrors.NOT_ENOUGH_FUNDS);
+      assert.equal(status, TxSendStatus.NOT_ENOUGH_FUNDS);
     });
 
     it('returns error when not enough balance on account and doesnt log', async () => {
       wallet.create(1);
 
       const receipt = await wallet.sendFromIndex(0, opts);
-      assert.equal(receipt.status, TxSendErrors.NOT_ENOUGH_FUNDS);
+      assert.equal(receipt.status, TxSendStatus.NOT_ENOUGH_FUNDS);
     });
 
     it('returns error when sending a Tx is in progress', async () => {
@@ -229,7 +227,7 @@ describe('Wallet Unit Tests', () => {
       await fundWallet(address);
 
       const receipt = await wallet.sendFromIndex(idx, opts);
-      assert.equal(receipt.status, TxSendErrors.WALLET_BUSY);
+      assert.equal(receipt.status, TxSendStatus.BUSY);
     });
 
     it('allows to send another transaction when previous one reverted', async () => {
@@ -243,10 +241,10 @@ describe('Wallet Unit Tests', () => {
       let receipt = await wallet.sendFromIndex(
         idx,
         Object.assign({}, opts, {
-          data: '0x1234'
+          gas: 15e64 // Setting a ridiculously high gas limit will trigger a revert
         })
       );
-      assert.equal(receipt.status, TxSendErrors.UNKNOWN_ERROR);
+      assert.equal(receipt.status, TxSendStatus.UNKNOWN_ERROR);
 
       receipt = await wallet.sendFromIndex(idx, opts);
 

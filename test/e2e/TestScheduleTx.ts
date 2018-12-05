@@ -13,7 +13,7 @@ export const SCHEDULED_TX_PARAMS = {
   callValue: new BigNumber(Math.pow(10, 18))
 };
 
-export const scheduleTestTx = async () => {
+export const scheduleTestTx = async (blocksInFuture = 270) => {
   const eac = EAC(web3);
 
   const scheduler = await eac.scheduler();
@@ -23,7 +23,7 @@ export const scheduleTestTx = async () => {
   const callGas = new BigNumber(1000000);
   const gasPrice = new BigNumber(web3.toWei(20, 'gwei'));
   const fee = new BigNumber(0);
-  const bounty = new BigNumber(0);
+  const bounty = web3.toWei('0.1', 'ether');
 
   const endowment = calcEndowment(eac, callGas, callValue, gasPrice, fee, bounty);
 
@@ -42,7 +42,7 @@ export const scheduleTestTx = async () => {
     '', // callData
     callValue,
     30, // windowSize
-    (await util.getBlockNumber()) + 270, // windowStart
+    (await util.getBlockNumber()) + blocksInFuture, // windowStart
     gasPrice, // gasPrice
     fee,
     bounty,

@@ -8,7 +8,6 @@ import { IConfigParams } from './IConfigParams';
 import { IEconomicStrategy, EconomicStrategyManager } from '../EconomicStrategy';
 import { ILogger, DefaultLogger } from '../Logger';
 import { StatsDB } from '../Stats';
-import TxPool from '../TxPool';
 import W3Util from '../Util';
 import { ICachedTxDetails } from '../Cache/Cache';
 import BigNumber from 'bignumber.js';
@@ -20,13 +19,19 @@ import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyMa
 import { Ledger } from '../Actions/Ledger';
 import { Pending } from '../Actions/Pending';
 import { AccountState } from '../Wallet/AccountState';
+import { TxPool } from '../TxPool';
 
 export default class Config implements IConfigParams {
   public static readonly DEFAULT_ECONOMIC_STRATEGY: IEconomicStrategy = {
     maxDeposit: new BigNumber(1000000000000000000),
     minBalance: new BigNumber(0),
     minProfitability: new BigNumber(0),
-    maxGasSubsidy: 100
+    maxGasSubsidy: 100,
+    minClaimWindow: 30,
+    minClaimWindowBlock: 2,
+    minExecutionWindow: 150,
+    minExecutionWindowBlock: 10,
+    usingSmartGasEstimation: false
   };
 
   public activeProviderUrl: string;
@@ -35,22 +40,22 @@ export default class Config implements IConfigParams {
   public claiming: boolean;
   public eac: any;
   public economicStrategy?: IEconomicStrategy;
+  public economicStrategyManager: IEconomicStrategyManager;
+  public ledger: Ledger;
   public logger?: ILogger;
   public maxRetries?: number;
   public ms: any;
+  public pending: Pending;
   public providerUrls: string[];
   public scanSpread: any;
   public statsDb: StatsDB;
   public statsDbLoaded: Promise<boolean>;
+  public transactionReceiptAwaiter: ITransactionReceiptAwaiter;
   public txPool: TxPool;
   public util: W3Util;
   public wallet: Wallet;
   public web3: any;
   public walletStoresAsPrivateKeys: boolean;
-  public economicStrategyManager: IEconomicStrategyManager;
-  public transactionReceiptAwaiter: ITransactionReceiptAwaiter;
-  public ledger: Ledger;
-  public pending: Pending;
 
   // tslint:disable-next-line:cognitive-complexity
   constructor(params: IConfigParams) {
@@ -64,12 +69,7 @@ export default class Config implements IConfigParams {
       throw new Error('Must pass at least 1 providerUrl to the config object.');
     }
 
-    this.economicStrategy = params.economicStrategy || {
-      maxDeposit: Config.DEFAULT_ECONOMIC_STRATEGY.maxDeposit,
-      minBalance: Config.DEFAULT_ECONOMIC_STRATEGY.minBalance,
-      minProfitability: Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability,
-      maxGasSubsidy: Config.DEFAULT_ECONOMIC_STRATEGY.maxGasSubsidy
-    };
+    this.economicStrategy = params.economicStrategy || Config.DEFAULT_ECONOMIC_STRATEGY;
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
     this.claiming = params.claiming || false;
@@ -78,9 +78,9 @@ export default class Config implements IConfigParams {
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
-    this.txPool = new TxPool(this);
+    this.txPool = new TxPool(this.web3, this.util, this.logger);
     this.transactionReceiptAwaiter = new TransactionReceiptAwaiter(this.util);
-    this.cache = new Cache(this.eac, this.logger);
+    this.cache = new Cache(this.logger);
     this.economicStrategyManager = new EconomicStrategyManager(
       this.economicStrategy,
       this.util,
@@ -88,7 +88,7 @@ export default class Config implements IConfigParams {
       this.eac,
       this.logger
     );
-    this.pending = new Pending(this.util, this.txPool, this.logger);
+    this.pending = new Pending(this.util, this.txPool);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
       this.wallet = new Wallet(

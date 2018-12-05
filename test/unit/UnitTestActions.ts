@@ -7,7 +7,7 @@ import {
   isAborted,
   getAbortedExecuteStatus
 } from '../../src/Actions/Helpers';
-import { ExecuteStatus } from '../../src/Enum';
+import { TxSendStatus } from '../../src/Enum';
 
 describe('Actions Helpers Unit Tests', () => {
   describe('isExecuted()', () => {
@@ -66,7 +66,7 @@ describe('Actions Helpers Unit Tests', () => {
   });
 
   describe('getAbortedExecuteStatus()', () => {
-    it('returns ExecuteStatus.ABORTED_WAS_CANCELLED when AbortReason.WasCancelled', () => {
+    it('returns TxSendStatus.ABORTED_WAS_CANCELLED when AbortReason.WasCancelled', () => {
       const receipt = {
         logs: [
           {
@@ -78,10 +78,10 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_WAS_CANCELLED, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_WAS_CANCELLED, executeStatus);
     });
 
-    it('returns ExecuteStatus.ABORTED_ALREADY_CALLED when AbortReason.AlreadyCalled', () => {
+    it('returns TxSendStatus.ABORTED_ALREADY_CALLED when AbortReason.AlreadyCalled', () => {
       const receipt = {
         logs: [
           {
@@ -93,10 +93,10 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_ALREADY_CALLED, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_ALREADY_CALLED, executeStatus);
     });
 
-    it('returns ExecuteStatus.ABORTED_BEFORE_CALL_WINDOW when AbortReason.BeforeCallWindow', () => {
+    it('returns TxSendStatus.ABORTED_BEFORE_CALL_WINDOW when AbortReason.BeforeCallWindow', () => {
       const receipt = {
         logs: [
           {
@@ -108,10 +108,10 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_BEFORE_CALL_WINDOW, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_BEFORE_CALL_WINDOW, executeStatus);
     });
 
-    it('returns ExecuteStatus.ABORTED_AFTER_CALL_WINDOW when AbortReason.AfterCallWindow', () => {
+    it('returns TxSendStatus.ABORTED_AFTER_CALL_WINDOW when AbortReason.AfterCallWindow', () => {
       const receipt = {
         logs: [
           {
@@ -123,10 +123,10 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_AFTER_CALL_WINDOW, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_AFTER_CALL_WINDOW, executeStatus);
     });
 
-    it('returns ExecuteStatus.ABORTED_RESERVED_FOR_CLAIMER when AbortReason.ReservedForClaimer', () => {
+    it('returns TxSendStatus.ABORTED_RESERVED_FOR_CLAIMER when AbortReason.ReservedForClaimer', () => {
       const receipt = {
         logs: [
           {
@@ -138,10 +138,10 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_RESERVED_FOR_CLAIMER, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_RESERVED_FOR_CLAIMER, executeStatus);
     });
 
-    it('returns ExecuteStatus.ABORTED_INSUFFICIENT_GAS when AbortReason.InsufficientGas', () => {
+    it('returns TxSendStatus.ABORTED_INSUFFICIENT_GAS when AbortReason.InsufficientGas', () => {
       const receipt = {
         logs: [
           {
@@ -153,10 +153,10 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_INSUFFICIENT_GAS, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_INSUFFICIENT_GAS, executeStatus);
     });
 
-    it('returns ExecuteStatus.ABORTED_TOO_LOW_GAS_PRICE when AbortReason.TooLowGasPrice', () => {
+    it('returns TxSendStatus.ABORTED_TOO_LOW_GAS_PRICE when AbortReason.TooLowGasPrice', () => {
       const receipt = {
         logs: [
           {
@@ -168,10 +168,10 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_TOO_LOW_GAS_PRICE, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_TOO_LOW_GAS_PRICE, executeStatus);
     });
 
-    it('returns ExecuteStatus.ABORTED_UNKNOWN when unknown reason appeared', () => {
+    it('returns TxSendStatus.ABORTED_UNKNOWN when unknown reason appeared', () => {
       const receipt = {
         logs: [
           {
@@ -183,11 +183,11 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_UNKNOWN, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_UNKNOWN, executeStatus);
     });
 
     // tslint:disable-next-line:no-identical-functions
-    it('returns ExecuteStatus.ABORTED_UNKNOWN when no data found', () => {
+    it('returns TxSendStatus.ABORTED_UNKNOWN when no data found', () => {
       const receipt = {
         logs: [
           {
@@ -199,7 +199,7 @@ describe('Actions Helpers Unit Tests', () => {
 
       const executeStatus = getAbortedExecuteStatus(receipt);
 
-      assert.equal(ExecuteStatus.ABORTED_UNKNOWN, executeStatus);
+      assert.equal(TxSendStatus.ABORTED_UNKNOWN, executeStatus);
     });
   });
 });

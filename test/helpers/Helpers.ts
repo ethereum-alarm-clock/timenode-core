@@ -18,28 +18,6 @@ export const getHelperMethods = (web3: any) => {
     });
   }
 
-  function waitUntilBlock(seconds: any, targetBlock: any) {
-    return new Promise((resolve, reject) => {
-      const asyncIterator = function _asyncIterator() {
-        return web3.eth.getBlock('latest', (err: any, ref: any) => {
-          if (err) {
-            reject(err);
-          }
-
-          const num = ref.number;
-
-          if (num >= targetBlock - 1) {
-            return sendRpc('evm_increaseTime', [seconds])
-              .then(() => sendRpc('evm_mine'))
-              .then(resolve);
-          }
-          return sendRpc('evm_mine').then(asyncIterator);
-        });
-      };
-      asyncIterator();
-    });
-  }
-
   function takeSnapshot(): Promise<number> {
     return sendRpc('evm_snapshot').then(res => res.result);
   }
@@ -55,8 +33,8 @@ export const getHelperMethods = (web3: any) => {
     } catch (error) {
       console.log(`Error ${error} in withSnapshotRevert`);
     }
-    return await revertSnapshot(snapshot);
+    return revertSnapshot(snapshot);
   }
 
-  return { waitUntilBlock, withSnapshotRevert };
+  return { withSnapshotRevert };
 };

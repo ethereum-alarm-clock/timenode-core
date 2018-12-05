@@ -2,30 +2,31 @@ import { expect, assert } from 'chai';
 import { TimeNode, Config, W3Util } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { BigNumber } from 'bignumber.js';
+import { TxStatus } from '../../src/Enum';
+
+let config: Config;
+let myAccount: string;
+let timenode: TimeNode;
+const emitEvents = {
+  emitClose: (self: any) => {
+    self.emit('close');
+  },
+  emitEnd: (self: any) => {
+    self.connection._client.emit('connectFailed');
+  },
+  emitError: (self: any) => {
+    //Trigger connection failed event
+    self.connection._client.emit('connectFailed');
+  }
+};
+
+before(async () => {
+  config = await mockConfig();
+  myAccount = config.wallet.getAddresses()[0];
+  timenode = new TimeNode(config);
+});
 
 describe('TimeNode Unit Tests', () => {
-  let config: Config;
-  let myAccount: string;
-  let timenode: TimeNode;
-  const emitEvents = {
-    emitClose: (self: any) => {
-      self.emit('close');
-    },
-    emitEnd: (self: any) => {
-      self.connection._client.emit('connectFailed');
-    },
-    emitError: (self: any) => {
-      //Trigger connection failed event
-      self.connection._client.emit('connectFailed');
-    }
-  };
-
-  before(async () => {
-    config = await mockConfig();
-    myAccount = config.wallet.getAddresses()[0];
-    timenode = new TimeNode(config);
-  });
-
   it('initializes a basic timenode', () => {
     expect(timenode).to.exist; // tslint:disable-line no-unused-expression
   });
@@ -81,6 +82,12 @@ describe('TimeNode Unit Tests', () => {
   });
 
   describe('getClaimedNotExecutedTransactions()', () => {
+    beforeEach(async () => {
+      config = await mockConfig();
+      timenode = new TimeNode(config);
+      timenode.config.statsDb.clearAll();
+    });
+
     it('returns 0 when no transactions', () => {
       const txs = timenode.getClaimedNotExecutedTransactions()[myAccount];
       assert.equal(txs.length, 0);
@@ -88,10 +95,13 @@ describe('TimeNode Unit Tests', () => {
 
     it('returns a transaction', () => {
       const tx = {
+        bounty: new BigNumber(10e9), // 10 gwei
+        temporalUnit: 1,
         claimedBy: config.wallet.getAddresses()[0],
-        claimingFailed: false,
         wasCalled: false,
-        windowStart: new BigNumber(10000)
+        windowStart: new BigNumber(10000),
+        claimWindowStart: new BigNumber(9000),
+        status: TxStatus.FreezePeriod
       };
       config.cache.set('tx', tx);
 

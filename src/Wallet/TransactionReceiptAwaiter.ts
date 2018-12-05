@@ -18,7 +18,7 @@ export class TransactionReceiptAwaiter implements ITransactionReceiptAwaiter {
     hash: string,
     blocks: number = 12
   ): Promise<ITransactionReceipt> {
-    return await this.awaitTx(hash, {
+    return this.awaitTx(hash, {
       ensureNotUncle: true,
       interval: POLL_INTERVAL,
       blocks

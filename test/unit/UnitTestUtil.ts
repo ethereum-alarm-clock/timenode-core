@@ -7,6 +7,14 @@ describe('Util Unit Tests', async () => {
   const config: Config = await mockConfig();
   const util: W3Util = new W3Util(config.web3);
 
+  describe('getAverageBlockTime()', () => {
+    it('returns the average blocktime of last 100 blocks', async () => {
+      const avgBlockTime = await util.getAverageBlockTime();
+      assert.isNumber(avgBlockTime);
+      assert.isAbove(avgBlockTime, 0);
+    });
+  });
+
   describe('estimateGas()', () => {
     it('returns a number', async () => {
       const gas = await util.estimateGas({});
@@ -18,6 +26,17 @@ describe('Util Unit Tests', async () => {
     it('returns a number', async () => {
       const networkGasPrice = await util.networkGasPrice();
       assert.isTrue(networkGasPrice.greaterThan(0));
+    });
+  });
+
+  describe('getAdvancedNetworkGasPrice()', () => {
+    it('returns an object containing BigNumber', async () => {
+      const advNetworkGasPrice = await util.getAdvancedNetworkGasPrice();
+      const expectedFields = ['average', 'fast', 'fastest', 'safeLow'];
+
+      expectedFields.forEach(field => {
+        assert.isTrue(advNetworkGasPrice[field].greaterThan(config.web3.toWei('0.05', 'gwei')));
+      });
     });
   });
 

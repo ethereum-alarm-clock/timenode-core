@@ -2,8 +2,8 @@
 import ChainScanner from './ChainScanner';
 import Config from '../Config';
 import IRouter from '../Router';
-import TxPool from '../TxPool';
 import { IntervalId } from '../Types';
+import { TxPool } from '../TxPool';
 
 declare const clearInterval: any;
 declare const setInterval: any;
@@ -13,7 +13,7 @@ export interface ITimeNodeScanner {
   txPool: TxPool;
 
   start(): Promise<boolean>;
-  stop(): boolean;
+  stop(): Promise<boolean>;
 }
 
 export default class TimeNodeScanner extends ChainScanner implements ITimeNodeScanner {
@@ -43,26 +43,20 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
     return this.scanning;
   }
 
-  public stop(): boolean {
+  public async stop(): Promise<boolean> {
     if (this.scanning) {
       this.scanning = false;
       // Clear scanning intervals.
       clearInterval(this.cacheInterval);
       clearInterval(this.chainInterval);
 
-      this.txPool.stop();
+      await this.txPool.stop();
 
       // Mark that we've stopped.
       this.config.logger.info('Scanner STOPPED');
     }
 
-    Object.keys(this.buckets).forEach((bucketType: string) => {
-      Object.keys(this.buckets[bucketType]).forEach((key: string) => {
-        this.stopWatcher(this.buckets[bucketType][key]);
-        // Reset to default value when stopping TimeNode.
-        this.buckets[bucketType][key] = -1;
-      });
-    });
+    await this.stopAllWatchers();
 
     return this.scanning;
   }
