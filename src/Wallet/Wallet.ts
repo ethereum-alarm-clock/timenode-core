@@ -142,7 +142,6 @@ export class Wallet {
 
   public async sendFromAccount(from: Address, opts: ITransactionOptions): Promise<IWalletReceipt> {
     if (this.hasPendingTransaction(opts.to, opts.operation)) {
-      console.log('has pending');
       return {
         from,
         status: TxSendStatus.PROGRESS
