@@ -28,6 +28,7 @@ matrix:
     - before_install: true
       before_script: true
       script: npm run lint
+    - env: RUN_ONLY_OPTIONAL_TESTS=false; PROVIDER_URL=http://localhost:8545
     - env: RUN_ONLY_OPTIONAL_TESTS=false; PROVIDER_URL=ws://localhost:8545
     - env: RUN_ONLY_OPTIONAL_TESTS=true
   allow_failures:
