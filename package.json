@@ -43,7 +43,7 @@
   "homepage": "https://github.com/ethereum-alarm-clock/timenode-core#readme",
   "dependencies": {
     "bignumber.js": "5.0.0",
-    "@ethereum-alarm-clock/lib": "github:ethereum-alarm-clock/lib#301b1c491d1f62c01ecd9fa952b7079f21404538",
+    "@ethereum-alarm-clock/lib": "github:ethereum-alarm-clock/lib#5978118ce4c67c888dfda6c9f8dc7654e3ebb9ae",
     "ethereumjs-tx": "1.3.7",
     "ethereumjs-wallet": "0.6.2",
     "lokijs": "1.5.5",

@@ -1,9 +1,11 @@
 import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
-import { BucketCalc, BucketSize } from '../../src/Buckets';
+import { BucketCalc } from '../../src/Buckets';
 import { mockConfig } from '../helpers';
 import { Block } from 'web3/eth/types';
-import { Util } from '@ethereum-alarm-clock/lib';
+import { Util, Constants } from '@ethereum-alarm-clock/lib';
+
+const BucketSize = Constants.BUCKET_SIZE;
 
 describe('ButcketCalc', () => {
   describe('getBuckets()', async () => {

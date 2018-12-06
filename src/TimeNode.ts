@@ -1,11 +1,11 @@
 import Actions from './Actions';
 import Config from './Config';
-import { Networks } from './Enum';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
 import WsReconnect from './WsReconnect';
 import { Util } from '@ethereum-alarm-clock/lib';
+import { Networks } from '@ethereum-alarm-clock/lib/built/utils/Util';
 
 export default class TimeNode {
   public actions: Actions;
