@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import * as moment from 'moment';
 import { TxStatus, FnSignatures } from '../../src/Enum';
 import Web3 = require('web3');
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 const mockTxRequest = async (web3: Web3, isBlock?: boolean): Promise<ITransactionRequest> => {
   const claimedBy = '0x0000000000000000000000000000000000000000';

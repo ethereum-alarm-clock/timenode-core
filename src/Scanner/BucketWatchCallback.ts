@@ -1,3 +1,3 @@
-import { ITransactionRequestRaw } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { ITransactionRequestRaw } from '@ethereum-alarm-clock/lib';
 
 export type BucketWatchCallback = (request: ITransactionRequestRaw) => void;

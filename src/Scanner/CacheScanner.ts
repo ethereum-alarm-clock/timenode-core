@@ -7,7 +7,7 @@ import Config from '../Config';
 import { TxStatus } from '../Enum';
 
 import { ICachedTxDetails } from '../Cache';
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 export default class CacheScanner extends BaseScanner {
   public cacheInterval: IntervalId;

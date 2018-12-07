@@ -4,7 +4,7 @@ import { IStatsDB } from '../Stats/StatsDB';
 import ITransactionOptions from '../Types/ITransactionOptions';
 import { isTransactionStatusSuccessful } from './Helpers';
 import { TransactionReceipt } from 'web3/types';
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 export interface ILedger {
   accountClaiming(

@@ -6,8 +6,7 @@ import Cache, { ICachedTxDetails } from '../../src/Cache';
 import { TxStatus } from '../../src/Enum';
 import { assert } from 'chai';
 import BigNumber from 'bignumber.js';
-import { EAC, Util } from '@ethereum-alarm-clock/lib';
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { EAC, Util, ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 describe('Cache Scanner Unit Tests', () => {
   const BLOCKTIME = 14;

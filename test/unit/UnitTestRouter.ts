@@ -10,10 +10,13 @@ import { V3Wallet } from '../../src/Wallet/Wallet';
 import { IEconomicStrategyManager } from '../../src/EconomicStrategy/EconomicStrategyManager';
 import { ICachedTxDetails } from '../../src/Cache';
 import Web3 = require('web3');
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
-import { Util, GasPriceUtil } from '@ethereum-alarm-clock/lib';
+import {
+  Util,
+  GasPriceUtil,
+  GasPriceEstimation,
+  ITransactionRequest
+} from '@ethereum-alarm-clock/lib';
 import BigNumber from 'bignumber.js';
-import { GasPriceEstimation } from '@ethereum-alarm-clock/lib/built/utils/GasPriceUtil';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';

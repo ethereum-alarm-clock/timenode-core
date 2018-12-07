@@ -1,7 +1,6 @@
 import { Bucket } from './IBucketPair';
-import RequestFactory from '@ethereum-alarm-clock/lib/built/requestFactory/RequestFactory';
 import { Block } from 'web3/eth/types';
-import { Util, Constants } from '@ethereum-alarm-clock/lib';
+import { Util, Constants, RequestFactory } from '@ethereum-alarm-clock/lib';
 
 export interface IBucketCalc {
   getBuckets(): Promise<Bucket[]>;

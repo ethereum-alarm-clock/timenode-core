@@ -5,9 +5,7 @@ import { ILogger, DefaultLogger } from '../Logger';
 import { Address } from '../Types';
 import { IEconomicStrategy } from './IEconomicStrategy';
 import { NormalizedTimes } from './NormalizedTimes';
-import { EAC, Util, GasPriceUtil } from '@ethereum-alarm-clock/lib';
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
-
+import { EAC, Util, GasPriceUtil, ITransactionRequest } from '@ethereum-alarm-clock/lib';
 const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
 
 export interface IEconomicStrategyManager {

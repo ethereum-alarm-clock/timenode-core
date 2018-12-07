@@ -1,8 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { Operation } from '../Types/Operation';
 import { ITxPool, ITxPoolTxDetails } from '../TxPool';
-import { ITransactionRequestPending } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
-import { GasPriceUtil } from '@ethereum-alarm-clock/lib';
+import { ITransactionRequestPending, GasPriceUtil } from '@ethereum-alarm-clock/lib';
 
 interface PendingOpts {
   type: Operation;

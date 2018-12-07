@@ -10,8 +10,7 @@ import { ILedger } from './Ledger';
 import { Pending } from './Pending';
 import { Operation } from '../Types/Operation';
 import { TxSendStatus } from '../Enum/TxSendStatus';
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
-import { Util } from '@ethereum-alarm-clock/lib';
+import { Util, ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 export default interface IActions {
   claim(

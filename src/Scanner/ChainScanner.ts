@@ -6,9 +6,8 @@ import { BucketCalc, IBucketCalc } from '../Buckets';
 import { TxStatus } from '../Enum';
 import { BucketsManager } from './BucketsManager';
 import { WatchableBucketFactory } from './WatchableBucketFactory';
-import RequestFactory from '@ethereum-alarm-clock/lib/built/requestFactory/RequestFactory';
 import BigNumber from 'bignumber.js';
-import { ITransactionRequestRaw } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { ITransactionRequestRaw, RequestFactory } from '@ethereum-alarm-clock/lib';
 
 export default class ChainScanner extends CacheScanner {
   public bucketCalc: IBucketCalc;

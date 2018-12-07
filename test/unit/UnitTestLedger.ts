@@ -5,7 +5,7 @@ import { ILedger, Ledger } from '../../src/Actions/Ledger';
 import { IStatsDB } from '../../src/Stats/StatsDB';
 import { Operation } from '../../src/Types/Operation';
 import { TransactionReceipt, Log } from 'web3/types';
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 const account1: string = '0xd0700ed9f4d178adf25b45f7fa8a4ec7c230b098';
 const account2: string = '0x0054a7eef4dc5d729115c71cba074151b3d41804';

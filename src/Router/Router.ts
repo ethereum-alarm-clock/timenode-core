@@ -6,8 +6,7 @@ import Cache, { ICachedTxDetails } from '../Cache';
 import { ILogger } from '../Logger';
 import { Wallet } from '../Wallet';
 import { Operation } from '../Types/Operation';
-import { ITransactionRequest } from '@ethereum-alarm-clock/lib/built/transactionRequest/ITransactionRequest';
-import { GasPriceUtil } from '@ethereum-alarm-clock/lib';
+import { ITransactionRequest, GasPriceUtil } from '@ethereum-alarm-clock/lib';
 
 type Transition = (txRequest: ITransactionRequest) => Promise<TxStatus>;
 
