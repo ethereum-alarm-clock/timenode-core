@@ -2,19 +2,23 @@ import BigNumber from 'bignumber.js';
 
 import Cache, { ICachedTxDetails } from '../Cache';
 import { ILogger } from '../Logger';
-import { Address, ITxRequest } from '../Types';
+import { Address } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
-import W3Util from '../Util';
 import { IWalletReceipt, Wallet } from '../Wallet';
 import { getAbortedExecuteStatus, isAborted, isExecuted } from './Helpers';
 import { ILedger } from './Ledger';
 import { Pending } from './Pending';
 import { Operation } from '../Types/Operation';
 import { TxSendStatus } from '../Enum/TxSendStatus';
+import { Util, ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 export default interface IActions {
-  claim(txRequest: ITxRequest, nextAccount: Address, gasPrice: BigNumber): Promise<TxSendStatus>;
-  execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<TxSendStatus>;
+  claim(
+    txRequest: ITransactionRequest,
+    nextAccount: Address,
+    gasPrice: BigNumber
+  ): Promise<TxSendStatus>;
+  execute(txRequest: ITransactionRequest, gasPrice: BigNumber): Promise<TxSendStatus>;
 }
 
 export default class Actions implements IActions {
@@ -22,7 +26,7 @@ export default class Actions implements IActions {
   private wallet: Wallet;
   private ledger: ILedger;
   private cache: Cache<ICachedTxDetails>;
-  private utils: W3Util;
+  private util: Util;
   private pending: Pending;
 
   constructor(
@@ -30,19 +34,19 @@ export default class Actions implements IActions {
     ledger: ILedger,
     logger: ILogger,
     cache: Cache<ICachedTxDetails>,
-    utils: W3Util,
+    util: Util,
     pending: Pending
   ) {
     this.wallet = wallet;
     this.logger = logger;
     this.ledger = ledger;
     this.cache = cache;
-    this.utils = utils;
+    this.util = util;
     this.pending = pending;
   }
 
   public async claim(
-    txRequest: ITxRequest,
+    txRequest: ITransactionRequest,
     nextAccount: Address,
     gasPrice: BigNumber
   ): Promise<TxSendStatus> {
@@ -74,7 +78,7 @@ export default class Actions implements IActions {
     return TxSendStatus.STATUS(TxSendStatus.FAIL, context);
   }
 
-  public async execute(txRequest: ITxRequest, gasPrice: BigNumber): Promise<TxSendStatus> {
+  public async execute(txRequest: ITransactionRequest, gasPrice: BigNumber): Promise<TxSendStatus> {
     const context = TxSendStatus.execute;
     if (this.wallet.hasPendingTransaction(txRequest.address, Operation.EXECUTE)) {
       return TxSendStatus.STATUS(TxSendStatus.PROGRESS, context);
@@ -131,7 +135,7 @@ export default class Actions implements IActions {
     throw Error('Not implemented according to latest EAC changes.');
   }
 
-  private async hasPendingExecuteTransaction(txRequest: ITxRequest): Promise<boolean> {
+  private async hasPendingExecuteTransaction(txRequest: ITransactionRequest): Promise<boolean> {
     return this.pending.hasPending(txRequest, {
       type: Operation.EXECUTE,
       checkGasPrice: true,
@@ -139,24 +143,30 @@ export default class Actions implements IActions {
     });
   }
 
-  private getClaimingOpts(txRequest: ITxRequest, gasPrice: BigNumber): ITransactionOptions {
+  private getClaimingOpts(
+    txRequest: ITransactionRequest,
+    gasPrice: BigNumber
+  ): ITransactionOptions {
     return {
       to: txRequest.address,
       value: txRequest.requiredDeposit,
-      gas: 120000,
+      gas: new BigNumber('120000'),
       gasPrice,
       data: txRequest.claimData,
       operation: Operation.CLAIM
     };
   }
 
-  private getExecutionOpts(txRequest: ITxRequest, gasPrice: BigNumber): ITransactionOptions {
-    const gas = this.utils.calculateGasAmount(txRequest);
+  private getExecutionOpts(
+    txRequest: ITransactionRequest,
+    gasPrice: BigNumber
+  ): ITransactionOptions {
+    const gas = this.util.calculateGasAmount(txRequest);
 
     return {
       to: txRequest.address,
       value: new BigNumber(0),
-      gas: gas.toNumber(),
+      gas,
       gasPrice,
       data: txRequest.executeData,
       operation: Operation.EXECUTE

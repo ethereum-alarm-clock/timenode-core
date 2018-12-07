@@ -1,8 +1,9 @@
 import { expect, assert } from 'chai';
-import { TimeNode, Config, W3Util } from '../../src/index';
+import { TimeNode, Config } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { BigNumber } from 'bignumber.js';
 import { TxStatus } from '../../src/Enum';
+import { Util } from '@ethereum-alarm-clock/lib';
 
 let config: Config;
 let myAccount: string;
@@ -65,18 +66,16 @@ describe('TimeNode Unit Tests', () => {
   });
 
   describe('logNetwork()', () => {
-    it('logs the network id', () => {
+    it('logs the network id', async () => {
       let networkLogged = false;
 
       timenode.config.logger.info = () => {
         networkLogged = true;
       };
 
-      timenode.config.web3.version.getNetwork = (callback: (err: any, res: any) => void) => {
-        callback(null, true);
-      };
+      timenode.config.web3.eth.net.getId = () => Promise.resolve(1);
 
-      timenode.logNetwork();
+      await timenode.logNetwork();
       assert.isTrue(networkLogged);
     });
   });
@@ -136,7 +135,7 @@ describe('TimeNode Unit Tests', () => {
   describe('handleDisconnections', () => {
     it('detects Error  Disconnect', async () => {
       const newconfig = await mockConfig();
-      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
+      if (!Util.isWSConnection(newconfig.providerUrls[0])) {
         return;
       }
       const runningNode = new TimeNode(newconfig);
@@ -157,7 +156,7 @@ describe('TimeNode Unit Tests', () => {
 
     it('detects End  Disconnect', async () => {
       const newconfig = await mockConfig();
-      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
+      if (!Util.isWSConnection(newconfig.providerUrls[0])) {
         return;
       }
       const runningNode = new TimeNode(newconfig);
@@ -178,7 +177,7 @@ describe('TimeNode Unit Tests', () => {
 
     it('does not restart connection on stop Timenode', async () => {
       const newconfig = await mockConfig();
-      if (!W3Util.isWSConnection(newconfig.providerUrls[0])) {
+      if (!Util.isWSConnection(newconfig.providerUrls[0])) {
         return;
       }
       const runningNode = new TimeNode(newconfig);

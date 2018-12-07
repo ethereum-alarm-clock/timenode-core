@@ -1,17 +1,17 @@
 import IActions from '../Actions';
 import { TxSendStatus, EconomicStrategyStatus, TxStatus } from '../Enum';
-import { Address, ITxRequest } from '../Types';
+import { Address } from '../Types';
 import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyManager';
 import Cache, { ICachedTxDetails } from '../Cache';
 import { ILogger } from '../Logger';
 import { Wallet } from '../Wallet';
 import { Operation } from '../Types/Operation';
-import { W3Util } from '..';
+import { ITransactionRequest, GasPriceUtil } from '@ethereum-alarm-clock/lib';
 
-type Transition = (txRequest: ITxRequest) => Promise<TxStatus>;
+type Transition = (txRequest: ITransactionRequest) => Promise<TxStatus>;
 
 export default interface IRouter {
-  route(txRequest: ITxRequest): Promise<TxStatus>;
+  route(txRequest: ITransactionRequest): Promise<TxStatus>;
 }
 
 export default class Router implements IRouter {
@@ -23,7 +23,7 @@ export default class Router implements IRouter {
   private economicStrategyManager: IEconomicStrategyManager;
   private wallet: Wallet;
   private isClaimingEnabled: boolean;
-  private util: W3Util;
+  private gasPriceUtil: GasPriceUtil;
 
   constructor(
     isClaimingEnabled: boolean,
@@ -31,7 +31,7 @@ export default class Router implements IRouter {
     logger: ILogger,
     actions: IActions,
     economicStrategyManager: IEconomicStrategyManager,
-    util: W3Util,
+    gasPriceUtil: GasPriceUtil,
     wallet: Wallet
   ) {
     this.actions = actions;
@@ -40,7 +40,7 @@ export default class Router implements IRouter {
     this.wallet = wallet;
     this.economicStrategyManager = economicStrategyManager;
     this.isClaimingEnabled = isClaimingEnabled;
-    this.util = util;
+    this.gasPriceUtil = gasPriceUtil;
 
     this.transitions
       .set(TxStatus.BeforeClaimWindow, this.beforeClaimWindow.bind(this))
@@ -52,7 +52,7 @@ export default class Router implements IRouter {
       .set(TxStatus.Done, this.done.bind(this));
   }
 
-  public async beforeClaimWindow(txRequest: ITxRequest): Promise<TxStatus> {
+  public async beforeClaimWindow(txRequest: ITransactionRequest): Promise<TxStatus> {
     if (txRequest.isCancelled) {
       // TODO Status.CleanUp?
       return TxStatus.Executed;
@@ -65,7 +65,7 @@ export default class Router implements IRouter {
     return TxStatus.ClaimWindow;
   }
 
-  public async claimWindow(txRequest: ITxRequest): Promise<TxStatus> {
+  public async claimWindow(txRequest: ITransactionRequest): Promise<TxStatus> {
     const context = TxSendStatus.claim;
     if (this.wallet.isWaitingForConfirmation(txRequest.address, Operation.CLAIM)) {
       return TxStatus.ClaimWindow;
@@ -78,7 +78,7 @@ export default class Router implements IRouter {
 
     if (this.isClaimingEnabled) {
       const nextAccount: Address = this.wallet.nextAccount.getAddressString();
-      const fastestGas = (await this.util.getAdvancedNetworkGasPrice()).fastest;
+      const fastestGas = (await this.gasPriceUtil.getAdvancedNetworkGasPrice()).fastest;
       const shouldClaimStatus: EconomicStrategyStatus = await this.economicStrategyManager.shouldClaimTx(
         txRequest,
         nextAccount,
@@ -113,7 +113,7 @@ export default class Router implements IRouter {
     return TxStatus.ClaimWindow;
   }
 
-  public async freezePeriod(txRequest: ITxRequest): Promise<TxStatus> {
+  public async freezePeriod(txRequest: ITransactionRequest): Promise<TxStatus> {
     if (await txRequest.inFreezePeriod()) {
       return TxStatus.FreezePeriod;
     }
@@ -125,12 +125,14 @@ export default class Router implements IRouter {
     return TxStatus.FreezePeriod;
   }
 
-  public async inReservedWindowAndNotClaimedLocally(txRequest: ITxRequest): Promise<boolean> {
+  public async inReservedWindowAndNotClaimedLocally(
+    txRequest: ITransactionRequest
+  ): Promise<boolean> {
     const inReserved = await txRequest.inReservedWindow();
     return inReserved && txRequest.isClaimed && !this.isLocalClaim(txRequest);
   }
 
-  public async executionWindow(txRequest: ITxRequest): Promise<TxStatus> {
+  public async executionWindow(txRequest: ITransactionRequest): Promise<TxStatus> {
     const context = TxSendStatus.execute;
     if (this.wallet.isWaitingForConfirmation(txRequest.address, Operation.EXECUTE)) {
       return TxStatus.ExecutionWindow;
@@ -172,7 +174,7 @@ export default class Router implements IRouter {
     return TxStatus.ExecutionWindow;
   }
 
-  public async executed(txRequest: ITxRequest): Promise<TxStatus> {
+  public async executed(txRequest: ITransactionRequest): Promise<TxStatus> {
     /**
      * We don't cleanup because cleanup needs refactor according to latest logic in EAC
      * https://github.com/ethereum-alarm-clock/ethereum-alarm-clock/blob/master/contracts/Library/RequestLib.sol#L433
@@ -189,14 +191,14 @@ export default class Router implements IRouter {
     return TxStatus.Done;
   }
 
-  public async isTransactionMissed(txRequest: ITxRequest): Promise<boolean> {
+  public async isTransactionMissed(txRequest: ITransactionRequest): Promise<boolean> {
     const now = await txRequest.now();
     const afterExecutionWindow = txRequest.executionWindowEnd.lessThanOrEqualTo(now);
 
     return afterExecutionWindow && !txRequest.wasCalled;
   }
 
-  public isLocalClaim(txRequest: ITxRequest): boolean {
+  public isLocalClaim(txRequest: ITransactionRequest): boolean {
     const localClaim = this.wallet.isKnownAddress(txRequest.claimedBy);
 
     if (!localClaim) {
@@ -206,7 +208,7 @@ export default class Router implements IRouter {
     return localClaim;
   }
 
-  public async route(txRequest: ITxRequest): Promise<TxStatus> {
+  public async route(txRequest: ITransactionRequest): Promise<TxStatus> {
     let current: TxStatus = this.txRequestStates[txRequest.address] || TxStatus.BeforeClaimWindow;
     let previous;
 
@@ -232,13 +234,16 @@ export default class Router implements IRouter {
     return current;
   }
 
-  private async done(txRequest: ITxRequest): Promise<TxStatus> {
+  private async done(txRequest: ITransactionRequest): Promise<TxStatus> {
     this.logger.info('Finished. Deleting from cache...', txRequest.address);
     this.cache.del(txRequest.address);
     return TxStatus.Done;
   }
 
-  private handleWalletTransactionResult(status: TxSendStatus, txRequest: ITxRequest): void {
+  private handleWalletTransactionResult(
+    status: TxSendStatus,
+    txRequest: ITransactionRequest
+  ): void {
     switch (status) {
       case TxSendStatus.STATUS(TxSendStatus.SUCCESS, TxSendStatus.claim):
         this.logger.info('CLAIMED.', txRequest.address); //TODO: replace with SUCCESS string

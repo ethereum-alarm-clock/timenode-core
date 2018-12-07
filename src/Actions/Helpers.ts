@@ -1,4 +1,5 @@
 import { AbortReason, TxSendStatus } from '../Enum';
+import { TransactionReceipt } from 'web3/types';
 
 const EXECUTED_EVENT = '0x3e504bb8b225ad41f613b0c3c4205cdd752d1615b4d77cd1773417282fcfb5d9';
 const ABORTED_EVENT = '0xc008bc849b42227c61d5063a1313ce509a6e99211bfd59e827e417be6c65c81b';
@@ -15,34 +16,23 @@ const abortReasonToExecuteStatus = new Map<AbortReason, TxSendStatus>([
   [AbortReason.Unknown, TxSendStatus.ABORTED_UNKNOWN]
 ]);
 
-const isExecuted = (receipt: any) => {
-  if (receipt) {
-    return receipt.logs[0].topics.indexOf(EXECUTED_EVENT) > -1;
-  }
+function isExecuted(receipt: TransactionReceipt) : boolean {
+  return Boolean(receipt) && receipt.logs[0].topics.indexOf(EXECUTED_EVENT) > -1;
+}
 
-  return false;
-};
+function isAborted(receipt: TransactionReceipt) : boolean {
+  return Boolean(receipt) && receipt.logs[0].topics.indexOf(ABORTED_EVENT) > -1;
+}
 
-const isAborted = (receipt: any) => {
-  if (receipt) {
-    return receipt.logs[0].topics.indexOf(ABORTED_EVENT) > -1;
-  }
-
-  return false;
-};
-
-const getAbortedExecuteStatus = (receipt: any) => {
+const getAbortedExecuteStatus = (receipt: TransactionReceipt) => {
   const reason = parseInt(receipt.logs[0].data, 16);
   const abortReason = receipt && !isNaN(reason) ? (reason as AbortReason) : AbortReason.Unknown;
 
   return abortReasonToExecuteStatus.get(abortReason) || TxSendStatus.ABORTED_UNKNOWN;
 };
 
-const isTransactionStatusSuccessful = (status: string | number) => {
-  if (status) {
-    return [1, '0x1', '0x01'].indexOf(status) !== -1;
-  }
-  return false;
+const isTransactionStatusSuccessful = (status: string | number | boolean) => {
+  return [true, 1, '0x1', '0x01'].indexOf(status) !== -1;
 };
 
 export {

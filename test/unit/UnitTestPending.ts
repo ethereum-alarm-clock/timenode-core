@@ -2,9 +2,9 @@ import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
 import { ITxPool, ITxPoolTxDetails } from '../../src/TxPool';
 import { Pending } from '../../src/Actions/Pending';
-import { W3Util } from '../../src';
 import { BigNumber } from 'bignumber.js';
 import { Operation } from '../../src/Types/Operation';
+import { GasPriceUtil } from '@ethereum-alarm-clock/lib';
 
 describe('Pending Unit Tests', () => {
   function createTxPoolDetails(address: string, poolOperation: Operation, gasPrice: BigNumber) {
@@ -16,7 +16,7 @@ describe('Pending Unit Tests', () => {
   }
 
   function createUtils(gasPrice: BigNumber) {
-    const util = TypeMoq.Mock.ofType<W3Util>();
+    const util = TypeMoq.Mock.ofType<GasPriceUtil>();
     util.setup(u => u.networkGasPrice()).returns(async () => gasPrice);
     return util;
   }

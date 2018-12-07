@@ -3,13 +3,14 @@ import { ILogger, DefaultLogger } from '../Logger';
 import { CLAIMED_EVENT, EXECUTED_EVENT } from '../Actions/Helpers';
 import { Operation } from '../Types/Operation';
 import { ITxPoolTxDetails } from '.';
-import { W3Util } from '..';
+import { Util } from '@ethereum-alarm-clock/lib';
+import BigNumber from 'bignumber.js';
 
 export default class TxPoolProcessor {
   private logger: ILogger;
-  private util: W3Util;
+  private util: Util;
 
-  constructor(util: W3Util, logger: ILogger = new DefaultLogger()) {
+  constructor(util: Util, logger: ILogger = new DefaultLogger()) {
     this.logger = logger;
     this.util = util;
   }
@@ -65,10 +66,10 @@ export default class TxPoolProcessor {
     type: string,
     operation: Operation
   ): Promise<ITxPoolTxDetails> {
-    const tx: any = await this.util.getTransaction(transactionHash);
+    const tx = await this.util.getTransaction(transactionHash);
     return {
       to: tx.to,
-      gasPrice: tx.gasPrice,
+      gasPrice: new BigNumber(tx.gasPrice),
       timestamp: new Date().getTime(),
       type,
       operation

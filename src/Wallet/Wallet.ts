@@ -1,20 +1,18 @@
-import * as ethWallet from 'ethereumjs-wallet';
+// tslint:disable-next-line:no-reference
+/// <reference path="../global.d.ts" />
 
+import * as ethWallet from 'ethereumjs-wallet';
 import { TxSendStatus } from '../Enum/TxSendStatus';
 import { DefaultLogger, ILogger } from '../Logger';
 import { Address } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
-import { ITransactionReceipt } from '../Types/ITransactionReceipt';
-import W3Util from '../Util';
 import { IWalletReceipt } from './IWalletReceipt';
-import { ITransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
 import { IAccountState, AccountState, TransactionState } from './AccountState';
 import { Operation } from '../Types/Operation';
-
-const ethTx = require('ethereumjs-tx');
-
-declare const Buffer: any;
-declare const require: any;
+import { TransactionReceipt } from 'web3/types';
+import { Util } from '@ethereum-alarm-clock/lib';
+import ethTx = require('ethereumjs-tx');
+import PromiEvent from 'web3/promiEvent';
 
 export interface V3Wallet {
   privKey: any;
@@ -29,17 +27,14 @@ export class Wallet {
   private CONFIRMATION_BLOCKS = 6;
   private logger: ILogger;
   private accounts: V3Wallet[] = [];
-  private transactionReceiptAwaiter: ITransactionReceiptAwaiter;
-  private util: W3Util;
+  private util: Util;
 
   constructor(
-    transactionReceiptAwaiter: ITransactionReceiptAwaiter,
-    util: W3Util,
+    util: Util,
     accountState: IAccountState = new AccountState(),
     logger: ILogger = new DefaultLogger()
   ) {
     this.logger = logger;
-    this.transactionReceiptAwaiter = transactionReceiptAwaiter;
     this.accountState = accountState;
     this.util = util;
   }
@@ -176,8 +171,8 @@ export class Wallet {
       };
     }
 
-    let receipt: ITransactionReceipt;
-    let hash: string;
+    let sentTransaction : PromiEvent<TransactionReceipt>;
+    let receipt: TransactionReceipt;
 
     try {
       this.accountState.set(from, opts.to, opts.operation, TransactionState.PENDING);
@@ -185,8 +180,8 @@ export class Wallet {
       this.logger.info(`Sending ${Operation[opts.operation]}`, opts.to);
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
-      hash = await this.sendRawTransaction(signedTx);
-      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(hash, 1);
+      sentTransaction = this.sendRawTransaction(signedTx);
+      receipt = await this.util.waitForConfirmations(sentTransaction, 1);
 
       this.accountState.set(from, opts.to, opts.operation, TransactionState.SENT);
 
@@ -201,10 +196,11 @@ export class Wallet {
     }
 
     try {
+      const hash : string = (await sentTransaction).transactionHash;
       this.logger.debug(`Awaiting for confirmation for tx ${hash} from ${from}`, opts.to);
 
-      receipt = await this.transactionReceiptAwaiter.waitForConfirmations(
-        hash,
+      receipt = await this.util.waitForConfirmations(
+        sentTransaction,
         this.CONFIRMATION_BLOCKS
       );
       this.accountState.set(from, opts.to, opts.operation, TransactionState.CONFIRMED);
@@ -237,13 +233,13 @@ export class Wallet {
     return this.getAddresses().some(addr => addr === address);
   }
 
-  public sendRawTransaction(tx: any): Promise<any> {
+  public sendRawTransaction(tx: any): PromiEvent<TransactionReceipt> {
     const serialized = '0x'.concat(tx.serialize().toString('hex'));
 
     return this.util.sendRawTransaction(serialized);
   }
 
-  private async signTransaction(from: V3Wallet, nonce: number | string, opts: any): Promise<any> {
+  private async signTransaction(from: V3Wallet, nonce: number | string, opts: any): Promise<ethTx> {
     const params = {
       nonce,
       from: from.getAddressString(),
@@ -260,10 +256,11 @@ export class Wallet {
     return tx;
   }
 
-  private isTransactionStatusSuccessful(receipt: ITransactionReceipt): boolean {
+  private isTransactionStatusSuccessful(receipt: TransactionReceipt): boolean {
     if (receipt) {
-      return [1, '0x1', '0x01'].indexOf(receipt.status) !== -1;
+      return [true, 1, '0x1', '0x01'].indexOf(receipt.status) !== -1;
     }
+
     return false;
   }
 }
