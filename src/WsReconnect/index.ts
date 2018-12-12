@@ -1,7 +1,7 @@
 import TimeNode from '../TimeNode';
 import { ReconnectMsg } from '../Enum';
-import * as EAC from 'eac.js-lib';
-import * as Web3WsProvider from 'web3-providers-ws';
+import { EAC, Util } from '@ethereum-alarm-clock/lib';
+import Web3 = require('web3');
 
 declare const setTimeout: any;
 
@@ -21,9 +21,12 @@ export default class WsReconnect {
       web3: { currentProvider }
     } = this.timeNode.config;
 
-    currentProvider.on('error', (err: any) => {
+    // apparently provider has method .on even though types don't show it
+    const p = currentProvider as any;
+
+    p.on('error', (err: any) => {
       logger.debug(`[WS ERROR] ${err}`);
-      currentProvider._timeout();
+      p._timeout();
 
       setTimeout(async () => {
         const msg: ReconnectMsg = await this.handleWsDisconnect();
@@ -31,9 +34,9 @@ export default class WsReconnect {
       }, this.reconnectTries * 1000);
     });
 
-    currentProvider.on('end', (err: any) => {
+    p.on('end', (err: any) => {
       logger.debug(`[WS END] Type= ${err.type} Reason= ${err.reason}`);
-      currentProvider._timeout();
+      p._timeout();
 
       setTimeout(async () => {
         const msg = await this.handleWsDisconnect();
@@ -86,9 +89,9 @@ export default class WsReconnect {
     logger.debug('Attempting WS Reconnect.');
     try {
       const providerUrl = providerUrls[this.reconnectTries % providerUrls.length];
-      this.timeNode.config.web3.setProvider(new Web3WsProvider(providerUrl));
-      this.timeNode.config.eac = EAC(this.timeNode.config.web3);
-      if (await this.timeNode.config.util.isWatchingEnabled()) {
+      this.timeNode.config.web3.setProvider(new Web3.providers.WebsocketProvider(providerUrl));
+      this.timeNode.config.eac = new EAC(this.timeNode.config.web3);
+      if (await Util.isWatchingEnabled(this.timeNode.config.web3)) {
         return providerUrl;
       } else {
         throw new Error('Invalid providerUrl! eth_getFilterLogs not enabled.');

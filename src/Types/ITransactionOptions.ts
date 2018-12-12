@@ -4,7 +4,7 @@ import { Operation } from './Operation';
 export default interface ITransactionOptions {
   to: string;
   value: BigNumber;
-  gas: number;
+  gas: BigNumber;
   gasPrice: BigNumber;
   data: string;
   operation: Operation;

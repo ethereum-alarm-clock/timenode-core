@@ -1,17 +1,17 @@
 import { BigNumber } from 'bignumber.js';
 import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
-
-import { W3Util } from '../../src';
 import { CLAIMED_EVENT, EXECUTED_EVENT } from '../../src/Actions/Helpers';
 import { ITxPoolTxDetails } from '../../src/TxPool';
 import TxPoolProcessor from '../../src/TxPool/TxPoolProcessor';
 import { Operation } from '../../src/Types/Operation';
+import { IFilterTx } from '../../src/TxPool/TxPool';
+import { Util } from '@ethereum-alarm-clock/lib';
 
 describe('TxPoolProcessor Unit Tests', () => {
   function setup(tx: { to: string; gasPrice: BigNumber }) {
-    const util = TypeMoq.Mock.ofType<W3Util>();
-    util.setup(u => u.getTransaction(TypeMoq.It.isAnyString())).returns(async () => tx);
+    const util = TypeMoq.Mock.ofType<Util>();
+    util.setup(u => u.getTransaction(TypeMoq.It.isAnyString())).returns(async () => tx as any);
     const pool = new Map<string, ITxPoolTxDetails>();
     const processor = new TxPoolProcessor(util.object);
     return { processor, pool };
@@ -26,9 +26,13 @@ describe('TxPoolProcessor Unit Tests', () => {
     const tx = { to: address, gasPrice };
     const { processor, pool } = setup(tx);
 
-    const filterTx = {
+    const filterTx: IFilterTx = {
       address,
       blockNumber: 1,
+      data: '',
+      logIndex: 0,
+      blockHash: '',
+      transactionIndex: 0,
       topics: [CLAIMED_EVENT],
       transactionHash,
       type
@@ -54,8 +58,12 @@ describe('TxPoolProcessor Unit Tests', () => {
     const tx = { to: address, gasPrice };
     const { processor, pool } = setup(tx);
 
-    const filterTx = {
+    const filterTx: IFilterTx = {
       address,
+      data: '',
+      transactionIndex: 0,
+      blockHash: '',
+      logIndex: 0,
       blockNumber: 1,
       topics: [EXECUTED_EVENT],
       transactionHash,

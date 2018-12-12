@@ -1,13 +1,16 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
-
-import { W3Util, Config } from '../../src';
+import { Config } from '../../src';
 import Cache, { ICachedTxDetails } from '../../src/Cache';
-
 import { EconomicStrategyManager } from '../../src/EconomicStrategy/EconomicStrategyManager';
 import { EconomicStrategyStatus } from '../../src/Enum';
-import { ITxRequest, GasPriceEstimation } from '../../src/Types';
+import {
+  ITransactionRequest,
+  GasPriceUtil,
+  Util,
+  GasPriceEstimation
+} from '@ethereum-alarm-clock/lib';
 
 // tslint:disable-next-line:no-big-function
 describe('Economic Strategy Tests', () => {
@@ -32,7 +35,7 @@ describe('Economic Strategy Tests', () => {
     reservedWindowSize = new BigNumber(3600),
     claimWindowEnd = new BigNumber(123155)
   ) => {
-    const txRequest = TypeMoq.Mock.ofType<ITxRequest>();
+    const txRequest = TypeMoq.Mock.ofType<ITransactionRequest>();
     txRequest.setup(tx => tx.gasPrice).returns(() => gasPrice);
     txRequest.setup(tx => tx.now()).returns(() => Promise.resolve(new BigNumber(123123)));
     txRequest.setup(tx => tx.reservedWindowEnd).returns(() => new BigNumber(23423));
@@ -49,11 +52,11 @@ describe('Economic Strategy Tests', () => {
     return txRequest;
   };
 
-  const createUtil = (gasPrice = defaultGasPrice) => {
-    const util = TypeMoq.Mock.ofType<W3Util>();
-    util.setup(u => u.networkGasPrice()).returns(() => Promise.resolve(gasPrice));
-    util.setup(u => u.getGasPrice()).returns(() => Promise.resolve(gasPrice));
-    util
+  const createGasPriceUtil = (gasPrice = defaultGasPrice) => {
+    const gasPriceUtil = TypeMoq.Mock.ofType<GasPriceUtil>();
+    gasPriceUtil.setup(u => u.networkGasPrice()).returns(() => Promise.resolve(gasPrice));
+    gasPriceUtil.setup(u => u.getGasPrice()).returns(() => Promise.resolve(gasPrice));
+    gasPriceUtil
       .setup(u => u.getAdvancedNetworkGasPrice())
       .returns(() =>
         Promise.resolve({
@@ -63,6 +66,13 @@ describe('Economic Strategy Tests', () => {
           fastest: gasPrice
         } as GasPriceEstimation)
       );
+
+    return gasPriceUtil.object;
+  };
+
+  const createUtil = () => {
+    const util = TypeMoq.Mock.ofType<Util>();
+
     util.setup(u => u.balanceOf(TypeMoq.It.isAny())).returns(() => Promise.resolve(defaultBalance));
     util.setup(u => u.calculateGasAmount(TypeMoq.It.isAny())).returns(() => MWei);
 
@@ -70,6 +80,7 @@ describe('Economic Strategy Tests', () => {
   };
 
   const defaultUtil = createUtil();
+  const defaultGasPriceUtil = createGasPriceUtil();
 
   const cache = TypeMoq.Mock.ofType<Cache<ICachedTxDetails>>();
   cache.setup(c => c.stored()).returns(() => []);
@@ -81,12 +92,13 @@ describe('Economic Strategy Tests', () => {
     const strategy = Object.assign({}, Config.DEFAULT_ECONOMIC_STRATEGY, { minProfitability });
     const economicStrategyManager = new EconomicStrategyManager(
       strategy,
-      defaultUtil,
+      defaultGasPriceUtil,
       cache.object,
-      null
+      null,
+      defaultUtil
     );
     const txRequest = createTxRequest(defaultGasPrice, bounty);
-    const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+    const gasPrice = await defaultGasPriceUtil.getAdvancedNetworkGasPrice();
     return economicStrategyManager.shouldClaimTx(txRequest.object, account, gasPrice.average);
   };
 
@@ -95,12 +107,13 @@ describe('Economic Strategy Tests', () => {
       const strategy = Config.DEFAULT_ECONOMIC_STRATEGY;
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
       const txRequest = createTxRequest();
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+      const gasPrice = await defaultGasPriceUtil.getAdvancedNetworkGasPrice();
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
         txRequest.object,
         account,
@@ -115,12 +128,13 @@ describe('Economic Strategy Tests', () => {
       });
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
       const txRequest = createTxRequest();
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+      const gasPrice = await defaultGasPriceUtil.getAdvancedNetworkGasPrice();
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
         txRequest.object,
         account,
@@ -171,9 +185,10 @@ describe('Economic Strategy Tests', () => {
       });
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
 
       const txRequest = createTxRequest(
@@ -184,7 +199,7 @@ describe('Economic Strategy Tests', () => {
         2,
         new BigNumber(100)
       );
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+      const gasPrice = await defaultGasPriceUtil.getAdvancedNetworkGasPrice();
 
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
         txRequest.object,
@@ -200,9 +215,10 @@ describe('Economic Strategy Tests', () => {
       });
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
 
       const txRequest = createTxRequest(
@@ -213,7 +229,7 @@ describe('Economic Strategy Tests', () => {
         1,
         new BigNumber(100)
       );
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+      const gasPrice = await defaultGasPriceUtil.getAdvancedNetworkGasPrice();
 
       const shouldClaimStatus = await economicStrategyManager.shouldClaimTx(
         txRequest.object,
@@ -226,12 +242,13 @@ describe('Economic Strategy Tests', () => {
 
   describe('getExecutionGasPrice()', () => {
     it('returns current network price if maxGasSubsidy not set', async () => {
-      const currentNetworkPrice = await defaultUtil.networkGasPrice();
+      const currentNetworkPrice = await defaultGasPriceUtil.networkGasPrice();
       const economicStrategyManager = new EconomicStrategyManager(
         Config.DEFAULT_ECONOMIC_STRATEGY,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
       const gasPrice = await economicStrategyManager.getExecutionGasPrice(createTxRequest().object);
 
@@ -241,9 +258,10 @@ describe('Economic Strategy Tests', () => {
     it('returns tx gas price if current network price lower than tx gas price', async () => {
       const economicStrategyManager = new EconomicStrategyManager(
         Config.DEFAULT_ECONOMIC_STRATEGY,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
       const txRequest = createTxRequest().object;
       const gasPrice = await economicStrategyManager.getExecutionGasPrice(txRequest);
@@ -254,13 +272,14 @@ describe('Economic Strategy Tests', () => {
     it('returns current network price if (tx gas price + subsidy) higher than current network price', async () => {
       const lowerGasPrice = defaultGasPrice.minus(100);
       const txRequest = createTxRequest(lowerGasPrice);
-      const currentNetworkPrice = await defaultUtil.networkGasPrice();
+      const currentNetworkPrice = await defaultGasPriceUtil.networkGasPrice();
 
       const economicStrategyManager = new EconomicStrategyManager(
         Config.DEFAULT_ECONOMIC_STRATEGY,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
       const gasPrice = await economicStrategyManager.getExecutionGasPrice(txRequest.object);
 
@@ -280,9 +299,10 @@ describe('Economic Strategy Tests', () => {
       );
       const economicStrategyManager = new EconomicStrategyManager(
         strategy,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
 
       const gasPrice = await economicStrategyManager.getExecutionGasPrice(txRequest);
@@ -297,11 +317,12 @@ describe('Economic Strategy Tests', () => {
 
       const economicStrategyManager = new EconomicStrategyManager(
         Config.DEFAULT_ECONOMIC_STRATEGY,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+      const gasPrice = await defaultGasPriceUtil.getAdvancedNetworkGasPrice();
       const shouldExecute = await economicStrategyManager.shouldExecuteTx(
         txRequest.object,
         gasPrice.average
@@ -311,15 +332,16 @@ describe('Economic Strategy Tests', () => {
 
     it('returns false if CurrentGasCost > (Deposit + Reward + Reimbursement)', async () => {
       const txRequest = createTxRequest();
-      const util = createUtil(defaultGasPrice.times(1000));
+      const gasPriceUtil = createGasPriceUtil(defaultGasPrice.times(1000));
 
       const economicStrategyManager = new EconomicStrategyManager(
         Config.DEFAULT_ECONOMIC_STRATEGY,
-        util,
+        gasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
-      const gasPrice = await util.getAdvancedNetworkGasPrice();
+      const gasPrice = await gasPriceUtil.getAdvancedNetworkGasPrice();
       const shouldExecute = await economicStrategyManager.shouldExecuteTx(
         txRequest.object,
         gasPrice.average
@@ -333,12 +355,13 @@ describe('Economic Strategy Tests', () => {
 
       const economicStrategyManager = new EconomicStrategyManager(
         Config.DEFAULT_ECONOMIC_STRATEGY,
-        defaultUtil,
+        defaultGasPriceUtil,
         cache.object,
-        null
+        null,
+        defaultUtil
       );
 
-      const gasPrice = await defaultUtil.getAdvancedNetworkGasPrice();
+      const gasPrice = await defaultGasPriceUtil.getAdvancedNetworkGasPrice();
       const shouldExecute = await economicStrategyManager.shouldExecuteTx(
         txRequest.object,
         gasPrice.average

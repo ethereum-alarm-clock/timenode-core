@@ -1,11 +1,11 @@
 import Actions from './Actions';
 import Config from './Config';
-import { Networks } from './Enum';
 import Scanner from './Scanner';
 import Router from './Router';
 import Version from './Version';
-import W3Util from './Util';
 import WsReconnect from './WsReconnect';
+import { Util, Networks } from '@ethereum-alarm-clock/lib';
+
 export default class TimeNode {
   public actions: Actions;
   public config: Config;
@@ -29,7 +29,7 @@ export default class TimeNode {
       config.logger,
       this.actions,
       config.economicStrategyManager,
-      config.util,
+      config.gasPriceUtil,
       config.wallet
     );
 
@@ -37,7 +37,7 @@ export default class TimeNode {
     this.scanner = new Scanner(this.config, this.router);
 
     const { logger, providerUrls } = this.config;
-    if (W3Util.isWSConnection(providerUrls[0])) {
+    if (Util.isWSConnection(providerUrls[0])) {
       logger.debug('WebSockets provider detected! Setting up reconnect events...');
       this.wsReconnect = new WsReconnect(this);
       this.wsReconnect.setup();
@@ -52,14 +52,9 @@ export default class TimeNode {
     this.logNetwork();
   }
 
-  public logNetwork(): void {
-    this.config.web3.version.getNetwork((error: any, result: number) => {
-      if (error) {
-        throw new Error(error);
-      } else {
-        this.config.logger.info('Operating on ' + Networks[result]);
-      }
-    });
+  public async logNetwork(): Promise<void> {
+    const id = await this.config.web3.eth.net.getId();
+    this.config.logger.info('Operating on ' + Networks[id]);
   }
 
   public async startScanning(): Promise<boolean> {

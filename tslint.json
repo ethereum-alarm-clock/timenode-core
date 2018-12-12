@@ -22,7 +22,7 @@
       "no-var-requires": false,
       "comment-format": false,
       "ordered-imports": false,
-      "await-promise": [true, "Bluebird", "Transition"],
+      "await-promise": [true, "Transition"],
       "no-unsafe-finally": true,
       "no-return-await": true
     },

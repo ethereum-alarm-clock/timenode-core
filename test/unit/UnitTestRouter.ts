@@ -1,24 +1,29 @@
 /* tslint:disable:no-unused-expression */
 import { expect, assert } from 'chai';
 import * as TypeMoq from 'typemoq';
-
-import { Config, Wallet, W3Util } from '../../src/index';
+import { Config, Wallet } from '../../src/index';
 import { mockConfig, mockTxRequest, mockTxStatus } from '../helpers';
 import Actions from '../../src/Actions';
 import Router from '../../src/Router';
 import { TxStatus, EconomicStrategyStatus } from '../../src/Enum';
-import { ITxRequest, GasPriceEstimation } from '../../src/Types';
 import { V3Wallet } from '../../src/Wallet/Wallet';
-import { BigNumber } from 'bignumber.js';
 import { IEconomicStrategyManager } from '../../src/EconomicStrategy/EconomicStrategyManager';
 import { ICachedTxDetails } from '../../src/Cache';
+import Web3 = require('web3');
+import {
+  Util,
+  GasPriceUtil,
+  GasPriceEstimation,
+  ITransactionRequest
+} from '@ethereum-alarm-clock/lib';
+import BigNumber from 'bignumber.js';
 
 const TIMESTAMP_TX = 'timestamp Tx';
 const BLOCK_TX = 'block Tx';
 
 let config: Config;
-let txTimestamp: ITxRequest;
-let txBlock: ITxRequest;
+let txTimestamp: ITransactionRequest;
+let txBlock: ITransactionRequest;
 
 let router: Router;
 let myAccount: string;
@@ -26,10 +31,12 @@ let myAccount: string;
 const createRouter = async (claimingEnabled = true) => {
   const web3 = {
     eth: {
-      getBlockNumber: (callback: any) => callback(null, 1000)
+      getBlockNumber: () => Promise.resolve(1000)
     },
-    toWei: config.web3.toWei
-  };
+    utils: {
+      toWei: config.web3.utils.toWei
+    }
+  } as Web3;
 
   const v3wallet = TypeMoq.Mock.ofType<V3Wallet>();
   v3wallet.setup(w => w.getAddressString()).returns(() => myAccount);
@@ -42,9 +49,11 @@ const createRouter = async (claimingEnabled = true) => {
   wallet.setup(w => w.isKnownAddress(myAccount)).returns(() => true);
   wallet.setup(w => w.isKnownAddress(TypeMoq.It.isAnyString())).returns(() => false);
 
-  const util = TypeMoq.Mock.ofType<W3Util>();
-  util.setup(u => u.networkGasPrice()).returns(async () => new BigNumber(20000));
-  util
+  const util = TypeMoq.Mock.ofType<Util>();
+
+  const gasPriceUtil = TypeMoq.Mock.ofType<GasPriceUtil>();
+  gasPriceUtil.setup(u => u.networkGasPrice()).returns(async () => new BigNumber(20000));
+  gasPriceUtil
     .setup(u => u.getAdvancedNetworkGasPrice())
     .returns(() =>
       Promise.resolve({
@@ -78,7 +87,7 @@ const createRouter = async (claimingEnabled = true) => {
     config.logger,
     actions,
     economicStrategyManager.object,
-    util.object,
+    gasPriceUtil.object,
     wallet.object
   );
 };
@@ -91,6 +100,7 @@ const reset = async () => {
 
 beforeEach(reset);
 
+///skip
 // tslint:disable-next-line:no-big-function
 describe('Router Unit Tests', () => {
   it('initializes the Router', async () => {

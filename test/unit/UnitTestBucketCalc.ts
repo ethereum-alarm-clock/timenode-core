@@ -1,16 +1,17 @@
 import { assert } from 'chai';
 import * as TypeMoq from 'typemoq';
-
-import { W3Util } from '../../src';
-import { BucketCalc, BucketSize } from '../../src/Buckets';
-import { IBlock } from '../../src/Types';
+import { BucketCalc } from '../../src/Buckets';
 import { mockConfig } from '../helpers';
+import { Block } from 'web3/eth/types';
+import { Util, Constants } from '@ethereum-alarm-clock/lib';
+
+const BucketSize = Constants.BUCKET_SIZE;
 
 describe('ButcketCalc', () => {
   describe('getBuckets()', async () => {
     it('returns current, next and after next buckets', async () => {
-      const defaultBlock: IBlock = { number: 10000, timestamp: 10000000000 };
-      const util = TypeMoq.Mock.ofType<W3Util>();
+      const defaultBlock: Block = { number: 10000, timestamp: 10000000000 } as Block;
+      const util = TypeMoq.Mock.ofType<Util>();
       util.setup(u => u.getBlock('latest')).returns(async () => defaultBlock);
 
       const config = await mockConfig();
