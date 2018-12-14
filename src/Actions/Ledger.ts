@@ -1,21 +1,21 @@
 import BigNumber from 'bignumber.js';
 
 import { IStatsDB } from '../Stats/StatsDB';
-import { ITxRequest } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
 import { isTransactionStatusSuccessful } from './Helpers';
-import { ITransactionReceipt } from '../Types/ITransactionReceipt';
+import { TransactionReceipt } from 'web3/types';
+import { ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
 export interface ILedger {
   accountClaiming(
-    receipt: ITransactionReceipt,
-    txRequest: ITxRequest,
+    receipt: TransactionReceipt,
+    txRequest: ITransactionRequest,
     opts: any,
     from: string
   ): boolean;
   accountExecution(
-    txRequest: ITxRequest,
-    receipt: ITransactionReceipt,
+    txRequest: ITransactionRequest,
+    receipt: TransactionReceipt,
     opts: ITransactionOptions,
     from: string,
     success: boolean
@@ -30,8 +30,8 @@ export class Ledger implements ILedger {
   }
 
   public accountClaiming(
-    receipt: ITransactionReceipt,
-    txRequest: ITxRequest,
+    receipt: TransactionReceipt,
+    txRequest: ITransactionRequest,
     opts: ITransactionOptions,
     from: string
   ): boolean {
@@ -53,8 +53,8 @@ export class Ledger implements ILedger {
   }
 
   public accountExecution(
-    txRequest: ITxRequest,
-    receipt: ITransactionReceipt,
+    txRequest: ITransactionRequest,
+    receipt: TransactionReceipt,
     opts: ITransactionOptions,
     from: string,
     success: boolean

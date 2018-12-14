@@ -4,6 +4,7 @@ import Config from '../Config';
 import IRouter from '../Router';
 import { IntervalId } from '../Types';
 import { TxPool } from '../TxPool';
+import { Util } from '@ethereum-alarm-clock/lib';
 
 declare const clearInterval: any;
 declare const setInterval: any;
@@ -26,7 +27,7 @@ export default class TimeNodeScanner extends ChainScanner implements ITimeNodeSc
   }
 
   public async start(): Promise<boolean> {
-    if (!(await this.util.isWatchingEnabled())) {
+    if (!(await Util.isWatchingEnabled(this.config.web3))) {
       throw new Error(
         'Your provider does not support eth_getFilterLogs calls. Please use different provider.'
       );

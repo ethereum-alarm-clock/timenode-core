@@ -14,7 +14,7 @@ export interface ICachedTxDetails {
 
 export default class Cache<T> {
   public cache: {} = {};
-  public logger: any;
+  public logger: ILogger;
 
   constructor(logger: ILogger = new DefaultLogger()) {
     this.logger = logger;

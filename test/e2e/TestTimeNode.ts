@@ -3,6 +3,8 @@ import { TimeNode, Config } from '../../src/index';
 import { mockConfig } from '../helpers';
 import { scheduleTestTx } from './TestScheduleTx';
 import { getHelperMethods } from '../helpers/Helpers';
+import { EAC } from '@ethereum-alarm-clock/lib';
+import Web3 = require('web3');
 
 const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
 
@@ -10,8 +12,8 @@ const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
 describe('TimeNode', () => {
   let config: Config;
   let myAccount: string;
-  let eac: any;
-  let web3: any;
+  let eac: EAC;
+  let web3: Web3;
   let withSnapshotRevert: any;
   let timeNode: TimeNode;
 
@@ -44,7 +46,7 @@ describe('TimeNode', () => {
       const scheduledTransactionsMap = {};
 
       for (let i = 0; i < TRANSACTIONS_TO_SCHEDULE; i++) {
-        const transactionAddress: string = await scheduleTestTx(270 + 5 * i);
+        const transactionAddress: string = (await scheduleTestTx(270 + 5 * i)).toLowerCase();
 
         scheduledTransactionsMap[transactionAddress] = {
           executionLogged: false
@@ -56,6 +58,8 @@ describe('TimeNode', () => {
       console.log('SCHEDULED TX ADDRESSES TO EXECUTE', scheduledTransactionsMap);
 
       timeNode.config.logger.info = (msg: any, txRequest: string) => {
+        txRequest = txRequest.toLowerCase();
+
         if (msg.includes && msg.includes('EXECUTED') && scheduledTransactionsMap[txRequest]) {
           scheduledTransactionsMap[txRequest].executionLogged = true;
         }
@@ -84,7 +88,7 @@ describe('TimeNode', () => {
                 continue;
               }
 
-              const transactionRequest = await eac.transactionRequest(transactionAddress);
+              const transactionRequest = eac.transactionRequest(transactionAddress);
 
               await transactionRequest.fillData();
 
@@ -114,8 +118,8 @@ describe('TimeNode', () => {
       await withSnapshotRevert(async () => {
         await timeNode.startScanning();
 
-        const TEST_TX_ADDRESS = await scheduleTestTx();
-        const TEST_TX_REQUEST = await eac.transactionRequest(TEST_TX_ADDRESS);
+        const TEST_TX_ADDRESS = (await scheduleTestTx()).toLowerCase();
+        const TEST_TX_REQUEST = eac.transactionRequest(TEST_TX_ADDRESS);
 
         await TEST_TX_REQUEST.fillData();
 
@@ -126,12 +130,16 @@ describe('TimeNode', () => {
         let executionLogged = false;
 
         timeNode.config.logger.info = (msg: any, txRequest: string) => {
+          txRequest = txRequest && txRequest.toLowerCase();
+
           if (msg === 'CLAIMED.' && txRequest === TEST_TX_ADDRESS) {
             claimedLogged = true;
           }
+
           if (msg === 'EXECUTED.' && txRequest === TEST_TX_ADDRESS) {
             executionLogged = true;
           }
+
           console.log(txRequest, msg);
         };
 

@@ -3,17 +3,18 @@ import IRouter from '../Router';
 import { IntervalId, Address } from '../Types';
 import CacheScanner from './CacheScanner';
 import { BucketCalc, IBucketCalc } from '../Buckets';
-import { ITxRequestRaw } from '../Types/ITxRequest';
 import { TxStatus } from '../Enum';
 import { BucketsManager } from './BucketsManager';
 import { WatchableBucketFactory } from './WatchableBucketFactory';
+import BigNumber from 'bignumber.js';
+import { ITransactionRequestRaw, RequestFactory } from '@ethereum-alarm-clock/lib';
 
 export default class ChainScanner extends CacheScanner {
   public bucketCalc: IBucketCalc;
 
   public chainInterval: IntervalId;
   public eventWatchers: {} = {};
-  public requestFactory: Promise<any>;
+  public requestFactory: Promise<RequestFactory>;
 
   private bucketsManager: BucketsManager;
 
@@ -38,10 +39,12 @@ export default class ChainScanner extends CacheScanner {
     return this.bucketsManager.stop();
   }
 
-  private handleRequest(request: ITxRequestRaw): void {
+  private handleRequest(request: ITransactionRequestRaw): void {
     if (!this.isValid(request.address)) {
       throw new Error(`[${request.address}] NOT VALID`);
     }
+
+    request.address = request.address.toLowerCase();
 
     this.config.logger.info('Discovered.', request.address);
     if (!this.config.cache.has(request.address)) {
@@ -54,11 +57,11 @@ export default class ChainScanner extends CacheScanner {
   }
 
   private isValid(requestAddress: string): boolean {
-    if (requestAddress === this.config.eac.Constants.NULL_ADDRESS) {
+    if (!this.config.eac.util.isNotNullAddress(requestAddress)) {
       this.config.logger.debug('Warning.. Transaction Request with NULL_ADDRESS found.');
       return false;
-    } else if (!this.config.eac.Util.checkValidAddress(requestAddress)) {
-      // This should, conceivably, never happen unless there is a bug in eac.js-lib.
+    } else if (!this.config.eac.util.checkValidAddress(requestAddress)) {
+      // This should, conceivably, never happen unless there is a bug in @ethereum-alarm-clock/lib.
       throw new Error(
         `[${requestAddress}] Received invalid response from Request Tracker - CRITICAL BUG`
       );
@@ -66,16 +69,16 @@ export default class ChainScanner extends CacheScanner {
     return true;
   }
 
-  private store(txRequest: ITxRequestRaw) {
-    const windowStart = txRequest.params[7];
-    const freezePeriod = txRequest.params[3];
-    const claimWindowSize = txRequest.params[2];
+  private store(txRequest: ITransactionRequestRaw) {
+    const windowStart = new BigNumber(txRequest.params[7]);
+    const freezePeriod = new BigNumber(txRequest.params[3]);
+    const claimWindowSize = new BigNumber(txRequest.params[2]);
 
     const claimWindowStart = windowStart.minus(freezePeriod).minus(claimWindowSize);
 
     this.config.cache.set(txRequest.address, {
-      bounty: txRequest.params[1],
-      temporalUnit: txRequest.params[5].toNumber(),
+      bounty: new BigNumber(txRequest.params[1]),
+      temporalUnit: parseInt(txRequest.params[5], 10),
       claimedBy: null,
       wasCalled: false,
       windowStart,
