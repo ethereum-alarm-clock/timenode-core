@@ -7,7 +7,7 @@
 
 # timenode-core
 
-This package contains all of the key logic necessary for the operation of an [Ethereum Alarm Clock](https://github.com/ethereum-alarm-clock/ethereum-alarm-clock) TimeNode. 
+This package contains all of the key logic necessary for the operation of an [Ethereum Alarm Clock](https://github.com/ethereum-alarm-clock/ethereum-alarm-clock) TimeNode.
 
 ## Contribute
 
@@ -28,7 +28,7 @@ It will produce an `index.js` file which can be imported into any project and us
 ## Test
 ```
 npm run ganache
-npm run deploy-eac
+npx eac-deploy-contracts
 npm run test
 ```
 
@@ -36,7 +36,7 @@ npm run test
 
 You can use one of the helper scripts to use [Prettier]() to lint for you. It will create backups of all the files that it changes before changing them, and knows how to handle both JavaScript and TypeScript sources.
 
-``` 
+```
 npm run fmt
 ```
 
