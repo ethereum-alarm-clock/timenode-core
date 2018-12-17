@@ -8,7 +8,6 @@
     "clean-backups": "find . -type f -name '*.b' -delete",
     "clean-built": "rm -rf built",
     "clean": "npm run clean-backups && npm run clean-built",
-    "deploy-eac": "sh scripts/deploy_eac.sh",
     "ganache": "ganache-cli -m \"shove afford modify census bridge good random error fault floor fringe oblige\" -i 1002 -b 1",
     "lint": "tslint --project .",
     "lint-fix": "tslint --fix --project .",
@@ -43,7 +42,7 @@
   "homepage": "https://github.com/ethereum-alarm-clock/timenode-core#readme",
   "dependencies": {
     "bignumber.js": "5.0.0",
-    "@ethereum-alarm-clock/lib": "0.0.44",
+    "@ethereum-alarm-clock/lib": "0.0.45",
     "ethereumjs-tx": "1.3.7",
     "ethereumjs-wallet": "0.6.2",
     "lokijs": "1.5.5",
