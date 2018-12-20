@@ -50,7 +50,7 @@
   },
   "devDependencies": {
     "@types/chai": "4.1.6",
-    "@types/ethereumjs-tx": "1.0.0",
+    "@types/ethereumjs-tx": "1.0.1",
     "@types/lokijs": "1.5.2",
     "@types/node": "10.12.8",
     "@types/node-fetch": "2.1.2",
