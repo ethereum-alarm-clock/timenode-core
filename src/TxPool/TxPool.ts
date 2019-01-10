@@ -4,11 +4,11 @@ import { ILogger } from '../Logger';
 import { Operation } from '../Types/Operation';
 import TxPoolProcessor from './TxPoolProcessor';
 import Web3 = require('web3');
-import { Subscribe, Log } from 'web3/types';
+import { Subscribe, Log, Callback } from 'web3/types';
 import { Util } from '@ethereum-alarm-clock/lib';
 
 const SCAN_INTERVAL = 5000;
-const TIME_IN_POOL = 60 * 1000;
+const TIME_IN_POOL = 5 * 60 * 1000;
 
 export interface IFilterTx extends Log {
   type: string;
@@ -30,19 +30,19 @@ export interface ITxPool {
 }
 
 export default class TxPool implements ITxPool {
-  public pool: Map<string, ITxPoolTxDetails>;
-  public subs: any = {};
+  public pool: Map<string, ITxPoolTxDetails> = new Map<string, ITxPoolTxDetails>();
 
   private logger: ILogger;
   private util: Util;
   private web3: Web3;
   private txPoolProcessor: TxPoolProcessor;
+  private subs: Map<string, Subscribe<Log>> = new Map<string, Subscribe<Log>>();
+  private cleaningTask: NodeJS.Timeout;
 
   constructor(web3: Web3, util: Util, logger: ILogger) {
     this.web3 = web3;
     this.logger = logger;
     this.util = util;
-    this.pool = new Map<string, ITxPoolTxDetails>();
     this.txPoolProcessor = new TxPoolProcessor(this.util, this.logger);
   }
 
@@ -65,18 +65,19 @@ export default class TxPool implements ITxPool {
     await this.stopTopic(CLAIMED_EVENT);
     await this.stopTopic(EXECUTED_EVENT);
 
-    if (this.subs.mined) {
-      clearInterval(this.subs.mined);
+    if (this.cleaningTask) {
+      clearInterval(this.cleaningTask);
     }
-    this.subs = {};
+
     this.logger.debug('TxPool STOPPED');
   }
 
   private async stopTopic(topic: string) {
-    if (this.subs[topic]) {
+    const subscription = this.subs.get(topic);
+    if (subscription) {
       try {
         await this.util.stopFilter(this.subs[topic] as Subscribe<any>);
-        delete this.subs[topic];
+        this.subs.delete(topic);
       } catch (err) {
         this.logger.error(err);
       }
@@ -89,28 +90,35 @@ export default class TxPool implements ITxPool {
   }
 
   private async watchTopic(topic: string) {
-    this.subs[topic] = await this.web3.eth.subscribe('pendingTransactions');
+    // this is the hack to unlock undocumented toBlock feature used by geth
+    const subscribe = this.web3.eth.subscribe as (
+      type: 'logs',
+      options?: any,
+      callback?: Callback<Subscribe<Log>>
+    ) => Promise<Subscribe<Log>>;
+    const subscription = await subscribe('logs', { toBlock: 'pending', topics: [topic] });
 
     if (!this.subs[topic]) {
       return;
     }
 
-    const subscription = this.subs[topic] as Subscribe<any>;
     subscription.on('data', (data: Log) => {
       if (data.topics && data.topics.indexOf(topic) !== -1) {
         const filterTxData = data as IFilterTx;
         filterTxData.type = 'pending';
-        this.txPoolProcessor.process(null, filterTxData, this.pool);
+        this.txPoolProcessor.process(filterTxData, this.pool);
       }
     });
 
     subscription.on('error', error => {
-      this.txPoolProcessor.process(error, null, this.pool);
+      this.logger.error(error.toString());
     });
+
+    this.subs.set(topic, subscription);
   }
 
   private clearMined() {
-    this.subs.mined = setInterval(() => {
+    this.cleaningTask = setInterval(() => {
       const now = new Date().getTime();
       this.pool.forEach((value, key) => {
         if (now - value.timestamp > TIME_IN_POOL) {

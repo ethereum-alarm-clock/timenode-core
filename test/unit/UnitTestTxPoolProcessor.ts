@@ -38,7 +38,7 @@ describe('TxPoolProcessor Unit Tests', () => {
       type
     };
 
-    await processor.process(null, filterTx, pool);
+    await processor.process(filterTx, pool);
 
     const res = pool.get(transactionHash);
 
@@ -70,7 +70,7 @@ describe('TxPoolProcessor Unit Tests', () => {
       type
     };
 
-    await processor.process(null, filterTx, pool);
+    await processor.process(filterTx, pool);
 
     const res = pool.get(transactionHash);
 

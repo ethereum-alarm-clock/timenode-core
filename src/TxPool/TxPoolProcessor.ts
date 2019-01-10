@@ -15,10 +15,7 @@ export default class TxPoolProcessor {
     this.util = util;
   }
 
-  public async process(error: any, transaction: IFilterTx, pool: Map<string, ITxPoolTxDetails>) {
-    if (error) {
-      return this.logger.error(error);
-    }
+  public async process(transaction: IFilterTx, pool: Map<string, ITxPoolTxDetails>) {
     if (!this.hasKnownEvents(transaction)) {
       throw new Error('Unknown events');
     }
