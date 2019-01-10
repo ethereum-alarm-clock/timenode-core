@@ -26,7 +26,7 @@ describe('TxPoolProcessor Unit Tests', () => {
     const tx = { to: address, gasPrice };
     const { processor, pool } = setup(tx);
 
-    const filterTx : IFilterTx = {
+    const filterTx: IFilterTx = {
       address,
       blockNumber: 1,
       data: '',
@@ -38,7 +38,7 @@ describe('TxPoolProcessor Unit Tests', () => {
       type
     };
 
-    await processor.process(null, filterTx, pool);
+    await processor.process(filterTx, pool);
 
     const res = pool.get(transactionHash);
 
@@ -58,7 +58,7 @@ describe('TxPoolProcessor Unit Tests', () => {
     const tx = { to: address, gasPrice };
     const { processor, pool } = setup(tx);
 
-    const filterTx : IFilterTx = {
+    const filterTx: IFilterTx = {
       address,
       data: '',
       transactionIndex: 0,
@@ -70,7 +70,7 @@ describe('TxPoolProcessor Unit Tests', () => {
       type
     };
 
-    await processor.process(null, filterTx, pool);
+    await processor.process(filterTx, pool);
 
     const res = pool.get(transactionHash);
 

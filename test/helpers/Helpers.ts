@@ -1,4 +1,5 @@
 import Web3 = require('web3');
+import { JsonRPCResponse } from 'web3/providers';
 
 export const getHelperMethods = (web3: Web3) => {
   function sendRpc(method: any, params?: any): Promise<any> {
@@ -10,12 +11,7 @@ export const getHelperMethods = (web3: Web3) => {
           params: params || [],
           id: new Date().getTime()
         },
-        (err: any, res: any) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(res);
-        }
+        Object.assign((err: Error, res: JsonRPCResponse) => resolve(res))
       );
     });
   }
