@@ -10,7 +10,7 @@ import { IWalletReceipt } from './IWalletReceipt';
 import { IAccountState, AccountState, TransactionState } from './AccountState';
 import { Operation } from '../Types/Operation';
 import { TransactionReceipt } from 'web3/types';
-import { Util, ISchedulingOptions } from '@ethereum-alarm-clock/lib';
+import { Util } from '@ethereum-alarm-clock/lib';
 import ethTx = require('ethereumjs-tx');
 import PromiEvent from 'web3/promiEvent';
 
