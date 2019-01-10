@@ -11,10 +11,7 @@ export const getHelperMethods = (web3: Web3) => {
           params: params || [],
           id: new Date().getTime()
         },
-        Object.assign(
-          (err: Error) => reject(err),
-          (err: null, res: JsonRPCResponse) => resolve(res)
-        )
+        Object.assign((err: Error, res: JsonRPCResponse) => resolve(res))
       );
     });
   }
