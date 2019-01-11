@@ -16,11 +16,11 @@ const abortReasonToExecuteStatus = new Map<AbortReason, TxSendStatus>([
   [AbortReason.Unknown, TxSendStatus.ABORTED_UNKNOWN]
 ]);
 
-function isExecuted(receipt: TransactionReceipt) : boolean {
+function isExecuted(receipt: TransactionReceipt): boolean {
   return Boolean(receipt) && receipt.logs[0].topics.indexOf(EXECUTED_EVENT) > -1;
 }
 
-function isAborted(receipt: TransactionReceipt) : boolean {
+function isAborted(receipt: TransactionReceipt): boolean {
   return Boolean(receipt) && receipt.logs[0].topics.indexOf(ABORTED_EVENT) > -1;
 }
 

@@ -88,11 +88,7 @@ export default class Config implements IConfigParams {
     this.pending = new Pending(this.gasPriceUtil, this.txPool);
 
     if (params.walletStores && params.walletStores.length && params.walletStores.length > 0) {
-      this.wallet = new Wallet(
-        this.util,
-        new AccountState(),
-        this.logger
-      );
+      this.wallet = new Wallet(this.util, new AccountState(), this.logger);
 
       params.walletStores = params.walletStores.map((store: object | string) => {
         if (typeof store === 'object') {

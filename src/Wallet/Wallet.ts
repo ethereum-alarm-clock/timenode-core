@@ -171,7 +171,7 @@ export class Wallet {
       };
     }
 
-    let sentTransaction : PromiEvent<TransactionReceipt>;
+    let sentTransaction: PromiEvent<TransactionReceipt>;
     let receipt: TransactionReceipt;
 
     try {
@@ -196,13 +196,10 @@ export class Wallet {
     }
 
     try {
-      const hash : string = (await sentTransaction).transactionHash;
+      const hash: string = (await sentTransaction).transactionHash;
       this.logger.debug(`Awaiting for confirmation for tx ${hash} from ${from}`, opts.to);
 
-      receipt = await this.util.waitForConfirmations(
-        sentTransaction,
-        this.CONFIRMATION_BLOCKS
-      );
+      receipt = await this.util.waitForConfirmations(sentTransaction, this.CONFIRMATION_BLOCKS);
       this.accountState.set(from, opts.to, opts.operation, TransactionState.CONFIRMED);
 
       this.logger.debug(`Transaction ${hash} from ${from} confirmed`, opts.to);

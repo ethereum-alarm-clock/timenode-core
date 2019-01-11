@@ -17,9 +17,7 @@ let wallet: Wallet;
 let myAccount: string;
 let opts: ITransactionOptions;
 
-const createTestWallet = (
-  accountState = new AccountState()
-) => {
+const createTestWallet = (accountState = new AccountState()) => {
   return new Wallet(config.util, accountState);
 };
 
