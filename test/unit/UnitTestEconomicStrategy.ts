@@ -22,7 +22,7 @@ describe('Economic Strategy Tests', () => {
   const defaultGasPrice = new BigNumber(1000);
   const CLAIMING_GAS_ESTIMATE = 100000;
 
-  const defaultClaimingCost = defaultGasPrice.mul(CLAIMING_GAS_ESTIMATE);
+  const defaultClaimingCost = defaultGasPrice.multipliedBy(CLAIMING_GAS_ESTIMATE);
   const defaultPaymentModifier = new BigNumber(10); //10%
   const defaultZeroProfitabilityBounty = defaultClaimingCost.times(100).div(defaultPaymentModifier);
 

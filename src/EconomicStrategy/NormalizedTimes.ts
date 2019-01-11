@@ -45,11 +45,11 @@ export class NormalizedTimes {
   }
 
   private normalizeToBlock(value: BigNumber): BigNumber {
-    return value.div(this.gasStats.blockTime).round();
+    return value.div(this.gasStats.blockTime).decimalPlaces(0);
   }
 
   private normalizeToTimestamp(value: BigNumber): BigNumber {
-    return value.mul(10);
+    return value.multipliedBy(10);
   }
 
   private get isBlock() {

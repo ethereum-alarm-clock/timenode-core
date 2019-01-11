@@ -193,7 +193,7 @@ export default class Router implements IRouter {
 
   public async isTransactionMissed(txRequest: ITransactionRequest): Promise<boolean> {
     const now = await txRequest.now();
-    const afterExecutionWindow = txRequest.executionWindowEnd.lessThanOrEqualTo(now);
+    const afterExecutionWindow = txRequest.executionWindowEnd.isLessThanOrEqualTo(now);
 
     return afterExecutionWindow && !txRequest.wasCalled;
   }

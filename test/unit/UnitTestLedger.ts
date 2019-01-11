@@ -46,7 +46,7 @@ describe('Ledger Unit Tests', async () => {
 
     ledger.accountClaiming(receipt.object, txRequest.object, opts, account2);
 
-    const expectedCost = gasPrice.mul(gas).add(requiredDeposit);
+    const expectedCost = gasPrice.multipliedBy(gas).plus(requiredDeposit);
 
     assert.doesNotThrow(() =>
       stats.verify(x => x.claimed(account2, tx1, expectedCost, true), TypeMoq.Times.once())
@@ -60,7 +60,7 @@ describe('Ledger Unit Tests', async () => {
 
     ledger.accountClaiming(receipt.object, txRequest.object, opts, account2);
 
-    const expectedCost = gasPrice.mul(gas);
+    const expectedCost = gasPrice.multipliedBy(gas);
 
     assert.doesNotThrow(() =>
       stats.verify(x => x.claimed(account2, tx1, expectedCost, false), TypeMoq.Times.once())
@@ -88,7 +88,7 @@ describe('Ledger Unit Tests', async () => {
     const expectedCost = new BigNumber(0);
     const expectedReward = new BigNumber(
       '0x000000000000000000000000000000000000000000000000000fe3c87f4b7363'
-    ).sub(gasUsed.mul(actualGasPrice));
+    ).minus(gasUsed.multipliedBy(actualGasPrice));
 
     assert.doesNotThrow(() =>
       stats.verify(
@@ -106,7 +106,7 @@ describe('Ledger Unit Tests', async () => {
     ledger.accountExecution(txRequest.object, receipt.object, opts, account2, false);
 
     const expectedReward = new BigNumber(0);
-    const expectedCost = gasPrice.mul(gas);
+    const expectedCost = gasPrice.multipliedBy(gas);
 
     assert.doesNotThrow(() =>
       stats.verify(

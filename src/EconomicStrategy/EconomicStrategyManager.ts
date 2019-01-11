@@ -101,9 +101,9 @@ export class EconomicStrategyManager {
     const minGasPrice = txRequest.gasPrice;
     const maxGasPrice = minGasPrice.times(this.maxSubsidyFactor);
 
-    return currentNetworkPrice.greaterThan(maxGasPrice)
+    return currentNetworkPrice.isGreaterThan(maxGasPrice)
       ? maxGasPrice
-      : currentNetworkPrice.lessThan(minGasPrice)
+      : currentNetworkPrice.isLessThan(minGasPrice)
       ? minGasPrice
       : currentNetworkPrice;
   }
@@ -123,7 +123,7 @@ export class EconomicStrategyManager {
     const expectedReward = reward
       .plus(reimbursement)
       .plus(txRequest.isClaimed ? requiredDeposit : 0);
-    const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
+    const shouldExecute = gasCost.isLessThanOrEqualTo(expectedReward);
 
     this.logger.debug(
       `shouldExecuteTx: gasCost=${gasCost} <= expectedReward=${expectedReward} returns ${shouldExecute}`,
@@ -140,7 +140,7 @@ export class EconomicStrategyManager {
 
     const minWindow = temporalUnit === 1 ? minClaimWindowBlock : minClaimWindow;
 
-    return claimWindowEnd.sub(now).lt(minWindow);
+    return claimWindowEnd.minus(now).lt(minWindow);
   }
 
   private tooShortReserved(txRequest: ITransactionRequest): boolean {
@@ -187,11 +187,11 @@ export class EconomicStrategyManager {
     if (gasPrices.length) {
       const subsidyFactor = this.maxSubsidyFactor;
       costOfExecutingFutureTransactions = gasPrices.reduce((sum: BigNumber, current: BigNumber) =>
-        sum.add(current.times(subsidyFactor))
+        sum.plus(current.times(subsidyFactor))
       );
     }
 
-    const requiredBalance = minBalance.add(costOfExecutingFutureTransactions);
+    const requiredBalance = minBalance.plus(costOfExecutingFutureTransactions);
     const isAboveMinBalanceLimit = currentBalance.gt(requiredBalance);
 
     this.logger.debug(
@@ -211,7 +211,7 @@ export class EconomicStrategyManager {
     const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
     const minProfitability = this.strategy.minProfitability;
 
-    const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
+    const isProfitable = reward.isGreaterThanOrEqualTo(minProfitability);
 
     this.logger.debug(
       `isClaimingProfitable: paymentModifier=${paymentModifier} targetGasPrice=${targetGasPrice} bounty=${
@@ -239,9 +239,10 @@ export class EconomicStrategyManager {
     const inReservedWindow = await txRequest.inReservedWindow();
 
     const timeLeft = inReservedWindow
-      ? txRequest.reservedWindowEnd.sub(now)
-      : txRequest.executionWindowEnd.sub(now);
-    const normalizedTimeLeft = temporalUnit === 1 ? timeLeft.mul(gasStats.blockTime) : timeLeft;
+      ? txRequest.reservedWindowEnd.plus(now)
+      : txRequest.executionWindowEnd.plus(now);
+    const normalizedTimeLeft =
+      temporalUnit === 1 ? timeLeft.multipliedBy(gasStats.blockTime) : timeLeft;
 
     const gasEstimation = new NormalizedTimes(gasStats, temporalUnit).pickGasPrice(
       normalizedTimeLeft

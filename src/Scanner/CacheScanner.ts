@@ -89,9 +89,9 @@ export default class CacheScanner extends BaseScanner {
     currentClaimWindowStart: BigNumber,
     nextClaimWindowStart: BigNumber
   ): number {
-    if (currentClaimWindowStart.lessThan(nextClaimWindowStart)) {
+    if (currentClaimWindowStart.isLessThan(nextClaimWindowStart)) {
       return -1;
-    } else if (currentClaimWindowStart.greaterThan(nextClaimWindowStart)) {
+    } else if (currentClaimWindowStart.isGreaterThan(nextClaimWindowStart)) {
       return 1;
     }
     return 0;
@@ -118,12 +118,12 @@ export default class CacheScanner extends BaseScanner {
     const blockTime = currentTx.temporalUnit === 1 ? 1 : this.avgBlockTime;
 
     const blockDifference = currentTx.windowStart.minus(nextTx.windowStart).abs();
-    const isInSameBlock = blockDifference.lessThanOrEqualTo(blockTime);
+    const isInSameBlock = blockDifference.isLessThanOrEqualTo(blockTime);
 
     if (isInSameBlock) {
-      if (currentTx.bounty.lessThan(nextTx.bounty)) {
+      if (currentTx.bounty.isLessThan(nextTx.bounty)) {
         return 1;
-      } else if (currentTx.bounty.greaterThan(nextTx.bounty)) {
+      } else if (currentTx.bounty.isGreaterThan(nextTx.bounty)) {
         return -1;
       }
     }

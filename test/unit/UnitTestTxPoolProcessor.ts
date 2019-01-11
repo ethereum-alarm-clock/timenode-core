@@ -46,7 +46,7 @@ describe('TxPoolProcessor Unit Tests', () => {
     assert.equal(res.operation, Operation.CLAIM);
     assert.equal(res.to, address);
     assert.equal(res.type, type);
-    assert.isTrue(res.gasPrice.equals(gasPrice));
+    assert.isTrue(res.gasPrice.isEqualTo(gasPrice));
   });
 
   it('registers tx in pool with mined type', async () => {
@@ -78,6 +78,6 @@ describe('TxPoolProcessor Unit Tests', () => {
     assert.equal(res.operation, Operation.EXECUTE);
     assert.equal(res.to, address);
     assert.equal(res.type, type);
-    assert.isTrue(res.gasPrice.equals(gasPrice));
+    assert.isTrue(res.gasPrice.isEqualTo(gasPrice));
   });
 });

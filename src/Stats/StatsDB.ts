@@ -159,14 +159,15 @@ export class StatsDB implements IStatsDB {
       .where((item: IStatsEntry) => item.from === from && item.cost.gt(0))
       .mapReduce(
         (item: IStatsEntry) => item.cost,
-        (costs: BigNumber[]) => costs.reduce((sum, cost) => sum.add(cost), new BigNumber(0))
+        (costs: BigNumber[]) => costs.reduce((sum, cost) => sum.plus(cost), new BigNumber(0))
       );
   }
 
   public totalBounty(from: string): BigNumber {
     return this.select(from, StatsEntryAction.Execute, StatsEntryResult.OK).mapReduce(
       (item: IStatsEntry) => item.bounty,
-      (bounties: BigNumber[]) => bounties.reduce((sum, bounty) => sum.add(bounty), new BigNumber(0))
+      (bounties: BigNumber[]) =>
+        bounties.reduce((sum, bounty) => sum.plus(bounty), new BigNumber(0))
     );
   }
 
