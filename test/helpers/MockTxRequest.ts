@@ -76,7 +76,7 @@ const mockTxRequest = async (web3: Web3, isBlock?: boolean): Promise<ITransactio
       const now = await this.now();
       return (
         this.windowStart.isLessThanOrEqualTo(now) &&
-        this.executionWindowEnd.greaterThanOrEqualTo(now)
+        this.executionWindowEnd.isGreaterThanOrEqualTo(now)
       );
     },
     async inReservedWindow() {
