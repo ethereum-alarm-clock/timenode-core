@@ -9,7 +9,7 @@ export enum TxSendStatus {
 
   BUSY = 'Sending transaction is already in progress. Please wait for account to complete tx.',
   PROGRESS = 'Transaction in progress',
-  MINED = 'Transaction minded in uncle block',
+  MINED_IN_UNCLE = 'Transaction mined in uncle block',
   FAIL = 'FAILED',
   PENDING = 'PENDING',
 
@@ -29,7 +29,7 @@ export enum TxSendStatus {
 export namespace TxSendStatus {
   export function STATUS(msg: TxSendStatus, context: TxSendStatus) {
     switch (msg) {
-      case 'SUCCESS':
+      case TxSendStatus.SUCCESS:
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Success';
@@ -39,7 +39,7 @@ export namespace TxSendStatus {
             break;
         }
         break;
-      case 'Sending transaction is already in progress. Please wait for account to complete tx.':
+      case TxSendStatus.BUSY:
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Skipped - Account is busy';
@@ -49,7 +49,7 @@ export namespace TxSendStatus {
             break;
         }
         break;
-      case 'Transaction in progress':
+      case TxSendStatus.PROGRESS:
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Skipped - In progress';
@@ -59,7 +59,7 @@ export namespace TxSendStatus {
             break;
         }
         break;
-      case 'PENDING':
+      case TxSendStatus.PENDING:
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Skipped - Other claiming found';
@@ -69,7 +69,7 @@ export namespace TxSendStatus {
             break;
         }
         break;
-      case 'FAILED':
+      case TxSendStatus.FAIL:
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Transaction already claimed';
@@ -79,7 +79,7 @@ export namespace TxSendStatus {
             break;
         }
         break;
-      case 'Transaction minded in uncle block':
+      case TxSendStatus.MINED_IN_UNCLE:
         switch (context) {
           case TxSendStatus.claim:
             this.TYPE_VARIABLE = 'Claiming: Transaction mined in uncle block';

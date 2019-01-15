@@ -9,6 +9,7 @@ import { AccountState, TransactionState } from '../../src/Wallet/AccountState';
 import { Operation } from '../../src/Types/Operation';
 import ITransactionOptions from '../../src/Types/ITransactionOptions';
 import { IWalletReceipt } from '../../src/Wallet';
+import { scheduleTestTx } from '../helpers/scheduleTestTx';
 
 const PRIVATE_KEY = 'fdf2e15fd858d9d81e31baa1fe76de9c7d49af0018a1322aa2b9e493b02afa26';
 
@@ -27,7 +28,7 @@ const fundWallet = async (address: string) => {
       {
         from: myAccount,
         to: address,
-        value: config.web3.utils.toWei('0.5', 'ether')
+        value: config.web3.utils.toWei('0.1', 'ether')
       },
       () => setTimeout(resolve, 1000)
     );
@@ -45,7 +46,7 @@ const reset = async () => {
     to: myAccount,
     gas: new BigNumber('150000'),
     gasPrice: new BigNumber(config.web3.utils.toWei('21', 'gwei')),
-    value: new BigNumber(config.web3.utils.toWei('0.1', 'ether')),
+    value: new BigNumber(config.web3.utils.toWei('0.01', 'ether')),
     operation: Operation.CLAIM,
     data: ''
   };
@@ -236,7 +237,7 @@ describe('Wallet Unit Tests', () => {
       receipt = await wallet.sendFromIndex(idx, opts);
 
       assert.isTrue(isTransactionStatusSuccessful(receipt.receipt.status));
-    }).timeout(10000);
+    }).timeout(25000);
 
     it('returns receipt when is able to send the transaction', async () => {
       wallet.create(1);
@@ -260,8 +261,67 @@ describe('Wallet Unit Tests', () => {
 
       assert.property(receipt, 'from');
       assert.property(receipt, 'receipt');
-    }).timeout(10000);
+    }).timeout(15000);
   });
+
+  it('returns receipt after successful claim', async () => {
+    wallet.create(1);
+
+    const idx = 0;
+    const address = wallet.getAddresses()[idx];
+
+    await fundWallet(address);
+
+    const scheduledTxAddress = await scheduleTestTx(255);
+    console.log(`-------------------- Deployed transaction ADDRESS: ` + scheduledTxAddress);
+    const txRequest = config.eac.transactionRequest(scheduledTxAddress);
+
+    await txRequest.fillData();
+
+    opts = {
+      to: scheduledTxAddress,
+      gas: new BigNumber('150000'),
+      gasPrice: new BigNumber(config.web3.utils.toWei('1', 'gwei')),
+      value: new BigNumber(0),
+      operation: Operation.CLAIM,
+      data: txRequest.claimData
+    };
+
+    const receipt = await wallet.sendFromNext(opts);
+
+    assert.equal(TxSendStatus.OK, receipt.status);
+  }).timeout(15000);
+
+  it('returns receipt after already claimed error', async () => {
+    wallet.create(1);
+
+    const idx = 0;
+    const address = wallet.getAddresses()[idx];
+
+    await fundWallet(address);
+
+    const scheduledTxAddress = await scheduleTestTx(255);
+    console.log(`-------------------- Deployed transaction ADDRESS: ` + scheduledTxAddress);
+    const txRequest = config.eac.transactionRequest(scheduledTxAddress);
+
+    await txRequest.fillData();
+
+    opts = {
+      to: scheduledTxAddress,
+      gas: new BigNumber('150000'),
+      gasPrice: new BigNumber(config.web3.utils.toWei('1', 'gwei')),
+      value: new BigNumber(0),
+      operation: Operation.CLAIM,
+      data: txRequest.claimData
+    };
+
+    await wallet.sendFromNext(opts);
+
+    const receipt = await wallet.sendFromNext(opts);
+
+    assert.equal(TxSendStatus.FAIL, receipt.status);
+    assert.exists(receipt.receipt);
+  }).timeout(25000);
 
   describe('sendFromNext()', () => {
     it('generates the next index and sends from it', async () => {

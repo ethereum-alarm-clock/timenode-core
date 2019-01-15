@@ -1,10 +1,11 @@
-import { assert, expect } from 'chai';
-import { TimeNode, Config } from '../../src/index';
-import { mockConfig } from '../helpers';
-import { scheduleTestTx } from './TestScheduleTx';
-import { getHelperMethods } from '../helpers/Helpers';
 import { EAC } from '@ethereum-alarm-clock/lib';
+import { assert, expect } from 'chai';
 import Web3 = require('web3');
+
+import { Config, TimeNode } from '../../src';
+import { mockConfig } from '../helpers';
+import { getHelperMethods } from '../helpers/Helpers';
+import { scheduleTestTx } from '../helpers/scheduleTestTx';
 
 const TIMENODE_ADDRESS = '0x487a54e1d033db51c8ee8c03edac2a0f8a6892c6';
 
