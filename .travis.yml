@@ -16,8 +16,8 @@ before_script:
 script:
   - npx eac-deploy-contracts
   - npm run build
-  - npm run test:e2e
   - npm run test:coverage
+  - npm run test:e2e
 
 after_success:
   - npm run report-coverage
