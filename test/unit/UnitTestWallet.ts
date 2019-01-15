@@ -272,7 +272,7 @@ describe('Wallet Unit Tests', () => {
 
     await fundWallet(address);
 
-    const scheduledTxAddress = await scheduleTestTx(200);
+    const scheduledTxAddress = await scheduleTestTx(255);
     const txRequest = config.eac.transactionRequest(scheduledTxAddress);
 
     await txRequest.fillData();
@@ -299,7 +299,7 @@ describe('Wallet Unit Tests', () => {
 
     await fundWallet(address);
 
-    const scheduledTxAddress = await scheduleTestTx(200);
+    const scheduledTxAddress = await scheduleTestTx(255);
     const txRequest = config.eac.transactionRequest(scheduledTxAddress);
 
     await txRequest.fillData();
