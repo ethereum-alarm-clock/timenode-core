@@ -1,18 +1,18 @@
 // tslint:disable-next-line:no-reference
 /// <reference path="../global.d.ts" />
-
+import { Util } from '@ethereum-alarm-clock/lib';
+import ethTx = require('ethereumjs-tx');
 import * as ethWallet from 'ethereumjs-wallet';
+import { TransactionReceipt } from 'web3/types';
+
 import { TxSendStatus } from '../Enum/TxSendStatus';
 import { DefaultLogger, ILogger } from '../Logger';
 import { Address } from '../Types';
 import ITransactionOptions from '../Types/ITransactionOptions';
-import { IWalletReceipt } from './IWalletReceipt';
-import { IAccountState, AccountState, TransactionState } from './AccountState';
 import { Operation } from '../Types/Operation';
-import { TransactionReceipt } from 'web3/types';
-import { Util } from '@ethereum-alarm-clock/lib';
-import ethTx = require('ethereumjs-tx');
-import PromiEvent from 'web3/promiEvent';
+import { AccountState, IAccountState, TransactionState } from './AccountState';
+import { IWalletReceipt } from './IWalletReceipt';
+import { ITransactionReceiptAwaiter, TransactionReceiptAwaiter } from './TransactionReceiptAwaiter';
 
 export interface V3Wallet {
   privKey: any;
@@ -28,6 +28,7 @@ export class Wallet {
   private logger: ILogger;
   private accounts: V3Wallet[] = [];
   private util: Util;
+  private transactionAwaiter: ITransactionReceiptAwaiter;
 
   constructor(
     util: Util,
@@ -37,6 +38,7 @@ export class Wallet {
     this.logger = logger;
     this.accountState = accountState;
     this.util = util;
+    this.transactionAwaiter = new TransactionReceiptAwaiter(util);
   }
 
   get nextAccount(): V3Wallet {
@@ -171,7 +173,7 @@ export class Wallet {
       };
     }
 
-    let sentTransaction: PromiEvent<TransactionReceipt>;
+    let hash: string;
     let receipt: TransactionReceipt;
 
     try {
@@ -180,8 +182,8 @@ export class Wallet {
       this.logger.info(`Sending ${Operation[opts.operation]}`, opts.to);
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
-      sentTransaction = this.sendRawTransaction(signedTx);
-      receipt = await this.util.waitForConfirmations(sentTransaction, 1);
+      hash = await this.sendRawTransaction(signedTx);
+      receipt = await this.transactionAwaiter.waitForConfirmations(hash, 1);
 
       this.accountState.set(from, opts.to, opts.operation, TransactionState.SENT);
 
@@ -196,10 +198,12 @@ export class Wallet {
     }
 
     try {
-      const hash: string = (await sentTransaction).transactionHash;
       this.logger.debug(`Awaiting for confirmation for tx ${hash} from ${from}`, opts.to);
 
-      receipt = await this.util.waitForConfirmations(sentTransaction, this.CONFIRMATION_BLOCKS);
+      receipt = await await this.transactionAwaiter.waitForConfirmations(
+        hash,
+        this.CONFIRMATION_BLOCKS
+      );
       this.accountState.set(from, opts.to, opts.operation, TransactionState.CONFIRMED);
 
       this.logger.debug(`Transaction ${hash} from ${from} confirmed`, opts.to);
@@ -230,10 +234,13 @@ export class Wallet {
     return this.getAddresses().some(addr => addr === address);
   }
 
-  public sendRawTransaction(tx: any): PromiEvent<TransactionReceipt> {
+  public async sendRawTransaction(tx: any): Promise<string> {
     const serialized = '0x'.concat(tx.serialize().toString('hex'));
 
-    return this.util.sendRawTransaction(serialized);
+    const sending = this.util.sendRawTransaction(serialized);
+    return new Promise<string>(resolve =>
+      sending.once('transactionHash', receipt => resolve(receipt))
+    );
   }
 
   private async signTransaction(from: V3Wallet, nonce: number | string, opts: any): Promise<ethTx> {
