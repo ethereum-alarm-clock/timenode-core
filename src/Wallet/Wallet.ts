@@ -182,7 +182,13 @@ export class Wallet {
       this.logger.info(`Sending ${Operation[opts.operation]}`, opts.to);
       this.logger.debug(`Tx: ${JSON.stringify(signedTx)}`);
 
-      hash = await this.sendRawTransaction(signedTx);
+      const res = await this.sendRawTransaction(signedTx);
+      hash = res.hash;
+
+      if (res.error && !this.isEVMError(res.error)) {
+        throw res.error;
+      }
+
       receipt = await this.transactionAwaiter.waitForConfirmations(hash, 1);
 
       this.accountState.set(from, opts.to, opts.operation, TransactionState.SENT);
@@ -231,12 +237,15 @@ export class Wallet {
     return this.getAddresses().some(addr => addr === address);
   }
 
-  public async sendRawTransaction(tx: any): Promise<string> {
+  public async sendRawTransaction(tx: ethTx): Promise<{ hash: string; error?: Error }> {
     const serialized = '0x'.concat(tx.serialize().toString('hex'));
 
     const sending = this.util.sendRawTransaction(serialized);
-    return new Promise<string>(resolve =>
-      sending.once('transactionHash', receipt => resolve(receipt))
+
+    return new Promise<{ hash: string; error?: Error }>(resolve =>
+      sending
+        .once('transactionHash', receipt => resolve({ hash: receipt }))
+        .on('error', error => resolve({ hash: tx.hash().toString('hex'), error }))
     );
   }
 
@@ -263,5 +272,9 @@ export class Wallet {
     }
 
     return false;
+  }
+
+  private isEVMError(error: Error): boolean {
+    return error && error.message.includes('reverted by the EVM');
   }
 }

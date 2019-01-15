@@ -237,7 +237,7 @@ describe('Wallet Unit Tests', () => {
       receipt = await wallet.sendFromIndex(idx, opts);
 
       assert.isTrue(isTransactionStatusSuccessful(receipt.receipt.status));
-    }).timeout(10000);
+    }).timeout(25000);
 
     it('returns receipt when is able to send the transaction', async () => {
       wallet.create(1);
@@ -261,7 +261,7 @@ describe('Wallet Unit Tests', () => {
 
       assert.property(receipt, 'from');
       assert.property(receipt, 'receipt');
-    }).timeout(10000);
+    }).timeout(15000);
   });
 
   it('returns receipt after successful claim', async () => {
@@ -272,7 +272,7 @@ describe('Wallet Unit Tests', () => {
 
     await fundWallet(address);
 
-    const scheduledTxAddress = await scheduleTestTx();
+    const scheduledTxAddress = await scheduleTestTx(200);
     const txRequest = config.eac.transactionRequest(scheduledTxAddress);
 
     await txRequest.fillData();
@@ -289,7 +289,7 @@ describe('Wallet Unit Tests', () => {
     const receipt = await wallet.sendFromNext(opts);
 
     assert.equal(TxSendStatus.OK, receipt.status);
-  }).timeout(10000);
+  }).timeout(15000);
 
   it('returns receipt after already claimed error', async () => {
     wallet.create(1);
@@ -299,7 +299,7 @@ describe('Wallet Unit Tests', () => {
 
     await fundWallet(address);
 
-    const scheduledTxAddress = await scheduleTestTx();
+    const scheduledTxAddress = await scheduleTestTx(200);
     const txRequest = config.eac.transactionRequest(scheduledTxAddress);
 
     await txRequest.fillData();
@@ -319,7 +319,7 @@ describe('Wallet Unit Tests', () => {
 
     assert.equal(TxSendStatus.FAIL, receipt.status);
     assert.exists(receipt.receipt);
-  }).timeout(10000);
+  }).timeout(25000);
 
   describe('sendFromNext()', () => {
     it('generates the next index and sends from it', async () => {
