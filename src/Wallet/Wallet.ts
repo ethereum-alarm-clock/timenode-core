@@ -211,7 +211,7 @@ export class Wallet {
       this.accountState.set(from, opts.to, opts.operation, TransactionState.ERROR);
       return {
         from,
-        status: TxSendStatus.MINED
+        status: TxSendStatus.MINED_IN_UNCLE
       };
     }
 
