@@ -200,10 +200,7 @@ export class Wallet {
     try {
       this.logger.debug(`Awaiting for confirmation for tx ${hash} from ${from}`, opts.to);
 
-      receipt = await await this.transactionAwaiter.waitForConfirmations(
-        hash,
-        this.CONFIRMATION_BLOCKS
-      );
+      receipt = await this.transactionAwaiter.waitForConfirmations(hash, this.CONFIRMATION_BLOCKS);
       this.accountState.set(from, opts.to, opts.operation, TransactionState.CONFIRMED);
 
       this.logger.debug(`Transaction ${hash} from ${from} confirmed`, opts.to);
