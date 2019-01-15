@@ -72,10 +72,10 @@ export default class Actions implements IActions {
       return TxSendStatus.STATUS(TxSendStatus.SUCCESS, context);
     } else if (status === TxSendStatus.UNKNOWN_ERROR) {
       this.logger.error(status);
+      return TxSendStatus.STATUS(TxSendStatus.FAIL, context);
     } else {
       return TxSendStatus.STATUS(status, context);
     }
-    return TxSendStatus.STATUS(TxSendStatus.FAIL, context);
   }
 
   public async execute(txRequest: ITransactionRequest, gasPrice: BigNumber): Promise<TxSendStatus> {

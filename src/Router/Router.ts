@@ -256,8 +256,8 @@ export default class Router implements IRouter {
       case TxSendStatus.STATUS(TxSendStatus.PENDING, TxSendStatus.claim):
       case TxSendStatus.STATUS(TxSendStatus.BUSY, TxSendStatus.execute):
       case TxSendStatus.STATUS(TxSendStatus.PENDING, TxSendStatus.execute):
-      case TxSendStatus.STATUS(TxSendStatus.MINED, TxSendStatus.execute):
-      case TxSendStatus.STATUS(TxSendStatus.MINED, TxSendStatus.claim):
+      case TxSendStatus.STATUS(TxSendStatus.MINED_IN_UNCLE, TxSendStatus.execute):
+      case TxSendStatus.STATUS(TxSendStatus.MINED_IN_UNCLE, TxSendStatus.claim):
         this.logger.info(status, txRequest.address);
         break;
       case TxSendStatus.STATUS(TxSendStatus.FAIL, TxSendStatus.claim):
