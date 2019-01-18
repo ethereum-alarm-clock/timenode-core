@@ -1,6 +1,6 @@
 {
   "name": "@ethereum-alarm-clock/timenode-core",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "description": "Contains key logic for the Ethereum Alarm Clock TimeNode",
   "main": "index.js",
   "scripts": {
