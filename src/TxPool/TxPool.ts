@@ -1,33 +1,13 @@
 import { CLAIMED_EVENT, EXECUTED_EVENT } from '../Actions/Helpers';
-import BigNumber from 'bignumber.js';
 import { ILogger } from '../Logger';
-import { Operation } from '../Types/Operation';
 import TxPoolProcessor from './TxPoolProcessor';
 import Web3 = require('web3');
 import { Subscribe, Log, Callback } from 'web3/types';
 import { Util } from '@ethereum-alarm-clock/lib';
+import { ITxPool, ITxPoolTxDetails } from './ITxPool';
 
 const SCAN_INTERVAL = 5000;
 const TIME_IN_POOL = 5 * 60 * 1000;
-
-export interface IFilterTx extends Log {
-  type: string;
-}
-
-export interface ITxPoolTxDetails {
-  to: string;
-  gasPrice: BigNumber;
-  timestamp: number;
-  type: string;
-  operation: Operation;
-}
-
-export interface ITxPool {
-  pool: Map<string, ITxPoolTxDetails>;
-  running(): boolean;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-}
 
 export default class TxPool implements ITxPool {
   public pool: Map<string, ITxPoolTxDetails> = new Map<string, ITxPoolTxDetails>();
@@ -104,9 +84,7 @@ export default class TxPool implements ITxPool {
 
     subscription.on('data', (data: Log) => {
       if (data.topics && data.topics.indexOf(topic) !== -1) {
-        const filterTxData = data as IFilterTx;
-        filterTxData.type = 'pending';
-        this.txPoolProcessor.process(filterTxData, this.pool);
+        this.txPoolProcessor.process(data, this.pool);
       }
     });
 
