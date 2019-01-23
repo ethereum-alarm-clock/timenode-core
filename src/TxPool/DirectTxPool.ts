@@ -131,7 +131,7 @@ export default class DirectTxPool implements ITxPool {
     const data = tx.data.toString('hex');
     let result = Operation.OTHER;
 
-    if (data.startsWith(DirectTxPool.ClaimData) || data.startsWith('a9059cbb')) {
+    if (data.startsWith(DirectTxPool.ClaimData)) {
       result = Operation.CLAIM;
     } else if (data.startsWith(DirectTxPool.ExecuteData)) {
       result = Operation.EXECUTE;
