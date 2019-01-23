@@ -11,25 +11,20 @@ import { DefaultLogger, ILogger } from '../Logger';
 import { Operation } from '../Types/Operation';
 
 export default class DirectTxPool implements ITxPool {
-  private static ClientIdFilter = [
-    'go1.5',
-    'go1.6',
-    'go1.7',
-    'quorum',
-    'pirl',
-    'ubiq',
-    'gmc',
-    'gwhale',
-    'prichain'
-  ];
-  private static ExecuteData = '0x61461954';
-  private static ClaimData = '0x4e71d92d';
+  private static ExecuteData = '61461954';
+  private static ClaimData = '4e71d92d';
+  private static MaxPeers = 25;
 
   public pool: Map<string, ITxPoolTxDetails> = new Map<string, ITxPoolTxDetails>();
   private isRunning: boolean = false;
   private web3: Web3;
   private privateKey: Buffer;
   private logger: ILogger;
+
+  private dpt: any;
+  private rlpx: any;
+
+  private status: NodeJS.Timeout;
 
   constructor(web3: Web3, logger: ILogger = new DefaultLogger()) {
     this.web3 = web3;
@@ -48,7 +43,9 @@ export default class DirectTxPool implements ITxPool {
     }
   }
   // tslint:disable-next-line:no-empty
-  public async stop() {}
+  public async stop() {
+    clearInterval(this.status);
+  }
 
   private get bootNodes() {
     return bootstrapNodes
@@ -65,7 +62,9 @@ export default class DirectTxPool implements ITxPool {
   }
 
   private bootstrap(bootNodes: any[]) {
-    const dpt = new devp2p.DPT(this.privateKey, {
+    this.logger.debug(`[p2p] Bootstraping with ${bootNodes.length} nodes`);
+
+    this.dpt = new devp2p.DPT(this.privateKey, {
       refreshInterval: 30000,
       endpoint: {
         address: '0.0.0.0',
@@ -75,18 +74,28 @@ export default class DirectTxPool implements ITxPool {
     });
 
     bootNodes.forEach((bootNode: any) => {
-      dpt.bootstrap(bootNode);
+      this.dpt
+        .bootstrap(bootNode)
+        .catch((e: Error) => this.logger.debug(`[p2p] bootstrap error ${e.message}`));
     });
 
-    return dpt;
+    clearInterval(this.status);
+    this.status = setInterval(() => {
+      const peersCount = this.dpt.getPeers().length;
+      const openSlots = this.rlpx._getOpenSlots();
+      const connected = DirectTxPool.MaxPeers - openSlots;
+
+      this.logger.debug(
+        `[p2p] Discovered ${peersCount} nodes, connected to ${connected}/${DirectTxPool.MaxPeers}`
+      );
+    }, 60 * 1000);
   }
 
-  private register(dpt: any) {
+  private register() {
     return new devp2p.RLPx(this.privateKey, {
-      dpt,
-      maxPeers: 25,
-      capabilities: [devp2p.ETH.eth63, devp2p.ETH.eth62],
-      remoteClientIdFilter: DirectTxPool.ClientIdFilter,
+      dpt: this.dpt,
+      maxPeers: DirectTxPool.MaxPeers,
+      capabilities: [devp2p.ETH.eth63],
       listenPort: null
     });
   }
@@ -106,11 +115,7 @@ export default class DirectTxPool implements ITxPool {
     });
   }
 
-  private peerAdded(peer: any, rlpx: any) {
-    const totalPeers = rlpx.getPeers().length;
-
-    this.logger.debug(`[p2p] Peer added ${this.getPeerAddress(peer)} total peers: ${totalPeers}`);
-
+  private peerAdded(peer: any) {
     const eth = peer.getProtocols()[0];
 
     this.sendStatus(eth);
@@ -122,28 +127,11 @@ export default class DirectTxPool implements ITxPool {
     });
   }
 
-  private peerRemoved(peer: any, reasonCode: any, disconnectWe: any, rlpx: any) {
-    const who = disconnectWe ? 'we disconnect' : 'peer disconnect';
-    const totalPeers = rlpx.getPeers().length;
-
-    this.logger.debug(
-      `[p2p] Peer removed: ${this.getPeerAddress(
-        peer
-      )} - ${who}, reason: ${peer.getDisconnectPrefix(reasonCode)} (${String(
-        reasonCode
-      )}) total peers: ${totalPeers}`
-    );
-  }
-
-  private getPeerAddress(peer: any) {
-    return `${peer._socket.remoteAddress}:${peer._socket.remotePort}`;
-  }
-
   private decodeOperation(tx: EthereumTx): Operation {
     const data = tx.data.toString('hex');
-    let result = null;
+    let result = Operation.OTHER;
 
-    if (data.startsWith(DirectTxPool.ClaimData)) {
+    if (data.startsWith(DirectTxPool.ClaimData) || data.startsWith('a9059cbb')) {
       result = Operation.CLAIM;
     } else if (data.startsWith(DirectTxPool.ExecuteData)) {
       result = Operation.EXECUTE;
@@ -153,33 +141,36 @@ export default class DirectTxPool implements ITxPool {
   }
 
   private onTransaction(payload: any[]) {
-    for (const rawTx of payload) {
-      const tx = new EthereumTx(rawTx);
-      const hash = tx.hash().toString('hex');
-      const operation = this.decodeOperation(tx);
-      if (!this.pool.has(hash) && tx.validate(false) && operation) {
-        this.logger.debug(`[p2p] Transaction discovered ${hash} to ${tx.to.toString('hex')}`);
+    try {
+      for (const rawTx of payload) {
+        const tx = new EthereumTx(rawTx);
+        const hash = tx.hash().toString('hex');
+        const operation = this.decodeOperation(tx);
+        if (!this.pool.has(hash) && tx.validate(false) && operation !== Operation.OTHER) {
+          this.logger.debug(`[p2p] Transaction discovered ${hash} to ${tx.to.toString('hex')}`);
 
-        this.pool.set(hash, {
-          to: tx.to.toString('hex'),
-          gasPrice: new BigNumber(tx.gasPrice.toString('hex')),
-          operation,
-          timestamp: new Date().getTime()
-        });
+          const to = `0x${tx.to.toString('hex')}`;
+          const gasPrice = new BigNumber(`0x${tx.gasPrice.toString('hex')}`);
+
+          this.pool.set(hash, {
+            to,
+            gasPrice,
+            operation,
+            timestamp: new Date().getTime()
+          });
+        }
       }
+    } catch (e) {
+      this.logger.error(`[p2p] onTransaction error ${e.message}`);
     }
   }
 
   private startListening() {
-    const dpt = this.bootstrap(this.bootNodes);
-    const rlpx = this.register(dpt);
+    this.bootstrap(this.bootNodes);
+    this.rlpx = this.register();
 
-    rlpx.on('peer:added', (peer: any) => {
-      this.peerAdded(peer, rlpx);
-    });
-
-    rlpx.on('peer:removed', (peer: any, reasonCode: any, disconnectWe: any) => {
-      this.peerRemoved(peer, reasonCode, disconnectWe, rlpx);
+    this.rlpx.on('peer:added', (peer: any) => {
+      this.peerAdded(peer);
     });
   }
 }

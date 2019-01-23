@@ -1,4 +1,5 @@
 export enum Operation {
   CLAIM,
-  EXECUTE
+  EXECUTE,
+  OTHER
 }
