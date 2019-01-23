@@ -1,10 +1,13 @@
+import { Networks } from '@ethereum-alarm-clock/lib';
 import BigNumber from 'bignumber.js';
 import { randomBytes } from 'crypto';
 import { bootstrapNodes } from 'ethereum-common';
-import { devp2p } from 'ethereumjs-devp2p';
+import * as devp2p from 'ethereumjs-devp2p';
 import EthereumTx = require('ethereumjs-tx');
+import Web3 = require('web3');
 
 import { ITxPool, ITxPoolTxDetails } from '.';
+import { DefaultLogger, ILogger } from '../Logger';
 import { Operation } from '../Types/Operation';
 
 export default class DirectTxPool implements ITxPool {
@@ -22,14 +25,16 @@ export default class DirectTxPool implements ITxPool {
   private static ExecuteData = '0x61461954';
   private static ClaimData = '0x4e71d92d';
 
-  public pool: Map<string, ITxPoolTxDetails>;
+  public pool: Map<string, ITxPoolTxDetails> = new Map<string, ITxPoolTxDetails>();
   private isRunning: boolean = false;
-  private chainId: number;
+  private web3: Web3;
   private privateKey: Buffer;
+  private logger: ILogger;
 
-  constructor(chainId: number) {
-    this.chainId = chainId;
+  constructor(web3: Web3, logger: ILogger = new DefaultLogger()) {
+    this.web3 = web3;
     this.privateKey = randomBytes(32);
+    this.logger = logger;
   }
 
   public running(): boolean {
@@ -37,18 +42,18 @@ export default class DirectTxPool implements ITxPool {
   }
 
   public async start() {
-    if (!this.isRunning) {
+    const chainId = await this.web3.eth.net.getId();
+    if (!this.isRunning && chainId === Networks.Mainnet) {
       this.startListening();
     }
   }
-  public async stop() {
-    throw new Error('Method not implemented.');
-  }
+  // tslint:disable-next-line:no-empty
+  public async stop() {}
 
   private get bootNodes() {
     return bootstrapNodes
       .filter((node: any) => {
-        return node.chainId === this.chainId;
+        return node.chainId === Networks.Mainnet;
       })
       .map((node: any) => {
         return {
@@ -88,7 +93,7 @@ export default class DirectTxPool implements ITxPool {
 
   private sendStatus(eth: any) {
     eth.sendStatus({
-      networkId: this.chainId,
+      networkId: Networks.Mainnet,
       td: devp2p._util.int2buffer(17179869184), // total difficulty in genesis block
       bestHash: Buffer.from(
         'd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3',
@@ -101,15 +106,37 @@ export default class DirectTxPool implements ITxPool {
     });
   }
 
-  private peerAdded(peer: any) {
+  private peerAdded(peer: any, rlpx: any) {
+    const totalPeers = rlpx.getPeers().length;
+
+    this.logger.debug(`[p2p] Peer added ${this.getPeerAddress(peer)} total peers: ${totalPeers}`);
+
     const eth = peer.getProtocols()[0];
 
     this.sendStatus(eth);
+
     eth.on('message', async (code: any, payload: any[]) => {
       if (code === devp2p.ETH.MESSAGE_CODES.TX) {
         this.onTransaction(payload);
       }
     });
+  }
+
+  private peerRemoved(peer: any, reasonCode: any, disconnectWe: any, rlpx: any) {
+    const who = disconnectWe ? 'we disconnect' : 'peer disconnect';
+    const totalPeers = rlpx.getPeers().length;
+
+    this.logger.debug(
+      `[p2p] Peer removed: ${this.getPeerAddress(
+        peer
+      )} - ${who}, reason: ${peer.getDisconnectPrefix(reasonCode)} (${String(
+        reasonCode
+      )}) total peers: ${totalPeers}`
+    );
+  }
+
+  private getPeerAddress(peer: any) {
+    return `${peer._socket.remoteAddress}:${peer._socket.remotePort}`;
   }
 
   private decodeOperation(tx: EthereumTx): Operation {
@@ -131,6 +158,8 @@ export default class DirectTxPool implements ITxPool {
       const hash = tx.hash().toString('hex');
       const operation = this.decodeOperation(tx);
       if (!this.pool.has(hash) && tx.validate(false) && operation) {
+        this.logger.debug(`[p2p] Transaction discovered ${hash} to ${tx.to.toString('hex')}`);
+
         this.pool.set(hash, {
           to: tx.to.toString('hex'),
           gasPrice: new BigNumber(tx.gasPrice.toString('hex')),
@@ -146,7 +175,11 @@ export default class DirectTxPool implements ITxPool {
     const rlpx = this.register(dpt);
 
     rlpx.on('peer:added', (peer: any) => {
-      this.peerAdded(peer);
+      this.peerAdded(peer, rlpx);
+    });
+
+    rlpx.on('peer:removed', (peer: any, reasonCode: any, disconnectWe: any) => {
+      this.peerRemoved(peer, reasonCode, disconnectWe, rlpx);
     });
   }
 }

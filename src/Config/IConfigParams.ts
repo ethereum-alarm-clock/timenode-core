@@ -14,4 +14,5 @@ export interface IConfigParams {
   statsDb?: any;
   walletStores?: any;
   walletStoresAsPrivateKeys?: boolean;
+  directTxPool?: boolean;
 }

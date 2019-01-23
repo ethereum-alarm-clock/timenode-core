@@ -1,17 +1,18 @@
 /* eslint no-await-in-loop: 'off' */
-import ChainScanner from './ChainScanner';
+import { Util } from '@ethereum-alarm-clock/lib';
+
 import Config from '../Config';
 import IRouter from '../Router';
+import { ITxPool } from '../TxPool';
 import { IntervalId } from '../Types';
-import { TxPool } from '../TxPool';
-import { Util } from '@ethereum-alarm-clock/lib';
+import ChainScanner from './ChainScanner';
 
 declare const clearInterval: any;
 declare const setInterval: any;
 
 export interface ITimeNodeScanner {
   scanning: boolean;
-  txPool: TxPool;
+  txPool: ITxPool;
 
   start(): Promise<boolean>;
   stop(): Promise<boolean>;
@@ -19,7 +20,7 @@ export interface ITimeNodeScanner {
 
 export default class TimeNodeScanner extends ChainScanner implements ITimeNodeScanner {
   public scanning: boolean = false;
-  public txPool: TxPool;
+  public txPool: ITxPool;
 
   constructor(config: Config, router: IRouter) {
     super(config, router);
