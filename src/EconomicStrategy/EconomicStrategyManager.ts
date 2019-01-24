@@ -99,13 +99,14 @@ export class EconomicStrategyManager {
       : average;
 
     const minProfitabilityPrice = await this.calculateMinProfitabilityGasPrice(txRequest);
-    const minConfirmableGasPrice = txRequest.gasPrice.greaterThan(currentNetworkPrice)
+    const minGasPrice = txRequest.gasPrice.greaterThan(currentNetworkPrice)
       ? txRequest.gasPrice
-      : currentNetworkPrice.greaterThan(minProfitabilityPrice)
-      ? currentNetworkPrice
+      : currentNetworkPrice;
+    const executionGasPrice = minGasPrice.greaterThan(minProfitabilityPrice)
+      ? minGasPrice
       : minProfitabilityPrice;
 
-    return minConfirmableGasPrice;
+    return executionGasPrice;
   }
 
   public async calculateMinProfitabilityGasPrice(
