@@ -222,7 +222,7 @@ export default class DirectTxPool implements ITxPool {
         const hash = tx.hash().toString('hex');
         const operation = this.decodeOperation(tx);
         if (!this.pool.has(hash) && tx.validate(false) && operation !== Operation.OTHER) {
-          this.logger.debug(`[p2p] Transaction discovered ${hash} to ${tx.to.toString('hex')}`);
+          this.logger.debug(`[p2p] Transaction discovered 0x${hash} to 0x${tx.to.toString('hex')}`);
 
           const to = `0x${tx.to.toString('hex')}`;
           const gasPrice = new BigNumber(`0x${tx.gasPrice.toString('hex')}`);
