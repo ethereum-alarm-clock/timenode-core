@@ -98,14 +98,28 @@ export class EconomicStrategyManager {
       ? (await this.smartGasEstimation(txRequest)) || average
       : average;
 
-    const minGasPrice = txRequest.gasPrice;
-    const maxGasPrice = minGasPrice.times(this.maxSubsidyFactor);
+    const minProfitabilityPrice = await this.calculateMinProfitabilityGasPrice(txRequest);
+    const minConfirmableGasPrice = txRequest.gasPrice.greaterThan(currentNetworkPrice)
+      ? txRequest.gasPrice
+      : currentNetworkPrice.greaterThan(minProfitabilityPrice)
+      ? currentNetworkPrice
+      : minProfitabilityPrice;
 
-    return currentNetworkPrice.greaterThan(maxGasPrice)
-      ? maxGasPrice
-      : currentNetworkPrice.lessThan(minGasPrice)
-      ? minGasPrice
-      : currentNetworkPrice;
+    return minConfirmableGasPrice;
+  }
+
+  public async calculateMinProfitabilityGasPrice(
+    txRequest: ITransactionRequest
+  ): Promise<BigNumber> {
+    const { bounty } = txRequest;
+    const gasAmount = this.util.calculateGasAmount(txRequest);
+    const minProfitability = this.strategy.minProfitability;
+
+    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
+    const reward = bounty.times(paymentModifier).minus(minProfitability);
+
+    const minProfitabilityGasPrice = reward.dividedBy(gasAmount);
+    return minProfitabilityGasPrice;
   }
 
   public async shouldExecuteTx(

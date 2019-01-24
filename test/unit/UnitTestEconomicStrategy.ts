@@ -309,6 +309,29 @@ describe('Economic Strategy Tests', () => {
 
       assert.equal(gasPrice.toNumber(), expectedResult.toNumber());
     });
+
+    it('returns min profitability gas price if min profitability gas price is greater than current network price and tx gas price', async () => {
+      const currentGasPrice = defaultGasPrice.div(50);
+      const txRequest = createTxRequest(currentGasPrice, defaultBounty.times(1000)).object;
+
+      const economicStrategyManager = new EconomicStrategyManager(
+        Config.DEFAULT_ECONOMIC_STRATEGY,
+        defaultGasPriceUtil,
+        cache.object,
+        null,
+        defaultUtil
+      );
+      const minProfitabilityPrice = await economicStrategyManager.calculateMinProfitabilityGasPrice(
+        txRequest
+      );
+      const expectedResult = minProfitabilityPrice.gt(currentGasPrice)
+        ? minProfitabilityPrice
+        : currentGasPrice;
+
+      const gasPrice = await economicStrategyManager.getExecutionGasPrice(txRequest);
+
+      assert.equal(gasPrice.toNumber(), expectedResult.toNumber());
+    });
   });
 
   describe('shouldExecuteTx()', () => {
