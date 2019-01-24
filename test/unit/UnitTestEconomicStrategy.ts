@@ -321,9 +321,15 @@ describe('Economic Strategy Tests', () => {
         null,
         defaultUtil
       );
-      const minProfitabilityPrice = await economicStrategyManager.calculateMinProfitabilityGasPrice(
-        txRequest
-      );
+
+      const { bounty } = txRequest;
+      const gasAmount = defaultUtil.calculateGasAmount(txRequest);
+      const minProfitability = Config.DEFAULT_ECONOMIC_STRATEGY.minProfitability;
+
+      const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
+      const reward = bounty.times(paymentModifier).minus(minProfitability);
+      const minProfitabilityPrice = reward.dividedBy(gasAmount);
+
       const minGasPrice = txRequest.gasPrice.greaterThan(currentNetworkPrice)
         ? txRequest.gasPrice
         : currentNetworkPrice;

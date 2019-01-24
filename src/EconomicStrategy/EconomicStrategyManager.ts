@@ -21,6 +21,10 @@ export interface IEconomicStrategyManager {
 }
 
 export class EconomicStrategyManager {
+  private get maxSubsidyFactor(): number {
+    const maxGasSubsidy = this.strategy.maxGasSubsidy / 100;
+    return maxGasSubsidy + 1;
+  }
   public strategy: IEconomicStrategy;
 
   private gasPriceUtil: GasPriceUtil;
@@ -102,25 +106,7 @@ export class EconomicStrategyManager {
     const minGasPrice = txRequest.gasPrice.greaterThan(currentNetworkPrice)
       ? txRequest.gasPrice
       : currentNetworkPrice;
-    const executionGasPrice = minGasPrice.greaterThan(minProfitabilityPrice)
-      ? minGasPrice
-      : minProfitabilityPrice;
-
-    return executionGasPrice;
-  }
-
-  public async calculateMinProfitabilityGasPrice(
-    txRequest: ITransactionRequest
-  ): Promise<BigNumber> {
-    const { bounty } = txRequest;
-    const gasAmount = this.util.calculateGasAmount(txRequest);
-    const minProfitability = this.strategy.minProfitability;
-
-    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
-    const reward = bounty.times(paymentModifier).minus(minProfitability);
-
-    const minProfitabilityGasPrice = reward.dividedBy(gasAmount);
-    return minProfitabilityGasPrice;
+    return minGasPrice.greaterThan(minProfitabilityPrice) ? minGasPrice : minProfitabilityPrice;
   }
 
   public async shouldExecuteTx(
@@ -146,6 +132,19 @@ export class EconomicStrategyManager {
     );
 
     return shouldExecute;
+  }
+
+  private async calculateMinProfitabilityGasPrice(
+    txRequest: ITransactionRequest
+  ): Promise<BigNumber> {
+    const { bounty } = txRequest;
+    const gasAmount = this.util.calculateGasAmount(txRequest);
+    const minProfitability = this.strategy.minProfitability;
+
+    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
+    const reward = bounty.times(paymentModifier).minus(minProfitability);
+
+    return reward.dividedBy(gasAmount);
   }
 
   private async tooShortClaimWindow(txRequest: ITransactionRequest): Promise<boolean> {
@@ -236,11 +235,6 @@ export class EconomicStrategyManager {
     );
 
     return isProfitable;
-  }
-
-  private get maxSubsidyFactor(): number {
-    const maxGasSubsidy = this.strategy.maxGasSubsidy / 100;
-    return maxGasSubsidy + 1;
   }
 
   private async smartGasEstimation(txRequest: ITransactionRequest): Promise<BigNumber | null> {
