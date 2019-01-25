@@ -14,7 +14,7 @@ import { IEconomicStrategyManager } from '../EconomicStrategy/EconomicStrategyMa
 import { Ledger } from '../Actions/Ledger';
 import { Pending } from '../Actions/Pending';
 import { AccountState } from '../Wallet/AccountState';
-import { TxPool } from '../TxPool';
+import { TxPool, DirectTxPool, ITxPool } from '../TxPool';
 import Web3 = require('web3');
 
 export default class Config implements IConfigParams {
@@ -47,11 +47,12 @@ export default class Config implements IConfigParams {
   public scanSpread: any;
   public statsDb: StatsDB;
   public statsDbLoaded: Promise<boolean>;
-  public txPool: TxPool;
+  public txPool: ITxPool;
   public util: Util;
   public wallet: Wallet;
   public web3: Web3;
   public walletStoresAsPrivateKeys: boolean;
+  public directTxPool: boolean;
 
   // tslint:disable-next-line:cognitive-complexity
   constructor(params: IConfigParams) {
@@ -69,13 +70,16 @@ export default class Config implements IConfigParams {
     this.economicStrategy = params.economicStrategy || Config.DEFAULT_ECONOMIC_STRATEGY;
 
     this.autostart = params.autostart !== undefined ? params.autostart : true;
+    this.directTxPool = params.directTxPool || false;
     this.claiming = params.claiming || false;
     this.maxRetries = params.maxRetries || 30;
     this.ms = params.ms || 4000;
     this.scanSpread = params.scanSpread || 50;
     this.walletStoresAsPrivateKeys = params.walletStoresAsPrivateKeys || false;
     this.logger = params.logger || new DefaultLogger();
-    this.txPool = new TxPool(this.web3, this.util, this.logger);
+    this.txPool = this.directTxPool
+      ? new DirectTxPool(this.web3, this.logger)
+      : new TxPool(this.web3, this.util, this.logger);
     this.cache = new Cache(this.logger);
     this.economicStrategyManager = new EconomicStrategyManager(
       this.economicStrategy,

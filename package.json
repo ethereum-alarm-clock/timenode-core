@@ -43,6 +43,9 @@
   "dependencies": {
     "@ethereum-alarm-clock/lib": "0.1.0",
     "bignumber.js": "5.0.0",
+    "ethereum-common": "0.2.1",
+    "ethereumjs-block": "2.1.0",
+    "ethereumjs-devp2p": "2.5.1",
     "ethereumjs-tx": "1.3.7",
     "ethereumjs-wallet": "0.6.3",
     "lokijs": "1.5.6",
