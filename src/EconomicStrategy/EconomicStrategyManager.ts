@@ -62,9 +62,9 @@ export class EconomicStrategyManager {
   public async shouldClaimTx(
     txRequest: ITransactionRequest,
     nextAccount: Address,
-    fastestGas: BigNumber
+    gasPrice: BigNumber
   ): Promise<EconomicStrategyStatus> {
-    const profitable = await this.isClaimingProfitable(txRequest, fastestGas);
+    const profitable = await this.isClaimingProfitable(txRequest, gasPrice);
     if (!profitable) {
       return EconomicStrategyStatus.NOT_PROFITABLE;
     }
@@ -204,23 +204,40 @@ export class EconomicStrategyManager {
 
   private async isClaimingProfitable(
     txRequest: ITransactionRequest,
-    targetGasPrice: BigNumber
+    claimingGasPrice: BigNumber
   ): Promise<boolean> {
-    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
-    const claimingGasCost = targetGasPrice.times(CLAIMING_GAS_ESTIMATE);
-    const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
+    const paymentModifier = await this.getPaymentModifier(txRequest);
+    const claimingGasCost = claimingGasPrice.times(CLAIMING_GAS_ESTIMATE);
+
+    const { gasPrice } = txRequest;
+    const executionGasAmount = this.util.calculateGasAmount(txRequest);
+    let executionSubsidy = new BigNumber(0);
+
+    const { average } = await this.gasPriceUtil.getAdvancedNetworkGasPrice();
+    if (gasPrice < average) {
+      executionSubsidy = average.minus(gasPrice).times(executionGasAmount);
+    }
+
+    const reward = txRequest.bounty
+      .times(paymentModifier)
+      .minus(claimingGasCost)
+      .minus(executionSubsidy);
     const minProfitability = this.strategy.minProfitability;
 
     const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
 
     this.logger.debug(
-      `isClaimingProfitable: paymentModifier=${paymentModifier} targetGasPrice=${targetGasPrice} bounty=${
+      `isClaimingProfitable: paymentModifier=${paymentModifier} targetGasPrice=${claimingGasPrice} bounty=${
         txRequest.bounty
       } reward=${reward} >= minProfitability=${minProfitability} returns ${isProfitable}`,
       txRequest.address
     );
 
     return isProfitable;
+  }
+
+  private async getPaymentModifier(txRequest: ITransactionRequest) {
+    return (await txRequest.claimPaymentModifier()).dividedBy(100);
   }
 
   private get maxSubsidyFactor(): number {
