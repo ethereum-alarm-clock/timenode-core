@@ -6,7 +6,7 @@ import { Address } from '../Types';
 import { IEconomicStrategy } from './IEconomicStrategy';
 import { NormalizedTimes } from './NormalizedTimes';
 import { EAC, Util, GasPriceUtil, ITransactionRequest } from '@ethereum-alarm-clock/lib';
-const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
+import { ProfitabilityCalculator } from './ProfitabilityCalculator';
 
 export interface IEconomicStrategyManager {
   strategy: IEconomicStrategy;
@@ -28,6 +28,7 @@ export class EconomicStrategyManager {
   private logger: ILogger;
   private cache: Cache<ICachedTxDetails>;
   private eac: EAC;
+  private profitabilityCalculator: ProfitabilityCalculator;
 
   constructor(
     strategy: IEconomicStrategy,
@@ -43,6 +44,7 @@ export class EconomicStrategyManager {
     this.logger = logger;
     this.cache = cache;
     this.eac = eac;
+    this.profitabilityCalculator = new ProfitabilityCalculator(util, gasPriceUtil, logger);
 
     if (!this.strategy) {
       throw new Error('Unable to initialize EconomicStrategyManager, strategy is null');
@@ -112,21 +114,14 @@ export class EconomicStrategyManager {
     txRequest: ITransactionRequest,
     targetGasPrice: BigNumber
   ): Promise<boolean> {
-    const { gasPrice, requiredDeposit, bounty } = txRequest;
-    const gasAmount = this.util.calculateGasAmount(txRequest);
-    const reimbursement = gasPrice.times(gasAmount);
-
-    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
-    const reward = bounty.times(paymentModifier);
-
-    const gasCost = targetGasPrice.times(gasAmount);
-    const expectedReward = reward
-      .plus(reimbursement)
-      .plus(txRequest.isClaimed ? requiredDeposit : 0);
-    const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
+    const expectedProfit = await this.profitabilityCalculator.executionProfitability(
+      txRequest,
+      targetGasPrice
+    );
+    const shouldExecute = expectedProfit.greaterThanOrEqualTo(0);
 
     this.logger.debug(
-      `shouldExecuteTx: gasCost=${gasCost} <= expectedReward=${expectedReward} returns ${shouldExecute}`,
+      `shouldExecuteTx: expectedProfit=${expectedProfit} >= 0 returns ${shouldExecute}`,
       txRequest.address
     );
 
@@ -206,38 +201,19 @@ export class EconomicStrategyManager {
     txRequest: ITransactionRequest,
     claimingGasPrice: BigNumber
   ): Promise<boolean> {
-    const paymentModifier = await this.getPaymentModifier(txRequest);
-    const claimingGasCost = claimingGasPrice.times(CLAIMING_GAS_ESTIMATE);
-
-    const { gasPrice } = txRequest;
-    const executionGasAmount = this.util.calculateGasAmount(txRequest);
-    let executionSubsidy = new BigNumber(0);
-
-    const { average } = await this.gasPriceUtil.getAdvancedNetworkGasPrice();
-    if (gasPrice < average) {
-      executionSubsidy = average.minus(gasPrice).times(executionGasAmount);
-    }
-
-    const reward = txRequest.bounty
-      .times(paymentModifier)
-      .minus(claimingGasCost)
-      .minus(executionSubsidy);
+    const expectedProfit = await this.profitabilityCalculator.claimingProfitability(
+      txRequest,
+      claimingGasPrice
+    );
     const minProfitability = this.strategy.minProfitability;
-
-    const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
+    const isProfitable = expectedProfit.greaterThanOrEqualTo(minProfitability);
 
     this.logger.debug(
-      `isClaimingProfitable: paymentModifier=${paymentModifier} targetGasPrice=${claimingGasPrice} bounty=${
-        txRequest.bounty
-      } reward=${reward} >= minProfitability=${minProfitability} returns ${isProfitable}`,
+      `isClaimingProfitable:  claimingGasPrice=${claimingGasPrice} expectedProfit=${expectedProfit} >= minProfitability=${minProfitability} returns ${isProfitable}`,
       txRequest.address
     );
 
     return isProfitable;
-  }
-
-  private async getPaymentModifier(txRequest: ITransactionRequest) {
-    return (await txRequest.claimPaymentModifier()).dividedBy(100);
   }
 
   private get maxSubsidyFactor(): number {

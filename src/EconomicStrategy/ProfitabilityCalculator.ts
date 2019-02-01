@@ -4,7 +4,7 @@ import { ILogger, DefaultLogger } from '../Logger';
 
 const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
 
-export class ProfitabilityStrategy {
+export class ProfitabilityCalculator {
   private util: Util;
   private logger: ILogger;
   private gasPriceUtil: GasPriceUtil;
@@ -18,15 +18,8 @@ export class ProfitabilityStrategy {
   public async claimingProfitability(txRequest: ITransactionRequest, claimingGasPrice: BigNumber) {
     const paymentModifier = await this.getPaymentModifier(txRequest);
     const claimingGasCost = claimingGasPrice.times(CLAIMING_GAS_ESTIMATE);
-
-    const executionGasAmount = this.util.calculateGasAmount(txRequest);
-    let executionSubsidy = new BigNumber(0);
-
     const { average } = await this.gasPriceUtil.getAdvancedNetworkGasPrice();
-
-    if (txRequest.gasPrice < average) {
-      executionSubsidy = average.minus(txRequest.gasPrice).times(executionGasAmount);
-    }
+    const executionSubsidy = this.calculateExecutionSubsidy(txRequest, average);
 
     const reward = txRequest.bounty
       .times(paymentModifier)
@@ -41,6 +34,39 @@ export class ProfitabilityStrategy {
     );
 
     return reward;
+  }
+
+  public async executionProfitability(
+    txRequest: ITransactionRequest,
+    executionGasPrice: BigNumber
+  ) {
+    const paymentModifier = await this.getPaymentModifier(txRequest);
+    const executionSubsidy = this.calculateExecutionSubsidy(txRequest, executionGasPrice);
+    const { requiredDeposit, bounty } = txRequest;
+
+    const reward = bounty
+      .times(paymentModifier)
+      .minus(executionSubsidy)
+      .plus(txRequest.isClaimed ? requiredDeposit : 0)
+      .round();
+
+    this.logger.debug(
+      `executionProfitability: executionSubsidy=${executionSubsidy} for executionGasPrice=${executionGasPrice} returns expectedReward=${reward}`,
+      txRequest.address
+    );
+
+    return reward;
+  }
+
+  private calculateExecutionSubsidy(txRequest: ITransactionRequest, gasPrice: BigNumber) {
+    let executionSubsidy = new BigNumber(0);
+
+    if (txRequest.gasPrice < gasPrice) {
+      const executionGasAmount = this.util.calculateGasAmount(txRequest);
+      executionSubsidy = gasPrice.minus(txRequest.gasPrice).times(executionGasAmount);
+    }
+
+    return executionSubsidy;
   }
 
   private async getPaymentModifier(txRequest: ITransactionRequest) {
