@@ -6,7 +6,7 @@ import { Address } from '../Types';
 import { IEconomicStrategy } from './IEconomicStrategy';
 import { NormalizedTimes } from './NormalizedTimes';
 import { EAC, Util, GasPriceUtil, ITransactionRequest } from '@ethereum-alarm-clock/lib';
-const CLAIMING_GAS_ESTIMATE = 100000; // Claiming gas is around 75k, we add a small surplus
+import { ProfitabilityCalculator } from './ProfitabilityCalculator';
 
 export interface IEconomicStrategyManager {
   strategy: IEconomicStrategy;
@@ -28,6 +28,7 @@ export class EconomicStrategyManager {
   private logger: ILogger;
   private cache: Cache<ICachedTxDetails>;
   private eac: EAC;
+  private profitabilityCalculator: ProfitabilityCalculator;
 
   constructor(
     strategy: IEconomicStrategy,
@@ -43,6 +44,7 @@ export class EconomicStrategyManager {
     this.logger = logger;
     this.cache = cache;
     this.eac = eac;
+    this.profitabilityCalculator = new ProfitabilityCalculator(util, gasPriceUtil, logger);
 
     if (!this.strategy) {
       throw new Error('Unable to initialize EconomicStrategyManager, strategy is null');
@@ -62,9 +64,9 @@ export class EconomicStrategyManager {
   public async shouldClaimTx(
     txRequest: ITransactionRequest,
     nextAccount: Address,
-    fastestGas: BigNumber
+    gasPrice: BigNumber
   ): Promise<EconomicStrategyStatus> {
-    const profitable = await this.isClaimingProfitable(txRequest, fastestGas);
+    const profitable = await this.isClaimingProfitable(txRequest, gasPrice);
     if (!profitable) {
       return EconomicStrategyStatus.NOT_PROFITABLE;
     }
@@ -99,34 +101,22 @@ export class EconomicStrategyManager {
       : average;
 
     const minGasPrice = txRequest.gasPrice;
-    const maxGasPrice = minGasPrice.times(this.maxSubsidyFactor);
 
-    return currentNetworkPrice.greaterThan(maxGasPrice)
-      ? maxGasPrice
-      : currentNetworkPrice.lessThan(minGasPrice)
-      ? minGasPrice
-      : currentNetworkPrice;
+    return currentNetworkPrice.greaterThan(minGasPrice) ? currentNetworkPrice : minGasPrice;
   }
 
   public async shouldExecuteTx(
     txRequest: ITransactionRequest,
     targetGasPrice: BigNumber
   ): Promise<boolean> {
-    const { gasPrice, requiredDeposit, bounty } = txRequest;
-    const gasAmount = this.util.calculateGasAmount(txRequest);
-    const reimbursement = gasPrice.times(gasAmount);
-
-    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
-    const reward = bounty.times(paymentModifier);
-
-    const gasCost = targetGasPrice.times(gasAmount);
-    const expectedReward = reward
-      .plus(reimbursement)
-      .plus(txRequest.isClaimed ? requiredDeposit : 0);
-    const shouldExecute = gasCost.lessThanOrEqualTo(expectedReward);
+    const expectedProfit = await this.profitabilityCalculator.executionProfitability(
+      txRequest,
+      targetGasPrice
+    );
+    const shouldExecute = expectedProfit.greaterThanOrEqualTo(0);
 
     this.logger.debug(
-      `shouldExecuteTx: gasCost=${gasCost} <= expectedReward=${expectedReward} returns ${shouldExecute}`,
+      `shouldExecuteTx: expectedProfit=${expectedProfit} >= 0 returns ${shouldExecute}`,
       txRequest.address
     );
 
@@ -204,19 +194,17 @@ export class EconomicStrategyManager {
 
   private async isClaimingProfitable(
     txRequest: ITransactionRequest,
-    targetGasPrice: BigNumber
+    claimingGasPrice: BigNumber
   ): Promise<boolean> {
-    const paymentModifier = (await txRequest.claimPaymentModifier()).dividedBy(100);
-    const claimingGasCost = targetGasPrice.times(CLAIMING_GAS_ESTIMATE);
-    const reward = txRequest.bounty.times(paymentModifier).minus(claimingGasCost);
+    const expectedProfit = await this.profitabilityCalculator.claimingProfitability(
+      txRequest,
+      claimingGasPrice
+    );
     const minProfitability = this.strategy.minProfitability;
-
-    const isProfitable = reward.greaterThanOrEqualTo(minProfitability);
+    const isProfitable = expectedProfit.greaterThanOrEqualTo(minProfitability);
 
     this.logger.debug(
-      `isClaimingProfitable: paymentModifier=${paymentModifier} targetGasPrice=${targetGasPrice} bounty=${
-        txRequest.bounty
-      } reward=${reward} >= minProfitability=${minProfitability} returns ${isProfitable}`,
+      `isClaimingProfitable:  claimingGasPrice=${claimingGasPrice} expectedProfit=${expectedProfit} >= minProfitability=${minProfitability} returns ${isProfitable}`,
       txRequest.address
     );
 
