@@ -1,3 +1,5 @@
-import TxPool, { ITxPoolTxDetails, ITxPool } from './TxPool';
+import DirectTxPool from './DirectTxPool';
+import { ITxPool, ITxPoolTxDetails } from './ITxPool';
+import TxPool from './TxPool';
 
-export { TxPool, ITxPoolTxDetails, ITxPool };
+export { DirectTxPool, TxPool, ITxPoolTxDetails, ITxPool };

@@ -1,10 +1,10 @@
-import { IFilterTx } from './TxPool';
 import { ILogger, DefaultLogger } from '../Logger';
 import { CLAIMED_EVENT, EXECUTED_EVENT } from '../Actions/Helpers';
 import { Operation } from '../Types/Operation';
 import { ITxPoolTxDetails } from '.';
 import { Util } from '@ethereum-alarm-clock/lib';
 import BigNumber from 'bignumber.js';
+import { Log } from 'web3/types';
 
 export default class TxPoolProcessor {
   private logger: ILogger;
@@ -15,7 +15,7 @@ export default class TxPoolProcessor {
     this.util = util;
   }
 
-  public async process(transaction: IFilterTx, pool: Map<string, ITxPoolTxDetails>) {
+  public async process(transaction: Log, pool: Map<string, ITxPoolTxDetails>) {
     if (!this.hasKnownEvents(transaction)) {
       throw new Error('Unknown events');
     }
@@ -25,18 +25,16 @@ export default class TxPoolProcessor {
       transaction.address
     );
 
-    const { transactionHash, type } = transaction;
+    const { transactionHash } = transaction;
     const operation =
       transaction.topics.indexOf(CLAIMED_EVENT) > -1 ? Operation.CLAIM : Operation.EXECUTE;
 
-    if (type === 'pending' || !pool.has(transactionHash)) {
-      await this.setTxPoolDetails(pool, transactionHash, type, operation);
-    } else {
-      pool.get(transactionHash).type = type;
+    if (!pool.has(transactionHash)) {
+      await this.setTxPoolDetails(pool, transactionHash, operation);
     }
   }
 
-  private hasKnownEvents(transaction: IFilterTx): boolean {
+  private hasKnownEvents(transaction: Log): boolean {
     return (
       transaction.topics.indexOf(CLAIMED_EVENT) > -1 ||
       transaction.topics.indexOf(EXECUTED_EVENT) > -1
@@ -46,11 +44,10 @@ export default class TxPoolProcessor {
   private async setTxPoolDetails(
     pool: Map<string, ITxPoolTxDetails>,
     transactionHash: string,
-    type: string,
     operation: Operation
   ) {
     try {
-      const poolDetails = await this.getTxPoolDetails(transactionHash, type, operation);
+      const poolDetails = await this.getTxPoolDetails(transactionHash, operation);
 
       pool.set(transactionHash, poolDetails);
     } catch (e) {
@@ -60,7 +57,6 @@ export default class TxPoolProcessor {
 
   private async getTxPoolDetails(
     transactionHash: string,
-    type: string,
     operation: Operation
   ): Promise<ITxPoolTxDetails> {
     const tx = await this.util.getTransaction(transactionHash);
@@ -68,7 +64,6 @@ export default class TxPoolProcessor {
       to: tx.to,
       gasPrice: new BigNumber(tx.gasPrice),
       timestamp: new Date().getTime(),
-      type,
       operation
     };
   }
