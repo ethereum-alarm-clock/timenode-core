@@ -101,13 +101,8 @@ export class EconomicStrategyManager {
       : average;
 
     const minGasPrice = txRequest.gasPrice;
-    const maxGasPrice = minGasPrice.times(this.maxSubsidyFactor);
 
-    return currentNetworkPrice.greaterThan(maxGasPrice)
-      ? maxGasPrice
-      : currentNetworkPrice.lessThan(minGasPrice)
-      ? minGasPrice
-      : currentNetworkPrice;
+    return currentNetworkPrice.greaterThan(minGasPrice) ? currentNetworkPrice : minGasPrice;
   }
 
   public async shouldExecuteTx(
