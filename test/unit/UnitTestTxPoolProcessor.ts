@@ -44,6 +44,6 @@ describe('TxPoolProcessor Unit Tests', () => {
     assert.isTrue(pool.has(transactionHash));
     assert.equal(res.operation, Operation.CLAIM);
     assert.equal(res.to, address);
-    assert.isTrue(res.gasPrice.equals(gasPrice));
+    assert.isTrue(res.gasPrice.isEqualTo(gasPrice));
   });
 });
