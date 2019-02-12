@@ -42,9 +42,9 @@ export class Ledger implements ILedger {
     const gasUsed = new BigNumber(receipt.gasUsed);
     const gasPrice = new BigNumber(opts.gasPrice);
     const success = isTransactionStatusSuccessful(receipt.status);
-    let txCost = gasUsed.mul(gasPrice);
+    let txCost = gasUsed.multipliedBy(gasPrice);
     if (success) {
-      txCost = txCost.add(txRequest.requiredDeposit);
+      txCost = txCost.plus(txRequest.requiredDeposit);
     }
 
     this.statsDB.claimed(from, txRequest.address, txCost, success);
@@ -67,9 +67,9 @@ export class Ledger implements ILedger {
 
     if (success) {
       const data = receipt.logs[0].data;
-      bounty = new BigNumber(data.slice(0, 66)).sub(gasUsed.mul(actualGasPrice));
+      bounty = new BigNumber(data.slice(0, 66)).minus(gasUsed.multipliedBy(actualGasPrice));
     } else {
-      cost = gasUsed.mul(actualGasPrice);
+      cost = gasUsed.multipliedBy(actualGasPrice);
     }
 
     this.statsDB.executed(from, txRequest.address, cost, bounty, success);

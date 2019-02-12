@@ -48,7 +48,7 @@ export class ProfitabilityCalculator {
       .times(paymentModifier)
       .minus(executionSubsidy)
       .plus(txRequest.isClaimed ? requiredDeposit : 0)
-      .round();
+      .decimalPlaces(0);
 
     this.logger.debug(
       `executionProfitability: executionSubsidy=${executionSubsidy} for executionGasPrice=${executionGasPrice} returns expectedReward=${reward}`,

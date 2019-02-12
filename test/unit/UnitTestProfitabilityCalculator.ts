@@ -82,7 +82,7 @@ describe('Profitability Calculator Tests', () => {
       .times(paymentModifier)
       .minus(claimingGasCost)
       .minus(executionSubsidy)
-      .round();
+      .decimalPlaces(0);
 
   const calculateExpectedRewardWhenExecuting = (
     txRequest: ITransactionRequest,
@@ -93,7 +93,7 @@ describe('Profitability Calculator Tests', () => {
       .times(paymentModifier)
       .minus(executionSubsidy)
       .plus(txRequest.isClaimed ? txRequest.requiredDeposit : 0)
-      .round();
+      .decimalPlaces(0);
 
   const zeroProfitabilityExecutionGasPrice = (
     txRequest: ITransactionRequest,
@@ -124,8 +124,8 @@ describe('Profitability Calculator Tests', () => {
 
       const result = await strategy.claimingProfitability(txRequest, defaultGasPrice);
 
-      assert.isTrue(expectedReward.equals(result));
-      assert.isTrue(result.greaterThan(0));
+      assert.isTrue(expectedReward.isEqualTo(result));
+      assert.isTrue(result.isGreaterThan(0));
     });
 
     it('calculates profitability with 0 minimum execution gas price', async () => {
@@ -146,8 +146,8 @@ describe('Profitability Calculator Tests', () => {
 
       const result = await strategy.claimingProfitability(txRequest, defaultGasPrice);
 
-      assert.isTrue(expectedReward.equals(result));
-      assert.isTrue(result.greaterThan(0));
+      assert.isTrue(expectedReward.isEqualTo(result));
+      assert.isTrue(result.isGreaterThan(0));
     });
   });
 
@@ -167,8 +167,8 @@ describe('Profitability Calculator Tests', () => {
 
       const result = await strategy.executionProfitability(txRequest, defaultGasPrice);
 
-      assert.isTrue(expectedReward.equals(result));
-      assert.isTrue(result.greaterThan(0));
+      assert.isTrue(expectedReward.isEqualTo(result));
+      assert.isTrue(result.isGreaterThan(0));
     });
 
     it('returns 0 profitability when network gas price at zero profitability', async () => {
@@ -193,7 +193,7 @@ describe('Profitability Calculator Tests', () => {
 
       const result = await strategy.executionProfitability(txRequest, maximumGasPrice);
 
-      assert.isTrue(expectedReward.equals(result));
+      assert.isTrue(expectedReward.isEqualTo(result));
       assert.isTrue(result.isZero());
     });
 
@@ -223,7 +223,7 @@ describe('Profitability Calculator Tests', () => {
 
       const result = await strategy.executionProfitability(txRequest, negativeRewardGasPrice);
 
-      assert.isTrue(expectedReward.equals(result));
+      assert.isTrue(expectedReward.isEqualTo(result));
       assert.isTrue(result.isNegative());
     });
   });

@@ -58,25 +58,30 @@ const mockTxRequest = async (web3: Web3, isBlock?: boolean): Promise<ITransactio
       return this.claimedBy === address;
     },
     async beforeClaimWindow(): Promise<boolean> {
-      return this.claimWindowStart.greaterThan(await this.now());
+      return this.claimWindowStart.isGreaterThan(await this.now());
     },
     async inClaimWindow() {
       const now = await this.now();
-      return this.claimWindowStart.lessThanOrEqualTo(now) && this.claimWindowEnd.greaterThan(now);
+      return (
+        this.claimWindowStart.isLessThanOrEqualTo(now) && this.claimWindowEnd.isGreaterThan(now)
+      );
     },
     async inFreezePeriod() {
       const now = await this.now();
-      return this.claimWindowEnd.lessThanOrEqualTo(now) && this.freezePeriodEnd.greaterThan(now);
+      return (
+        this.claimWindowEnd.isLessThanOrEqualTo(now) && this.freezePeriodEnd.isGreaterThan(now)
+      );
     },
     async inExecutionWindow() {
       const now = await this.now();
       return (
-        this.windowStart.lessThanOrEqualTo(now) && this.executionWindowEnd.greaterThanOrEqualTo(now)
+        this.windowStart.isLessThanOrEqualTo(now) &&
+        this.executionWindowEnd.isGreaterThanOrEqualTo(now)
       );
     },
     async inReservedWindow() {
       const now = await this.now();
-      return this.windowStart.lessThanOrEqualTo(now) && this.reservedWindowEnd.greaterThan(now);
+      return this.windowStart.isLessThanOrEqualTo(now) && this.reservedWindowEnd.isGreaterThan(now);
     },
     async now(): Promise<BigNumber> {
       return new BigNumber(isBlock ? new BigNumber(currentBlockNumber) : moment().unix());

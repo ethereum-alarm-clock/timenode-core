@@ -130,15 +130,15 @@ describe('Stats Unit Tests', () => {
       assert.equal(successfulClaimsAccount1[0].from, account1);
       assert.equal(successfulClaimsAccount1[0].txAddress, tx1);
 
-      assert.isTrue(successfulClaimsAccount1[0].cost.equals(cost));
-      assert.isTrue(successfulClaimsAccount1[0].bounty.equals(expectedBounty));
+      assert.isTrue(successfulClaimsAccount1[0].cost.isEqualTo(cost));
+      assert.isTrue(successfulClaimsAccount1[0].bounty.isEqualTo(expectedBounty));
 
       assert.lengthOf(successfulClaimsAccount2, 1);
       assert.equal(successfulClaimsAccount2[0].from, account2);
       assert.equal(successfulClaimsAccount2[0].txAddress, tx2);
 
-      assert.isTrue(successfulClaimsAccount2[0].cost.equals(cost));
-      assert.isTrue(successfulClaimsAccount2[0].bounty.equals(expectedBounty));
+      assert.isTrue(successfulClaimsAccount2[0].cost.isEqualTo(cost));
+      assert.isTrue(successfulClaimsAccount2[0].bounty.isEqualTo(expectedBounty));
     });
 
     it('inserts and selects failed claims', () => {
@@ -167,15 +167,15 @@ describe('Stats Unit Tests', () => {
       assert.equal(successfulExecutionsAccount1[0].from, account1);
       assert.equal(successfulExecutionsAccount1[0].txAddress, tx1);
 
-      assert.isTrue(successfulExecutionsAccount1[0].cost.equals(cost));
-      assert.isTrue(successfulExecutionsAccount1[0].bounty.equals(bounty));
+      assert.isTrue(successfulExecutionsAccount1[0].cost.isEqualTo(cost));
+      assert.isTrue(successfulExecutionsAccount1[0].bounty.isEqualTo(bounty));
 
       assert.lengthOf(successfulExecutionsAccount2, 1);
       assert.equal(successfulExecutionsAccount2[0].from, account2);
       assert.equal(successfulExecutionsAccount2[0].txAddress, tx2);
 
-      assert.isTrue(successfulExecutionsAccount2[0].cost.equals(cost));
-      assert.isTrue(successfulExecutionsAccount2[0].bounty.equals(bounty));
+      assert.isTrue(successfulExecutionsAccount2[0].cost.isEqualTo(cost));
+      assert.isTrue(successfulExecutionsAccount2[0].bounty.isEqualTo(bounty));
     });
 
     it('inserts and selects failed executions', () => {
@@ -278,14 +278,14 @@ describe('Stats Unit Tests', () => {
       stats.executed(account1, tx3, cost, bounty, true);
       stats.executed(account2, tx2, cost, bounty, true);
 
-      const expectedAccount1Bounty = bounty.mul(2);
+      const expectedAccount1Bounty = bounty.multipliedBy(2);
       const expectedAccount2Bounty = bounty;
 
       const totalBountiesAccount1 = stats.totalBounty(account1);
       const totalBountiesAccount2 = stats.totalBounty(account2);
 
-      assert.isTrue(totalBountiesAccount1.equals(expectedAccount1Bounty));
-      assert.isTrue(totalBountiesAccount2.equals(expectedAccount2Bounty));
+      assert.isTrue(totalBountiesAccount1.isEqualTo(expectedAccount1Bounty));
+      assert.isTrue(totalBountiesAccount2.isEqualTo(expectedAccount2Bounty));
     });
   });
 
@@ -302,14 +302,14 @@ describe('Stats Unit Tests', () => {
       stats.claimed(account1, tx1, cost, true);
       stats.claimed(account1, tx2, cost, false);
 
-      const expectedAccount1Cost = cost.mul(4); //2 executions 2claims
+      const expectedAccount1Cost = cost.multipliedBy(4); //2 executions 2claims
       const expectedAccount2Cost = cost;
 
       const totalCostAccount1 = stats.totalCost(account1);
       const totalCostAccount2 = stats.totalCost(account2);
 
-      assert.isTrue(totalCostAccount1.equals(expectedAccount1Cost));
-      assert.isTrue(totalCostAccount2.equals(expectedAccount2Cost));
+      assert.isTrue(totalCostAccount1.isEqualTo(expectedAccount1Cost));
+      assert.isTrue(totalCostAccount2.isEqualTo(expectedAccount2Cost));
     });
   });
 

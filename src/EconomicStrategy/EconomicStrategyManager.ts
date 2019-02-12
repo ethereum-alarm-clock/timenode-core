@@ -102,7 +102,7 @@ export class EconomicStrategyManager {
 
     const minGasPrice = txRequest.gasPrice;
 
-    return currentNetworkPrice.greaterThan(minGasPrice) ? currentNetworkPrice : minGasPrice;
+    return currentNetworkPrice.isGreaterThan(minGasPrice) ? currentNetworkPrice : minGasPrice;
   }
 
   public async shouldExecuteTx(
@@ -113,7 +113,7 @@ export class EconomicStrategyManager {
       txRequest,
       targetGasPrice
     );
-    const shouldExecute = expectedProfit.greaterThanOrEqualTo(0);
+    const shouldExecute = expectedProfit.isGreaterThanOrEqualTo(0);
 
     this.logger.debug(
       `shouldExecuteTx: expectedProfit=${expectedProfit} >= 0 returns ${shouldExecute}`,
@@ -130,7 +130,7 @@ export class EconomicStrategyManager {
 
     const minWindow = temporalUnit === 1 ? minClaimWindowBlock : minClaimWindow;
 
-    return claimWindowEnd.sub(now).lt(minWindow);
+    return claimWindowEnd.minus(now).lt(minWindow);
   }
 
   private tooShortReserved(txRequest: ITransactionRequest): boolean {
@@ -177,11 +177,11 @@ export class EconomicStrategyManager {
     if (gasPrices.length) {
       const subsidyFactor = this.maxSubsidyFactor;
       costOfExecutingFutureTransactions = gasPrices.reduce((sum: BigNumber, current: BigNumber) =>
-        sum.add(current.times(subsidyFactor))
+        sum.plus(current.times(subsidyFactor))
       );
     }
 
-    const requiredBalance = minBalance.add(costOfExecutingFutureTransactions);
+    const requiredBalance = minBalance.plus(costOfExecutingFutureTransactions);
     const isAboveMinBalanceLimit = currentBalance.gt(requiredBalance);
 
     this.logger.debug(
@@ -201,7 +201,7 @@ export class EconomicStrategyManager {
       claimingGasPrice
     );
     const minProfitability = this.strategy.minProfitability;
-    const isProfitable = expectedProfit.greaterThanOrEqualTo(minProfitability);
+    const isProfitable = expectedProfit.isGreaterThanOrEqualTo(minProfitability);
 
     this.logger.debug(
       `isClaimingProfitable:  claimingGasPrice=${claimingGasPrice} expectedProfit=${expectedProfit} >= minProfitability=${minProfitability} returns ${isProfitable}`,
@@ -227,9 +227,10 @@ export class EconomicStrategyManager {
     const inReservedWindow = await txRequest.inReservedWindow();
 
     const timeLeft = inReservedWindow
-      ? txRequest.reservedWindowEnd.sub(now)
-      : txRequest.executionWindowEnd.sub(now);
-    const normalizedTimeLeft = temporalUnit === 1 ? timeLeft.mul(gasStats.blockTime) : timeLeft;
+      ? txRequest.reservedWindowEnd.plus(now)
+      : txRequest.executionWindowEnd.plus(now);
+    const normalizedTimeLeft =
+      temporalUnit === 1 ? timeLeft.multipliedBy(gasStats.blockTime) : timeLeft;
 
     const gasEstimation = new NormalizedTimes(gasStats, temporalUnit).pickGasPrice(
       normalizedTimeLeft
