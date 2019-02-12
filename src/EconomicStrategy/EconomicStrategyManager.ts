@@ -102,7 +102,7 @@ export class EconomicStrategyManager {
 
     const minGasPrice = txRequest.gasPrice;
 
-    return currentNetworkPrice.greaterThan(minGasPrice) ? currentNetworkPrice : minGasPrice;
+    return currentNetworkPrice.isGreaterThan(minGasPrice) ? currentNetworkPrice : minGasPrice;
   }
 
   public async shouldExecuteTx(
@@ -113,7 +113,7 @@ export class EconomicStrategyManager {
       txRequest,
       targetGasPrice
     );
-    const shouldExecute = expectedProfit.greaterThanOrEqualTo(0);
+    const shouldExecute = expectedProfit.isGreaterThanOrEqualTo(0);
 
     this.logger.debug(
       `shouldExecuteTx: expectedProfit=${expectedProfit} >= 0 returns ${shouldExecute}`,
@@ -201,7 +201,7 @@ export class EconomicStrategyManager {
       claimingGasPrice
     );
     const minProfitability = this.strategy.minProfitability;
-    const isProfitable = expectedProfit.greaterThanOrEqualTo(minProfitability);
+    const isProfitable = expectedProfit.isGreaterThanOrEqualTo(minProfitability);
 
     this.logger.debug(
       `isClaimingProfitable:  claimingGasPrice=${claimingGasPrice} expectedProfit=${expectedProfit} >= minProfitability=${minProfitability} returns ${isProfitable}`,
