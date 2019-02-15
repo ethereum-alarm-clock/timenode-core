@@ -27,67 +27,30 @@ export enum TxSendStatus {
 
 // tslint:disable-next-line:no-namespace
 export namespace TxSendStatus {
-  export function STATUS(msg: TxSendStatus, context: TxSendStatus) {
+  export function STATUS(msg: TxSendStatus, context: TxSendStatus.claim | TxSendStatus.execute) {
     switch (msg) {
       case TxSendStatus.SUCCESS:
-        switch (context) {
-          case TxSendStatus.claim:
-            this.TYPE_VARIABLE = 'Claiming: Success';
-            break;
-          case TxSendStatus.execute:
-            this.TYPE_VARIABLE = 'Execution: Success';
-            break;
-        }
+        this.TYPE_VARIABLE = `${context}: Success`;
         break;
       case TxSendStatus.BUSY:
-        switch (context) {
-          case TxSendStatus.claim:
-            this.TYPE_VARIABLE = 'Claiming: Skipped - Account is busy';
-            break;
-          case TxSendStatus.execute:
-            this.TYPE_VARIABLE = 'Execution: Skipped - Wallet is busy';
-            break;
-        }
+        this.TYPE_VARIABLE = `${context}: Skipped - Account is busy`;
         break;
       case TxSendStatus.PROGRESS:
-        switch (context) {
-          case TxSendStatus.claim:
-            this.TYPE_VARIABLE = 'Claiming: Skipped - In progress';
-            break;
-          case TxSendStatus.execute:
-            this.TYPE_VARIABLE = 'Execution: Skipped - In progress';
-            break;
-        }
+        this.TYPE_VARIABLE = `${context}: Skipped - In progress`;
         break;
       case TxSendStatus.PENDING:
-        switch (context) {
-          case TxSendStatus.claim:
-            this.TYPE_VARIABLE = 'Claiming: Skipped - Other claiming found';
-            break;
-          case TxSendStatus.execute:
-            this.TYPE_VARIABLE = 'Execution: Skipped - Other execution found';
-            break;
-        }
+        this.TYPE_VARIABLE = TxSendStatus.claim
+          ? 'Claiming: Skipped - Other claiming found'
+          : 'Execution: Skipped - Other execution found';
         break;
       case TxSendStatus.FAIL:
-        switch (context) {
-          case TxSendStatus.claim:
-            this.TYPE_VARIABLE = 'Claiming: Transaction already claimed';
-            break;
-          case TxSendStatus.execute:
-            this.TYPE_VARIABLE = 'Execution: Unable to send the execute action';
-            break;
-        }
+        this.TYPE_VARIABLE = TxSendStatus.claim
+          ? 'Claiming: Transaction already claimed'
+          : 'Execution: Unable to send the execute action';
         break;
       case TxSendStatus.MINED_IN_UNCLE:
-        switch (context) {
-          case TxSendStatus.claim:
-            this.TYPE_VARIABLE = 'Claiming: Transaction mined in uncle block';
-            break;
-          case TxSendStatus.execute:
-            this.TYPE_VARIABLE = 'Execution: Transaction mined in uncle block';
-            break;
-        }
+        this.TYPE_VARIABLE = `${context}: Transaction mined in uncle block`;
+        break;
     }
 
     return this.TYPE_VARIABLE;

@@ -4,7 +4,10 @@ import { TxStatus, FnSignatures } from '../../src/Enum';
 import Web3 = require('web3');
 import { ITransactionRequest } from '@ethereum-alarm-clock/lib';
 
-const mockTxRequest = async (web3: Web3, isBlock?: boolean): Promise<ITransactionRequest> => {
+const mockTxRequest = async (
+  web3: Web3,
+  isBlock: boolean = false
+): Promise<ITransactionRequest> => {
   const claimedBy = '0x0000000000000000000000000000000000000000';
   const requiredDeposit = new BigNumber(web3.utils.toWei('0.1', 'ether'));
 
