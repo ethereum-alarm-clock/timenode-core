@@ -25,7 +25,6 @@ export const scheduleTestTx = async (blocksInFuture = 270) => {
     from: mainAccount,
     toAddress: mainAccount,
     callGas,
-    callData: '',
     callValue,
     windowSize: new BigNumber(30),
     windowStart: new BigNumber((await web3.eth.getBlockNumber()) + blocksInFuture),
