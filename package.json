@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/ethereum-alarm-clock/timenode-core#readme",
   "dependencies": {
-    "@ethereum-alarm-clock/lib": "0.3.4",
+    "@ethereum-alarm-clock/lib": "0.3.5",
     "bignumber.js": "8.0.2",
     "ethereum-common": "0.2.1",
     "ethereumjs-block": "2.2.0",
