@@ -55,7 +55,7 @@
     "@types/chai": "4.1.7",
     "@types/ethereumjs-tx": "1.0.1",
     "@types/lokijs": "1.5.2",
-    "@types/node": "11.9.4",
+    "@types/node": "11.11.6",
     "@types/node-fetch": "2.1.6",
     "@types/web3": "1.0.18",
     "chai": "4.2.0",
