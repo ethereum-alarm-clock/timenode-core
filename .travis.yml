@@ -7,7 +7,7 @@ node_js:
 cache:
   directories:
     - node_modules
-before_install: npm install -g truffle
+before_install: npm install -g truffle@4.1.14
 install: npm install
 
 before_script:
