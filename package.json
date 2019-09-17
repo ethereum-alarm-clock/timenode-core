@@ -52,7 +52,7 @@
     "node-fetch": "2.3.0"
   },
   "devDependencies": {
-    "@types/chai": "4.1.7",
+    "@types/chai": "4.2.3",
     "@types/ethereumjs-tx": "1.0.1",
     "@types/lokijs": "1.5.2",
     "@types/node": "11.9.4",
